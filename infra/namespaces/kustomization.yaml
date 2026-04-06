@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 모든 클러스터 오버레이가 공용으로 import 하는 base
+resources:
+  - namespaces.yaml
