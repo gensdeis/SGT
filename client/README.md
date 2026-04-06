@@ -46,20 +46,36 @@ kubectl -n shortgeta-dev port-forward svc/shortgeta-server 18081:80
   4. Inspector 에서 `Server Config` 슬롯에 `Assets/Data/ServerConfig-Dev` 드래그
 - Scene 열고 ▶ Play
 
-### 5. 기대 흐름
+### 5. 기대 흐름 (Iter 2A: 풀 세션)
 
 ```
 [Bootstrap] 시작
   └─ device id (PlayerPrefs 에 저장된 GUID 또는 신규 생성)
   └─ POST /v1/auth/device → JWT 저장
   └─ TimeSync 캘리브레이션
+  └─ MinigameRegistry 에 6개 게임 등록
   └─ Home UI 활성화 (programmatic 생성)
         └─ "▶ 한판 더" 클릭
-        └─ POST /v1/sessions → 추천 큐 수신
-        └─ FrogCatch 30초 플레이
-        └─ 점수 HMAC 서명 → POST /v1/sessions/:id/end
-        └─ Result UI → 다시
+        └─ POST /v1/sessions → 추천 큐 수신 (5개 game_id)
+        └─ MinigameSession 으로 5게임 순차 실행 (각각 2초 카운트다운)
+        └─ 5개 점수 각각 HMAC 서명 → 단일 POST /v1/sessions/:id/end 일괄 제출
+        └─ Result UI 에 게임별 점수 + 합계
 ```
+
+> **빠른 디버그 모드**: BootstrapController Inspector 의 `Run Frog Catch Only`
+> 토글을 켜면 frog_catch 1판만 실행. 풀 세션은 약 3분 걸려서 매 빌드마다
+> 돌리기 비현실적이라 토글 제공.
+
+## 구현된 미니게임 (6개)
+
+| GameId | 한국어 | 시간 | 최대 점수 | 한 줄 설명 |
+|---|---|---|---|---|
+| frog_catch_v1 | 개구리 잡아라 | 30s | 1000 | 랜덤 등장 개구리 탭 |
+| noodle_boil_v1 | 라면 끓이지 마라 | 45s | 500 | 5라운드 progress bar 60~80% 정확도 |
+| poker_face_v1 | 포커페이스 유지 | 60s | 800 | 매초 +14, 가짜 보상 버튼 -100 |
+| dark_souls_v1 | Dark Souls 도전 | 30s | 300 | 1/10 확률 +30, 실패 시 YOU DIED |
+| kakao_unread_v1 | 카톡 읽씹하기 | 20s | 600 | 매초 +30, 가짜 알림 -50 |
+| math_genius_v1 | 수학 천재 도전 | 30s | 1500 | 1자리수 +/- 4지선다 |
 
 콘솔에 단계별 로그 출력. PlayerPrefs 클리어:
 `Edit → Clear All PlayerPrefs`

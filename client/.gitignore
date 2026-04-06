@@ -60,3 +60,5 @@ crashlytics-build.properties
 # Local secrets
 .env.local
 *.secret
+
+Assets/Fonts/malgun.ttf
