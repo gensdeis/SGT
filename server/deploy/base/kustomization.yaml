@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# base 는 dev/qa/real 공용 컴포넌트만 포함.
+# postgres/redis 는 dev 에서만 인클러스터, qa/real 은 외부 관리형 사용 — overlay 에서 제외.
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+  - secret.yaml
+  - postgres.yaml
+  - redis.yaml

@@ -1,0 +1,58 @@
+# dev 전용 인-클러스터 PostgreSQL.
+# QA/Real 은 외부 관리형 (Supabase/RDS) 사용 — base 에서 제외하고 dev overlay 만 포함하도록.
+apiVersion: v1
+kind: Service
+metadata:
+  name: shortgeta-postgres
+spec:
+  selector:
+    app: shortgeta-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: shortgeta-postgres
+spec:
+  serviceName: shortgeta-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shortgeta-postgres
+  template:
+    metadata:
+      labels:
+        app: shortgeta-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: shortgeta
+            - name: POSTGRES_PASSWORD
+              value: devpass
+            - name: POSTGRES_DB
+              value: shortgeta_dev
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "shortgeta", "-d", "shortgeta_dev"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
