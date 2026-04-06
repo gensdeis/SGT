@@ -16,7 +16,9 @@ spec:
   sources:
     - repoURL: https://argoproj.github.io/argo-helm
       chart: argocd-image-updater
-      targetRevision: 1.1.4
+      # 0.14.0 = legacy annotation-driven 마지막 버전.
+      # 1.0+ 는 ImageUpdater CRD 기반으로 재작성되어 Application annotation 패턴 미지원.
+      targetRevision: 0.14.0
       helm:
         releaseName: argocd-image-updater
         valueFiles:
