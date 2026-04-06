@@ -1,5 +1,12 @@
-# 숏게타 Go 게임 서버 (placeholder)
-# 실제 매니페스트는 server/deploy/ 또는 helm chart 완성 후 연결.
+# 숏게타 Go 게임 서버
+# argocd-image-updater 가 ghcr.io/gensdeis/shortgeta-server 의 새 short_sha 태그를
+# 폴링해서 자동으로 spec.source.kustomize.images 를 갱신한다.
+#
+# 동작 흐름:
+#   1. CI 가 :main + :<short_sha> 두 태그로 push
+#   2. image-updater 가 :<short_sha> (8자리 hex) 태그 중 newest-build 선택
+#   3. ArgoCD Application 의 kustomize images 오버라이드 갱신 (live patch)
+#   4. ArgoCD 가 sync → 새 이미지로 rollout
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -7,12 +14,23 @@ metadata:
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # 추적할 이미지 (alias=image)
+    argocd-image-updater.argoproj.io/image-list: api=ghcr.io/gensdeis/shortgeta-server
+    # 8자리 short_sha 태그만 후보로 (regexp 매칭, :main 제외)
+    argocd-image-updater.argoproj.io/api.allow-tags: regexp:^[0-9a-f]{8}$
+    # newest-build 전략: 이미지 manifest 의 created_at 기준 최신
+    argocd-image-updater.argoproj.io/api.update-strategy: newest-build
+    # kustomize image override 키 (base 의 image: 와 일치)
+    argocd-image-updater.argoproj.io/api.kustomize.image-name: ghcr.io/gensdeis/shortgeta-server
+    # ArgoCD live state 만 패치 (git commit 없음, dev 에 적합)
+    argocd-image-updater.argoproj.io/write-back-method: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/gensdeis/SGT.git
     targetRevision: dev
-    path: server/deploy/overlays/dev              # TODO: 서버 프로젝트 진행 후 생성
+    path: server/deploy/overlays/dev
   destination:
     server: https://kubernetes.default.svc
     namespace: shortgeta-dev
