@@ -1,0 +1,24 @@
+# 숏게타 Go 게임 서버 (placeholder)
+# 실제 매니페스트는 server/deploy/ 또는 helm chart 완성 후 연결.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shortgeta-server-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/gensdeis/SGT.git
+    targetRevision: dev
+    path: server/deploy/overlays/dev              # TODO: 서버 프로젝트 진행 후 생성
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: shortgeta-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
