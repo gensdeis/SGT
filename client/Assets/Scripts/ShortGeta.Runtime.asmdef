@@ -4,7 +4,9 @@
     "references": [
         "Unity.TextMeshPro",
         "UniTask",
-        "Unity.Newtonsoft.Json"
+        "Unity.Newtonsoft.Json",
+        "Unity.Addressables",
+        "Unity.ResourceManager"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

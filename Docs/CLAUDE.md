@@ -41,9 +41,12 @@ client/
 │   │   │   ├── InputEvent.cs
 │   │   │   ├── MinigameLauncher.cs
 │   │   │   ├── MinigameSession.cs
+│   │   │   ├── MinigameRegistry.cs
 │   │   │   ├── ScoreVariable.cs   # XOR 난독화 SafeInt/SafeFloat
 │   │   │   ├── TimeSync.cs
-│   │   │   └── TagSystem.cs
+│   │   │   ├── TagSystem.cs
+│   │   │   ├── IRecordingService.cs + Recording/  # 9:16 하이라이트 (Iter 2B)
+│   │   │   └── Bundles/            # Addressables 추상화 (Iter 2C)
 │   │   ├── Minigames/         # 오리지널 미니게임 (Iter 2A: 6개 모두 구현 완료)
 │   │   │   ├── FrogCatch/     # frog_catch_v1   30s  max 1000
 │   │   │   ├── NoodleBoil/    # noodle_boil_v1  45s  max 500
