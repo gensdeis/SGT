@@ -24,22 +24,26 @@
 - `Docs/GIT_STRATEGY.md` — 모노레포 + 브랜치 전략
 - `Docs/dev_guidelines.md` — 개발 지침서
 
-## 향후 작업 (TODO)
+## 흡수 완료 (2026-04-06)
 
-v3의 다음 상세 설계는 정식 문서로 흡수되어야 한다:
+v3의 핵심 설계는 정식 문서로 흡수되었다.
 
-**BACKEND_PLAN.md로 흡수 대상**
-- HMAC 동적 키 파생 전략 (런타임 조합 + 게임별 파생)
-- Worker Pool 패턴 (Analytics / Leaderboard 큐 깊이 모니터링)
-- Graceful Shutdown 절차
-- pgx Pool 단계별 권장값
-- 구조화 로깅 (slog) 규칙
-- Prometheus 미들웨어 + 커스텀 메트릭
+**BACKEND_PLAN.md 흡수 완료**
+- [x] HMAC 동적 키 파생 전략 (런타임 조합 + 게임별 파생) + 코딩 규칙
+- [x] Worker Pool 패턴 (Analytics / Ranking 큐 깊이 Gauge)
+- [x] Graceful Shutdown 절차
+- [x] pgx Pool Phase별 권장값 (10/25/50)
+- [x] 구조화 로깅 (slog) 규칙
+- [x] Prometheus 미들웨어 + 커스텀 메트릭
+- [x] Non-blocking 점수 제출 UX 원칙
+- [x] sqlc / goose / Fiber UserContext / DI / Mock 코딩 규칙
 
-**INFRA_PLAN.md로 흡수 대상**
-- Sealed Secrets 마스터 키 백업 절차 (필수)
-- GHCR Private 이미지 PAT 인증 (imagePullSecrets)
-- cert-manager + Let's Encrypt ClusterIssuer
-- Grafana + Loki + Prometheus 스택
-- Grafana 알림 기준
-- 장애 등급(P1/P2/P3) 및 대응 절차
+**INFRA_PLAN.md 흡수 완료**
+- [x] Sealed Secrets 마스터 키 백업 절차 (필수)
+- [x] GHCR Private 이미지 PAT 인증 (imagePullSecrets)
+- [x] cert-manager + Let's Encrypt ClusterIssuer
+- [x] Grafana + Loki + Prometheus 스택 (Phase 2)
+- [x] Grafana 알림 기준
+- [x] 장애 등급(P1/P2/P3) 및 대응 런북
+
+> v3 원본은 참조용으로 보존하되, 모든 구현은 정식 문서를 따른다.
