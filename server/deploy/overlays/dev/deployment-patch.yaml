@@ -8,8 +8,8 @@ spec:
     spec:
       containers:
         - name: api
-          # dev 는 로컬 빌드 이미지를 kind load 로 주입한다.
-          # docker build -t shortgeta-server:dev server/
-          # kind load docker-image shortgeta-server:dev --name shortgeta
-          image: shortgeta-server:dev
-          imagePullPolicy: IfNotPresent
+          # GHCR 자동 push (server-ci.yaml docker-push job).
+          # main 브랜치 push 마다 :main 태그 갱신.
+          # 특정 커밋 고정이 필요하면 :<short_sha> 사용.
+          image: ghcr.io/gensdeis/shortgeta-server:main
+          imagePullPolicy: Always
