@@ -77,6 +77,34 @@ kubectl -n shortgeta-dev port-forward svc/shortgeta-server 18081:80
 | kakao_unread_v1 | 카톡 읽씹하기 | 20s | 600 | 매초 +30, 가짜 알림 -50 |
 | math_genius_v1 | 수학 천재 도전 | 30s | 1500 | 1자리수 +/- 4지선다 |
 
+## Addressables (Iter 2C MVP)
+
+`com.unity.addressables 2.10.0` 패키지가 설치되어 있고, `IBundleLoader` 추상화를
+통해 사용 가능합니다. 현재는 인프라 세팅 + 데모 자산 1개 동작 검증 단계입니다.
+미니게임 prefab 화는 Iter 2C' 에서 진행 예정.
+
+### 사용자 1회 액션 — 데모 자산 마크
+
+`Assets/Demo/HelloAddressable.txt` 파일이 commit 되어 있습니다. 이 파일을 한 번
+Addressable 로 마크해야 데모 동작:
+
+1. Project 패널 → `Assets/Demo/HelloAddressable.txt` 클릭
+2. Inspector 상단 **Addressable** 체크박스 ✅
+3. 우측 입력란에 **`demo/hello`** 입력 → 다른 곳 클릭
+
+상세 절차: `client/docs/addressables-build.md`
+
+### Editor Play 시 기대 로그
+
+```
+[Bundles] AddressableBundleLoader.InitializeAsync OK
+[Bundles] Hello from Addressable bundle!
+[Bundles] manifest registered 6 entries (non-empty: 0)
+```
+
+> "non-empty: 0" 은 정상 — 서버 `bundle_url` 이 모두 빈 문자열. Iter 2C' 에서
+> 미니게임 prefab 을 실제 bundle 로 만들고 서버에 URL 등록 시 0 → 6 으로 변함.
+
 ## 하이라이트 녹화 (Iter 2B MVP)
 
 각 미니게임 종료 시 직전 ~3초 (10fps × 30 프레임) 가 자동 캡처되어 PNG 시퀀스로
