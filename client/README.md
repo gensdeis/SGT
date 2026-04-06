@@ -77,6 +77,23 @@ kubectl -n shortgeta-dev port-forward svc/shortgeta-server 18081:80
 | kakao_unread_v1 | 카톡 읽씹하기 | 20s | 600 | 매초 +30, 가짜 알림 -50 |
 | math_genius_v1 | 수학 천재 도전 | 30s | 1500 | 1자리수 +/- 4지선다 |
 
+## 하이라이트 녹화 (Iter 2B MVP)
+
+각 미니게임 종료 시 직전 ~3초 (10fps × 30 프레임) 가 자동 캡처되어 PNG 시퀀스로
+저장됩니다. Result UI 의 **📁 하이라이트 보기** 버튼으로 폴더를 열 수 있습니다.
+
+| 항목 | 값 |
+|---|---|
+| 캡처 fps | 10 |
+| 버퍼 크기 | 30 프레임 (3초) |
+| 저장 위치 | `Application.persistentDataPath/highlights/{timestamp}_{gameId}/` |
+| 형식 | PNG 시퀀스 (`frame_000.png ~ frame_029.png`) |
+| 동작 환경 | Unity Editor / Windows / Mac / Linux Standalone |
+| 모바일 | NativeStub (Iter 2B' 에서 MediaProjection/ReplayKit native plugin 으로 교체) |
+
+> Editor 에서 "하이라이트 보기" 클릭 시 OS 파일 탐색기로 폴더가 열림.
+> 모바일 빌드에서는 stub 동작 — UI 는 Toast 안내 표시.
+
 콘솔에 단계별 로그 출력. PlayerPrefs 클리어:
 `Edit → Clear All PlayerPrefs`
 
