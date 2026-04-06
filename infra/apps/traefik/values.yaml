@@ -1,0 +1,41 @@
+# Traefik Helm values — 로컬 단일 노드 개발용
+# https://github.com/traefik/traefik-helm-chart
+
+deployment:
+  replicas: 1
+
+service:
+  type: LoadBalancer  # k3s 기본 ServiceLB(klipper-lb)가 처리
+
+ports:
+  web:
+    port: 80
+    expose:
+      default: true
+  websecure:
+    port: 443
+    expose:
+      default: true
+    tls:
+      enabled: true
+
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+
+# 대시보드는 개발용으로만 노출 (운영 환경에서는 비활성화)
+ingressRoute:
+  dashboard:
+    enabled: true
+
+logs:
+  general:
+    level: INFO
+  access:
+    enabled: true
+
+providers:
+  kubernetesCRD:
+    enabled: true
+  kubernetesIngress:
+    enabled: true

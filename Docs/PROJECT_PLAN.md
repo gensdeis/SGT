@@ -238,4 +238,7 @@ Phase 3  자동 필터 전면 적용 후 UGC 오픈
 | `PROJECT_PLAN.md` | 이 파일 — 계획서 핵심 요약 |
 | `GIT_STRATEGY.md` | 모노레포 구성 + 브랜치 전략 |
 | `BACKEND_PLAN.md` | Go 백엔드 Phase별 구현 계획 |
+| `INFRA_PLAN.md` | k3s + ArgoCD 인프라 구현 계획 |
+| `dev_guidelines.md` | 개발 지침서 (환경/규칙/장애 대응) |
+| `archive/` | 이전 v3 설계 문서 (참조용, 정식 아님) |
 | `shortgeta-plan-v1.3.html` | 전체 계획서 (HTML 리포트) |
