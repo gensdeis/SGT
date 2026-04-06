@@ -1,0 +1,35 @@
+# Argo CD Image Updater
+# https://argocd-image-updater.readthedocs.io/
+#
+# 컨테이너 레지스트리를 polling 해서 새 이미지가 push 되면
+# ArgoCD Application 의 spec.source.kustomize.images 를 자동으로 갱신한다.
+# write-back-method: argocd → ArgoCD live state 만 패치 (git commit 없음)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-image-updater
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://argoproj.github.io/argo-helm
+      chart: argocd-image-updater
+      targetRevision: 1.1.4
+      helm:
+        releaseName: argocd-image-updater
+        valueFiles:
+          - $values/infra/apps/argocd-image-updater/values.yaml
+    - repoURL: https://github.com/gensdeis/SGT.git
+      targetRevision: dev
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
