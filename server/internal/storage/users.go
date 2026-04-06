@@ -3,36 +3,43 @@ package storage
 import (
 	"context"
 
+	"github.com/gensdeis/SGT/server/internal/storage/sqlc"
 	"github.com/google/uuid"
 )
 
-const sqlGetUserByDeviceID = `SELECT id, device_id, created_at, last_seen_at FROM users WHERE device_id = $1`
-
 func (s *Store) GetUserByDeviceID(ctx context.Context, deviceID string) (User, error) {
-	var u User
-	err := s.pool.QueryRow(ctx, sqlGetUserByDeviceID, deviceID).Scan(&u.ID, &u.DeviceID, &u.CreatedAt, &u.LastSeenAt)
-	return u, wrapNoRows(err)
+	u, err := s.q.GetUserByDeviceID(ctx, deviceID)
+	if err != nil {
+		return User{}, wrapNoRows(err)
+	}
+	return convertUser(u), nil
 }
-
-const sqlCreateUser = `INSERT INTO users (device_id) VALUES ($1) RETURNING id, device_id, created_at, last_seen_at`
 
 func (s *Store) CreateUser(ctx context.Context, deviceID string) (User, error) {
-	var u User
-	err := s.pool.QueryRow(ctx, sqlCreateUser, deviceID).Scan(&u.ID, &u.DeviceID, &u.CreatedAt, &u.LastSeenAt)
-	return u, err
+	u, err := s.q.CreateUser(ctx, deviceID)
+	if err != nil {
+		return User{}, err
+	}
+	return convertUser(u), nil
 }
-
-const sqlUpdateLastSeen = `UPDATE users SET last_seen_at = now() WHERE id = $1`
 
 func (s *Store) UpdateLastSeen(ctx context.Context, id uuid.UUID) error {
-	_, err := s.pool.Exec(ctx, sqlUpdateLastSeen, id)
-	return err
+	return s.q.UpdateLastSeen(ctx, id)
 }
 
-const sqlGetUserByID = `SELECT id, device_id, created_at, last_seen_at FROM users WHERE id = $1`
-
 func (s *Store) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
-	var u User
-	err := s.pool.QueryRow(ctx, sqlGetUserByID, id).Scan(&u.ID, &u.DeviceID, &u.CreatedAt, &u.LastSeenAt)
-	return u, wrapNoRows(err)
+	u, err := s.q.GetUserByID(ctx, id)
+	if err != nil {
+		return User{}, wrapNoRows(err)
+	}
+	return convertUser(u), nil
+}
+
+func convertUser(u sqlc.User) User {
+	return User{
+		ID:         u.ID,
+		DeviceID:   u.DeviceID,
+		CreatedAt:  u.CreatedAt,
+		LastSeenAt: u.LastSeenAt,
+	}
 }

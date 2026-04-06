@@ -1,70 +1,42 @@
 package storage
 
-import "context"
+import (
+	"context"
 
-const sqlListGames = `
-SELECT id, title, creator_id, time_limit_sec, tags, bundle_url, bundle_version, bundle_hash, created_at
-FROM games ORDER BY id`
+	"github.com/gensdeis/SGT/server/internal/storage/sqlc"
+)
 
 func (s *Store) ListGames(ctx context.Context) ([]Game, error) {
-	rows, err := s.pool.Query(ctx, sqlListGames)
+	rows, err := s.q.ListGames(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	out := make([]Game, 0)
-	for rows.Next() {
-		var g Game
-		if err := rows.Scan(&g.ID, &g.Title, &g.CreatorID, &g.TimeLimitSec, &g.Tags, &g.BundleURL, &g.BundleVersion, &g.BundleHash, &g.CreatedAt); err != nil {
-			return nil, err
-		}
-		out = append(out, g)
+	out := make([]Game, len(rows))
+	for i, r := range rows {
+		out[i] = convertGame(r)
 	}
-	return out, rows.Err()
+	return out, nil
 }
-
-const sqlListGamesByTags = `
-SELECT id, title, creator_id, time_limit_sec, tags, bundle_url, bundle_version, bundle_hash, created_at
-FROM games WHERE tags && $1::text[] ORDER BY id`
 
 func (s *Store) ListGamesByTags(ctx context.Context, tags []string) ([]Game, error) {
-	rows, err := s.pool.Query(ctx, sqlListGamesByTags, tags)
+	rows, err := s.q.ListGamesByTags(ctx, tags)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	out := make([]Game, 0)
-	for rows.Next() {
-		var g Game
-		if err := rows.Scan(&g.ID, &g.Title, &g.CreatorID, &g.TimeLimitSec, &g.Tags, &g.BundleURL, &g.BundleVersion, &g.BundleHash, &g.CreatedAt); err != nil {
-			return nil, err
-		}
-		out = append(out, g)
+	out := make([]Game, len(rows))
+	for i, r := range rows {
+		out[i] = convertGame(r)
 	}
-	return out, rows.Err()
+	return out, nil
 }
-
-const sqlGetGameByID = `
-SELECT id, title, creator_id, time_limit_sec, tags, bundle_url, bundle_version, bundle_hash, created_at
-FROM games WHERE id = $1`
 
 func (s *Store) GetGameByID(ctx context.Context, id string) (Game, error) {
-	var g Game
-	err := s.pool.QueryRow(ctx, sqlGetGameByID, id).Scan(&g.ID, &g.Title, &g.CreatorID, &g.TimeLimitSec, &g.Tags, &g.BundleURL, &g.BundleVersion, &g.BundleHash, &g.CreatedAt)
-	return g, wrapNoRows(err)
+	g, err := s.q.GetGameByID(ctx, id)
+	if err != nil {
+		return Game{}, wrapNoRows(err)
+	}
+	return convertGame(g), nil
 }
-
-const sqlUpsertGame = `
-INSERT INTO games (id, title, creator_id, time_limit_sec, tags, bundle_url, bundle_version, bundle_hash)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-ON CONFLICT (id) DO UPDATE SET
-    title = EXCLUDED.title,
-    creator_id = EXCLUDED.creator_id,
-    time_limit_sec = EXCLUDED.time_limit_sec,
-    tags = EXCLUDED.tags,
-    bundle_url = EXCLUDED.bundle_url,
-    bundle_version = EXCLUDED.bundle_version,
-    bundle_hash = EXCLUDED.bundle_hash`
 
 // UpsertGameParams 는 UpsertGame 인자.
 type UpsertGameParams struct {
@@ -79,6 +51,28 @@ type UpsertGameParams struct {
 }
 
 func (s *Store) UpsertGame(ctx context.Context, p UpsertGameParams) error {
-	_, err := s.pool.Exec(ctx, sqlUpsertGame, p.ID, p.Title, p.CreatorID, p.TimeLimitSec, p.Tags, p.BundleURL, p.BundleVersion, p.BundleHash)
-	return err
+	return s.q.UpsertGame(ctx, sqlc.UpsertGameParams{
+		ID:            p.ID,
+		Title:         p.Title,
+		CreatorID:     p.CreatorID,
+		TimeLimitSec:  p.TimeLimitSec,
+		Tags:          p.Tags,
+		BundleUrl:     p.BundleURL,
+		BundleVersion: p.BundleVersion,
+		BundleHash:    p.BundleHash,
+	})
+}
+
+func convertGame(g sqlc.Game) Game {
+	return Game{
+		ID:            g.ID,
+		Title:         g.Title,
+		CreatorID:     g.CreatorID,
+		TimeLimitSec:  g.TimeLimitSec,
+		Tags:          g.Tags,
+		BundleURL:     g.BundleUrl,
+		BundleVersion: g.BundleVersion,
+		BundleHash:    g.BundleHash,
+		CreatedAt:     g.CreatedAt,
+	}
 }
