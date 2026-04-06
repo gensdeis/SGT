@@ -1,0 +1,36 @@
+# dev 전용 인-클러스터 Redis.
+apiVersion: v1
+kind: Service
+metadata:
+  name: shortgeta-redis
+spec:
+  selector:
+    app: shortgeta-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shortgeta-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shortgeta-redis
+  template:
+    metadata:
+      labels:
+        app: shortgeta-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
