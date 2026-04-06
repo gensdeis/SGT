@@ -13,3 +13,23 @@ sql:
         emit_prepared_queries: false
         emit_exact_table_names: false
         emit_empty_slices: true
+        overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              package: "uuid"
+              type: "UUID"
+          - db_type: "timestamptz"
+            go_type:
+              import: "time"
+              type: "Time"
+          - db_type: "timestamptz"
+            nullable: true
+            go_type:
+              import: "time"
+              type: "Time"
+              pointer: true
+          - db_type: "date"
+            go_type:
+              import: "time"
+              type: "Time"

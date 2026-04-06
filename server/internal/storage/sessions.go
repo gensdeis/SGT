@@ -3,13 +3,9 @@ package storage
 import (
 	"context"
 
+	"github.com/gensdeis/SGT/server/internal/storage/sqlc"
 	"github.com/google/uuid"
 )
-
-const sqlCreateSession = `
-INSERT INTO sessions (user_id, recommended_game_ids, dda_intensity)
-VALUES ($1, $2, $3)
-RETURNING id, user_id, started_at, ended_at, recommended_game_ids, dda_intensity`
 
 // CreateSessionParams 는 새 세션 생성 인자.
 type CreateSessionParams struct {
@@ -19,46 +15,32 @@ type CreateSessionParams struct {
 }
 
 func (s *Store) CreateSession(ctx context.Context, p CreateSessionParams) (Session, error) {
-	var sess Session
-	err := s.pool.QueryRow(ctx, sqlCreateSession, p.UserID, p.RecommendedGameIDs, p.DDAIntensity).Scan(
-		&sess.ID, &sess.UserID, &sess.StartedAt, &sess.EndedAt, &sess.RecommendedGameIDs, &sess.DDAIntensity)
-	return sess, err
+	sess, err := s.q.CreateSession(ctx, sqlc.CreateSessionParams{
+		UserID:             p.UserID,
+		RecommendedGameIds: p.RecommendedGameIDs,
+		DdaIntensity:       p.DDAIntensity,
+	})
+	if err != nil {
+		return Session{}, err
+	}
+	return convertSession(sess), nil
 }
-
-const sqlGetSession = `
-SELECT id, user_id, started_at, ended_at, recommended_game_ids, dda_intensity
-FROM sessions WHERE id = $1`
 
 func (s *Store) GetSession(ctx context.Context, id uuid.UUID) (Session, error) {
-	var sess Session
-	err := s.pool.QueryRow(ctx, sqlGetSession, id).Scan(
-		&sess.ID, &sess.UserID, &sess.StartedAt, &sess.EndedAt, &sess.RecommendedGameIDs, &sess.DDAIntensity)
-	return sess, wrapNoRows(err)
+	sess, err := s.q.GetSession(ctx, id)
+	if err != nil {
+		return Session{}, wrapNoRows(err)
+	}
+	return convertSession(sess), nil
 }
-
-const sqlEndSession = `UPDATE sessions SET ended_at = now() WHERE id = $1 AND user_id = $2`
 
 func (s *Store) EndSession(ctx context.Context, id, userID uuid.UUID) error {
-	_, err := s.pool.Exec(ctx, sqlEndSession, id, userID)
-	return err
+	return s.q.EndSession(ctx, sqlc.EndSessionParams{ID: id, UserID: userID})
 }
-
-const sqlCountSessionsByUser = `SELECT COUNT(*) FROM sessions WHERE user_id = $1`
 
 func (s *Store) CountSessionsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	var n int64
-	err := s.pool.QueryRow(ctx, sqlCountSessionsByUser, userID).Scan(&n)
-	return n, err
+	return s.q.CountSessionsByUser(ctx, userID)
 }
-
-const sqlInsertSessionResult = `
-INSERT INTO session_results (session_id, game_id, score, play_time_sec, cleared)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (session_id, game_id) DO UPDATE SET
-    score = EXCLUDED.score,
-    play_time_sec = EXCLUDED.play_time_sec,
-    cleared = EXCLUDED.cleared,
-    submitted_at = now()`
 
 // InsertSessionResultParams 는 점수 기록 인자.
 type InsertSessionResultParams struct {
@@ -70,52 +52,60 @@ type InsertSessionResultParams struct {
 }
 
 func (s *Store) InsertSessionResult(ctx context.Context, p InsertSessionResultParams) error {
-	_, err := s.pool.Exec(ctx, sqlInsertSessionResult, p.SessionID, p.GameID, p.Score, p.PlayTimeSec, p.Cleared)
-	return err
+	return s.q.InsertSessionResult(ctx, sqlc.InsertSessionResultParams{
+		SessionID:   p.SessionID,
+		GameID:      p.GameID,
+		Score:       p.Score,
+		PlayTimeSec: p.PlayTimeSec,
+		Cleared:     p.Cleared,
+	})
 }
-
-const sqlListResultsBySession = `
-SELECT session_id, game_id, score, play_time_sec, cleared, submitted_at
-FROM session_results WHERE session_id = $1`
 
 func (s *Store) ListResultsBySession(ctx context.Context, sessionID uuid.UUID) ([]SessionResult, error) {
-	rows, err := s.pool.Query(ctx, sqlListResultsBySession, sessionID)
+	rows, err := s.q.ListResultsBySession(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	out := make([]SessionResult, 0)
-	for rows.Next() {
-		var r SessionResult
-		if err := rows.Scan(&r.SessionID, &r.GameID, &r.Score, &r.PlayTimeSec, &r.Cleared, &r.SubmittedAt); err != nil {
-			return nil, err
-		}
-		out = append(out, r)
+	out := make([]SessionResult, len(rows))
+	for i, r := range rows {
+		out[i] = convertSessionResult(r)
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
-const sqlListRecentResultsByUser = `
-SELECT sr.session_id, sr.game_id, sr.score, sr.play_time_sec, sr.cleared, sr.submitted_at
-FROM session_results sr
-JOIN sessions s ON sr.session_id = s.id
-WHERE s.user_id = $1
-ORDER BY sr.submitted_at DESC
-LIMIT $2`
-
 func (s *Store) ListRecentResultsByUser(ctx context.Context, userID uuid.UUID, limit int32) ([]SessionResult, error) {
-	rows, err := s.pool.Query(ctx, sqlListRecentResultsByUser, userID, limit)
+	rows, err := s.q.ListRecentResultsByUser(ctx, sqlc.ListRecentResultsByUserParams{
+		UserID: userID,
+		Limit:  limit,
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	out := make([]SessionResult, 0)
-	for rows.Next() {
-		var r SessionResult
-		if err := rows.Scan(&r.SessionID, &r.GameID, &r.Score, &r.PlayTimeSec, &r.Cleared, &r.SubmittedAt); err != nil {
-			return nil, err
-		}
-		out = append(out, r)
+	out := make([]SessionResult, len(rows))
+	for i, r := range rows {
+		out[i] = convertSessionResult(r)
 	}
-	return out, rows.Err()
+	return out, nil
+}
+
+func convertSession(s sqlc.Session) Session {
+	return Session{
+		ID:                 s.ID,
+		UserID:             s.UserID,
+		StartedAt:          s.StartedAt,
+		EndedAt:            s.EndedAt,
+		RecommendedGameIDs: s.RecommendedGameIds,
+		DDAIntensity:       s.DdaIntensity,
+	}
+}
+
+func convertSessionResult(r sqlc.SessionResult) SessionResult {
+	return SessionResult{
+		SessionID:   r.SessionID,
+		GameID:      r.GameID,
+		Score:       r.Score,
+		PlayTimeSec: r.PlayTimeSec,
+		Cleared:     r.Cleared,
+		SubmittedAt: r.SubmittedAt,
+	}
 }

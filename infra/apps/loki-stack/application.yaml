@@ -1,0 +1,31 @@
+# loki-stack: Loki (log aggregation) + Promtail (log shipper)
+# kube-prometheus-stack 의 Grafana 가 자동으로 데이터소스 등록 (additionalDataSources)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: loki-stack
+      targetRevision: 2.10.3
+      helm:
+        releaseName: loki
+        valueFiles:
+          - $values/infra/apps/loki-stack/values.yaml
+    - repoURL: https://github.com/gensdeis/SGT.git
+      targetRevision: dev
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

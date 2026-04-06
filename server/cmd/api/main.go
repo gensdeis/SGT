@@ -23,6 +23,7 @@ import (
 	"github.com/gensdeis/SGT/server/internal/auth"
 	"github.com/gensdeis/SGT/server/internal/config"
 	"github.com/gensdeis/SGT/server/internal/game"
+	"github.com/gensdeis/SGT/server/internal/migrate"
 	"github.com/gensdeis/SGT/server/internal/purchase"
 	"github.com/gensdeis/SGT/server/internal/purchase/playstore"
 	"github.com/gensdeis/SGT/server/internal/ranking"
@@ -66,6 +67,17 @@ func main() {
 	}
 	defer pool.Close()
 	go db.StartMetricsLoop(rootCtx, pool, 5*time.Second)
+
+	// Auto-migrate (goose 라이브러리)
+	if cfg.AutoMigrate {
+		if err := migrate.Up(rootCtx, pool, cfg.MigrationsPath); err != nil {
+			slog.Error("auto-migrate failed", "error", err)
+			os.Exit(1)
+		}
+	} else {
+		slog.Info("AUTO_MIGRATE=false — 마이그레이션 건너뜀")
+	}
+
 	store := storage.New(pool)
 
 	// === 4. Redis ===

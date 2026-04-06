@@ -11,3 +11,4 @@ resources:
   - secret.yaml
   - postgres.yaml
   - redis.yaml
+  - servicemonitor.yaml
