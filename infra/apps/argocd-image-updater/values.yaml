@@ -1,24 +1,16 @@
 # argocd-image-updater — kind 로컬 dev 프로파일
 # https://github.com/argoproj/argo-helm/tree/main/charts/argocd-image-updater
+#
+# Public ghcr.io 패키지만 폴링하므로 registries 설정 불필요 (default anonymous).
 
 config:
-  # 5분마다 polling
   argocd:
     grpcWeb: true
     serverAddress: argocd-server.argocd.svc.cluster.local
     insecure: true
     plaintext: false
 
-  # 레지스트리 (ghcr 는 default 동작하지만 명시)
-  registries:
-    - name: GitHub Container Registry
-      api_url: https://ghcr.io
-      prefix: ghcr.io
-      ping: yes
-      credentials: ext:/dev/null  # public 패키지라 인증 불필요
-      default: false
-
-# polling 주기
+# polling 주기 2분
 extraArgs:
   - --interval
   - 2m
