@@ -174,9 +174,13 @@ POST /v1/analytics/event    플레이 이벤트 수집
 
 ## 하이라이트 녹화 규칙
 
+> **Iter 2B (MVP 완료)**: Editor / Standalone 에서 PNG 시퀀스 + circular buffer 동작.
+> 모바일 native plugin (MediaProjection / ReplayKit) + MP4 인코딩 + 워터마크 +
+> 원탭 공유 는 Iter 2B' 후속.
+
 - 녹화 대상: 클리어/실패 직전 **3초**
-- 포맷: 9:16 MP4, 최대 10MB
-- 워터마크: 숏게타 로고 우하단 고정
+- 포맷: 9:16 MP4, 최대 10MB (현재 PNG 시퀀스, MP4 는 후속)
+- 워터마크: 숏게타 로고 우하단 고정 (후속)
 - Android: MediaRecorder API
 - iOS: ReplayKit
 - 통합: RecordingService 추상 클래스로 플랫폼 분기
