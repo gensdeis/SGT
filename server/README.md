@@ -1,6 +1,7 @@
 # 숏게타 — Go 게임 서버 (`server/`)
 
 `Docs/BACKEND_PLAN.md` Phase 1 구현체.
+이미지: `ghcr.io/gensdeis/shortgeta-server:<short_sha>` (CI 자동 push).
 
 ## 빠른 시작 (로컬)
 

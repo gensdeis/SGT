@@ -17,8 +17,9 @@ spec:
       terminationGracePeriodSeconds: 45
       containers:
         - name: api
-          image: shortgeta-server:dev
-          imagePullPolicy: IfNotPresent
+          # base 의 이미지는 placeholder. 각 overlay (dev/qa/real) 에서 patch 한다.
+          image: ghcr.io/gensdeis/shortgeta-server:main
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
               name: http
