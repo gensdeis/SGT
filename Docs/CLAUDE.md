@@ -21,7 +21,7 @@
 
 | 레이어 | 기술 | 비고 |
 |--------|------|------|
-| 클라이언트 | Unity 2022.3 LTS | Android 우선 → iOS → Steam |
+| 클라이언트 | Unity 6.4 LTS (6000.4.1f1) | Android 우선 → iOS → Steam (URP, IL2CPP, ARM64) |
 | 게임 비율 | 9:16 세로형 | 최소 해상도 720×1280 |
 | 백엔드 | Go | REST API |
 | 인프라 | k3s + ArgoCD | GitHub Actions CI/CD |
@@ -30,28 +30,35 @@
 
 ---
 
-## 폴더 구조 (Unity 프로젝트)
+## 폴더 구조 (Unity 프로젝트 — 모노레포 `client/`)
 
 ```
-Assets/
-├── Scripts/
-│   ├── Core/              # 플랫폼 코어 (변경 금지)
-│   │   ├── IMinigame.cs
-│   │   ├── MinigameLauncher.cs
-│   │   ├── MinigameSession.cs
-│   │   └── TagSystem.cs
-│   ├── Minigames/         # 오리지널 미니게임
-│   │   ├── FrogCatch/
-│   │   ├── NoodleBoil/
-│   │   └── PokerFace/
-│   ├── UI/
-│   │   ├── Mobile/        # 모바일 전용 UI
-│   │   └── PC/            # PC/Steam 전용 UI
-│   ├── Network/           # API 클라이언트
-│   └── Analytics/         # 플레이 이력 수집
-├── Addressables/          # 번들 그룹 설정
-├── Prefabs/
-└── Tests/                 # EditMode + PlayMode 테스트
+client/
+├── Assets/
+│   ├── Scripts/
+│   │   ├── Core/              # 플랫폼 코어 (변경 금지)
+│   │   │   ├── IMinigame.cs
+│   │   │   ├── InputEvent.cs
+│   │   │   ├── MinigameLauncher.cs
+│   │   │   ├── MinigameSession.cs
+│   │   │   ├── ScoreVariable.cs   # XOR 난독화 SafeInt/SafeFloat
+│   │   │   ├── TimeSync.cs
+│   │   │   └── TagSystem.cs
+│   │   ├── Minigames/         # 오리지널 미니게임
+│   │   │   └── FrogCatch/     # Iter 1: 1개만, 나머지 5개는 Iter 2~3
+│   │   ├── UI/Mobile/         # BootstrapController, Toast 등
+│   │   ├── Network/           # ApiClient, HmacSigner, *Api, JwtStore, ServerConfig, Models
+│   │   └── ShortGeta.Runtime.asmdef
+│   ├── Settings/              # URP 프로필
+│   ├── Data/                  # ScriptableObject (ServerConfig-Dev 등)
+│   ├── Scenes/                # Bootstrap.unity (사용자가 Editor 에서 생성)
+│   ├── Prefabs/
+│   └── Tests/
+│       ├── EditMode/          # Hmac, ScoreVariable, TimeSync
+│       └── PlayMode/          # MinigameLauncher 등
+├── Packages/manifest.json     # UniTask, URP 17, Newtonsoft.Json, TestFramework
+├── ProjectSettings/
+└── README.md
 ```
 
 ---
