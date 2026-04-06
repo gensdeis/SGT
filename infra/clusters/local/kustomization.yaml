@@ -5,7 +5,7 @@ kind: Kustomization
 # kubectl apply -k clusters/local
 
 resources:
-  - ../../namespaces/namespaces.yaml
+  - ../../namespaces
   - apps.yaml
 
 # ArgoCD install.yaml은 vendor된 대형 매니페스트라 별도로 적용한다:

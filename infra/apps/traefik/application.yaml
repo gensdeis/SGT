@@ -9,14 +9,18 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://traefik.github.io/charts
-    chart: traefik
-    targetRevision: 39.0.7
-    helm:
-      valueFiles:
-        - $values/infra/apps/traefik/values.yaml
-  sources: []
+  sources:
+    # Helm chart source
+    - repoURL: https://traefik.github.io/charts
+      chart: traefik
+      targetRevision: 39.0.7
+      helm:
+        valueFiles:
+          - $values/infra/apps/traefik/values.yaml
+    # values.yaml 이 있는 git repo (ref: values 로 위 $values 가 해석됨)
+    - repoURL: https://github.com/gensdeis/SGT.git
+      targetRevision: dev
+      ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: traefik
