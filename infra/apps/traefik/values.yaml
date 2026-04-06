@@ -16,8 +16,8 @@ ports:
     port: 443
     expose:
       default: true
-    tls:
-      enabled: true
+    # Traefik chart v28+ : websecure entrypoint 는 TLS 기본 활성화이므로
+    # ports.websecure.tls 블록은 제거 (스키마 거부됨)
 
 ingressClass:
   enabled: true
