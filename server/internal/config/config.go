@@ -31,6 +31,8 @@ type Config struct {
 	DevMockReceipt bool
 
 	GamesConfigPath string
+	MigrationsPath  string
+	AutoMigrate     bool
 }
 
 // Load 는 환경변수에서 설정을 읽어 Config 를 반환한다.
@@ -50,6 +52,8 @@ func Load() (*Config, error) {
 		HMACReplayWindow: time.Duration(getenvInt("HMAC_REPLAY_WINDOW_SEC", 30)) * time.Second,
 		DevMockReceipt:   getenvBool("DEV_MOCK_RECEIPT", false),
 		GamesConfigPath:  getenvDefault("GAMES_CONFIG_PATH", "./config/games.yaml"),
+		MigrationsPath:   getenvDefault("MIGRATIONS_PATH", "./db/migrations"),
+		AutoMigrate:      getenvBool("AUTO_MIGRATE", true),
 	}
 
 	if cfg.DatabaseURL == "" {
