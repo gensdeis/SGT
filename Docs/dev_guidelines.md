@@ -1,8 +1,12 @@
-# 미니게임 프로젝트 — 개발 지침서
+# 숏게타(ShortGameTown) — 개발 지침서
 
 > 이 문서는 개발자가 코드 작성에만 집중할 수 있도록
 > 환경 세팅부터 배포까지 모든 개발 절차를 단일 문서로 정의한다.
-> 서버 개발 계획서(v5) 및 인프라 계획서(v3) 의 내용을 기반으로 한다.
+> 마스터 계획서: `shortgeta-plan-v1.3.html` (v1.3 기준)
+>
+> ⚠️ 본 문서 일부 섹션은 **이전 v3 설계(아카이브)** 의 멀티레포·`develop` 브랜치 가정을 기반으로 작성되었다.
+> **레포 구조와 브랜치 전략은 아래 §1, §3 을 따른다.** v3 가정과 충돌하는 다른 섹션(CI/CD, 인프라 운영 등)은
+> 향후 모노레포 + `dev`/`qa`/`real` 브랜치 기반으로 갱신될 예정.
 
 ---
 
@@ -23,15 +27,19 @@
 
 ## 1. 레포지토리 구조
 
-| 레포 | 역할 | 주요 브랜치 |
-|---|---|---|
-| `minigame-server` | Go 백엔드 소스 + Dockerfile + GitHub Actions | main, develop |
-| `minigame-client` | Unity 클라이언트 소스 + GitHub Actions | main, develop |
-| `k8s-manifests` | K8s 매니페스트 (ArgoCD 가 바라보는 레포) | main |
-| `terraform` | 클라우드 리소스 정의 | main |
+**모노레포 — `gensdeis/SGT` 단일 레포 안에 4개 프로젝트 디렉토리 구분.**
+상세는 `GIT_STRATEGY.md` 참조.
 
-> `k8s-manifests` 와 `terraform` 은 GitHub Actions 봇이 자동으로 커밋한다.
-> 사람이 직접 수정할 때는 반드시 PR 을 통해 리뷰 후 머지한다.
+| 디렉토리 | 역할 |
+|---|---|
+| `client/` | Unity 클라이언트 (Unity 2022.3 LTS, Addressables) |
+| `server/` | Go 게임 서버 (Game Registry / Ranking / Analytics / Creator API) |
+| `ops-tool/` | 게임 운영툴 (Phase 2~ UGC 심사 포함) |
+| `infra/` | k8s 매니페스트 + ArgoCD App-of-Apps + GitHub Actions |
+| `Docs/` | 계획·규칙·가이드 |
+
+> CI/CD 는 path filter 로 변경된 디렉토리에 따라 분기한다.
+> ArgoCD 는 `infra/clusters/<env>/` 를 추적한다.
 
 ---
 
@@ -118,35 +126,40 @@ source .env.local && air
 
 ## 3. Git 브랜치 전략
 
+상세 정책: `GIT_STRATEGY.md`
+
 ### 브랜치 구조
 
-```
-main          → prod 환경 배포 (태그 생성 시)
-develop       → dev 환경 자동 배포
-feature/*     → 기능 개발
-fix/*         → 버그 수정
-hotfix/*      → prod 긴급 수정
-```
+| 브랜치 | 용도 | 푸시 정책 |
+|--------|------|-----------|
+| `main` | 백업 통합 | 권한 없이 직접 푸시 가능 |
+| `dev` | 개발 (ArgoCD local 클러스터 추적 대상) | PR 필요 |
+| `qa` | 라이브 서비스 전 검증 | PR 필요 |
+| `real` | 현재 라이브(real) | PR 필요 |
+| `hotfix` | 긴급 핫픽스용 | PR 필요 |
+| `pre` | 이전 버전 롤백용 | PR 필요 |
 
 ### 기본 흐름
 
 ```
-feature/기능명 → develop → (검증 완료) → main → 태그(v1.x.x) → prod 배포
+feature/기능명 → dev (PR) → qa (PR) → real (PR, 태그 생성) → 배포
+                                  └─ hotfix → real + dev (PR)
 ```
 
 ### 브랜치 생성 규칙
 
 ```bash
 # 기능 개발
-git checkout develop
+git checkout dev
+git pull
 git checkout -b feature/score-validation
 
 # 버그 수정
-git checkout develop
+git checkout dev
 git checkout -b fix/hmac-timestamp-drift
 
-# prod 긴급 수정
-git checkout main
+# 긴급 핫픽스 (real 기준)
+git checkout real
 git checkout -b hotfix/leaderboard-timeout
 ```
 

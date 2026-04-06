@@ -1,0 +1,37 @@
+# 참조본 — 실제 워크플로우는 .github/workflows/ 로 복사해서 사용
+# infra/ 변경 PR 시 매니페스트 검증 (kubeconform + kustomize build)
+name: infra-validate
+
+on:
+  pull_request:
+    paths:
+      - 'infra/**'
+  push:
+    branches: [main, dev]
+    paths:
+      - 'infra/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Setup kubeconform
+        run: |
+          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar xz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Kustomize build (local cluster)
+        run: kustomize build infra/clusters/local > /tmp/local.yaml
+
+      - name: Kubeconform validate
+        run: |
+          kubeconform -strict -ignore-missing-schemas \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            /tmp/local.yaml

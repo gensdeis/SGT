@@ -1,0 +1,25 @@
+# ArgoCD App-of-Apps 패턴
+# 이 Application 하나가 apps/ 아래의 모든 자식 App을 추적한다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shortgeta-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/gensdeis/SGT.git
+    targetRevision: dev
+    path: infra/apps
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

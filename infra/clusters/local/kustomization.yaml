@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 로컬 단일 노드 클러스터 진입점
+# kubectl apply -k clusters/local
+
+resources:
+  - ../../namespaces/namespaces.yaml
+  - apps.yaml
+
+# ArgoCD install.yaml은 vendor된 대형 매니페스트라 별도로 적용한다:
+#   kubectl apply -n argocd -f infra/apps/argocd/install.yaml
+# 상세는 infra/bootstrap/docker-desktop.md 참조

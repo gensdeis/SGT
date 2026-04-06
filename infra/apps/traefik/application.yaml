@@ -1,0 +1,28 @@
+# Traefik 인그레스 컨트롤러 (ArgoCD Application)
+# Helm chart 기반 배포. 실제 values는 values.yaml에 정의.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://traefik.github.io/charts
+    chart: traefik
+    targetRevision: 39.0.7
+    helm:
+      valueFiles:
+        - $values/infra/apps/traefik/values.yaml
+  sources: []
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: traefik
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
