@@ -1,6 +1,12 @@
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using ShortGeta.Core;
+using ShortGeta.Minigames.DarkSouls;
 using ShortGeta.Minigames.FrogCatch;
+using ShortGeta.Minigames.KakaoUnread;
+using ShortGeta.Minigames.MathGenius;
+using ShortGeta.Minigames.NoodleBoil;
+using ShortGeta.Minigames.PokerFace;
 using ShortGeta.Network;
 using TMPro;
 using UnityEngine;
@@ -12,12 +18,13 @@ namespace ShortGeta.UI.Mobile
     //   1. ServerConfig 주입 받음 (Inspector)
     //   2. device id → 로그인 → JWT 저장 → TimeSync
     //   3. 게임 목록 로드 → "▶ 한판 더" 버튼 표시
-    //   4. 클릭 → 세션 시작 → FrogCatch 1판 → 점수 제출 → Result 표시 → 홈
+    //   4. 클릭 → 세션 시작 → MinigameSession 으로 추천 큐 순차 실행 → 일괄 점수 제출 → Result
     //
-    // UI 는 모두 런타임 programmatic 생성 (Iter 1 minimal). Iter 2 이후 prefab 화.
+    // UI 는 모두 런타임 programmatic 생성. Iter 3 에서 prefab 화.
     public class BootstrapController : MonoBehaviour
     {
         [SerializeField] private ServerConfig serverConfig;
+        [SerializeField] private bool runFrogCatchOnly = false; // true=Iter1 동작 (디버그용)
 
         private ApiClient _api;
         private AuthApi _authApi;
@@ -25,6 +32,8 @@ namespace ShortGeta.UI.Mobile
         private SessionApi _sessionApi;
         private RankingApi _rankingApi;
         private AnalyticsApi _analyticsApi;
+
+        private MinigameRegistry _registry;
 
         private Canvas _rootCanvas;
         private GameObject _homePanel;
@@ -46,6 +55,7 @@ namespace ShortGeta.UI.Mobile
             _rankingApi = new RankingApi(_api);
             _analyticsApi = new AnalyticsApi(_api);
 
+            BuildRegistry();
             BuildRootUI();
 
             try
@@ -61,6 +71,46 @@ namespace ShortGeta.UI.Mobile
                 Debug.LogError($"[Bootstrap] init failed: {e}");
                 Toast.Show("서버 연결 실패: " + e.Message, 5f);
             }
+        }
+
+        // 6개 미니게임 모두 등록. 새 게임 추가 시 여기에 한 줄만 추가.
+        private void BuildRegistry()
+        {
+            _registry = new MinigameRegistry();
+            _registry.Register("frog_catch_v1", parent =>
+            {
+                // FrogCatch 는 별도 spawner + Frog primitive 가 필요해서 헬퍼 사용
+                return CreateFrogCatch(parent);
+            });
+            _registry.Register("noodle_boil_v1", parent => parent.AddComponent<NoodleBoilGame>());
+            _registry.Register("poker_face_v1", parent => parent.AddComponent<PokerFaceGame>());
+            _registry.Register("dark_souls_v1", parent => parent.AddComponent<DarkSoulsGame>());
+            _registry.Register("kakao_unread_v1", parent => parent.AddComponent<KakaoUnreadGame>());
+            _registry.Register("math_genius_v1", parent => parent.AddComponent<MathGeniusGame>());
+        }
+
+        private IMinigame CreateFrogCatch(GameObject parent)
+        {
+            var spawnerGo = new GameObject("FrogSpawner");
+            spawnerGo.transform.SetParent(parent.transform, false);
+            var spawner = spawnerGo.AddComponent<FrogSpawner>();
+
+            // Frog prefab 대용 sphere primitive
+            var primFrog = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            primFrog.name = "FrogPrefab";
+            primFrog.transform.localScale = Vector3.one * 0.6f;
+            primFrog.GetComponent<Renderer>().material.color = new Color(0.2f, 0.8f, 0.3f);
+            primFrog.AddComponent<SpriteRenderer>();
+            var frogComp = primFrog.AddComponent<Frog>();
+            primFrog.SetActive(false);
+            primFrog.transform.SetParent(parent.transform, false);
+            var sf = typeof(FrogSpawner).GetField("frogPrefab",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            sf?.SetValue(spawner, frogComp);
+
+            var game = parent.AddComponent<FrogCatchGame>();
+            game.__TestSetSpawner(spawner);
+            return game;
         }
 
         private void BuildRootUI()
@@ -103,7 +153,6 @@ namespace ShortGeta.UI.Mobile
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
 
-            // 타이틀
             var titleGo = new GameObject("Title");
             titleGo.transform.SetParent(_homePanel.transform, false);
             var trt = titleGo.AddComponent<RectTransform>();
@@ -117,7 +166,6 @@ namespace ShortGeta.UI.Mobile
             titleText.alignment = TextAlignmentOptions.Center;
             titleText.color = Color.white;
 
-            // 게임 목록 텍스트
             var listGo = new GameObject("Games");
             listGo.transform.SetParent(_homePanel.transform, false);
             var lrt = listGo.AddComponent<RectTransform>();
@@ -130,7 +178,8 @@ namespace ShortGeta.UI.Mobile
             listText.alignment = TextAlignmentOptions.TopLeft;
             listText.color = new Color(0.85f, 0.85f, 0.85f);
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine("로드된 게임:");
+            sb.AppendLine(runFrogCatchOnly ? "디버그 모드: frog_catch 1판" : $"풀 세션 ({_games?.Length ?? 0}게임)");
+            sb.AppendLine();
             if (_games != null)
             {
                 foreach (var g in _games)
@@ -140,7 +189,6 @@ namespace ShortGeta.UI.Mobile
             }
             listText.text = sb.ToString();
 
-            // "한판 더" 버튼
             var btnGo = new GameObject("PlayButton");
             btnGo.transform.SetParent(_homePanel.transform, false);
             var brt = btnGo.AddComponent<RectTransform>();
@@ -178,32 +226,42 @@ namespace ShortGeta.UI.Mobile
                 var session = await _sessionApi.StartAsync();
                 Debug.Log($"[Bootstrap] session={session.SessionId} games={string.Join(",", session.GameIds)}");
 
-                _analyticsApi.EventAsync("frog_catch_v1", "session_start", new { session_id = session.SessionId }).Forget();
+                _analyticsApi.EventAsync("session", "start", new { session_id = session.SessionId }).Forget();
 
-                // Iter 1 단순화: session 의 추천 큐 무시하고 무조건 frog_catch 1판
-                var result = await PlayFrogCatchAsync();
-                _analyticsApi.EventAsync("frog_catch_v1", "game_end",
-                    new { score = result.Score, play_time = result.PlayTimeSec }).Forget();
+                List<MinigameResult> results;
+                if (runFrogCatchOnly)
+                {
+                    // 디버그: frog_catch 1판
+                    results = new List<MinigameResult> { await PlaySingleAsync("frog_catch_v1") };
+                }
+                else
+                {
+                    // 풀 세션: 추천 큐 그대로
+                    results = await PlayQueueAsync(session.GameIds);
+                }
 
                 // 점수 제출
-                long ts = TimeSync.GetSyncedTimestamp();
-                string sig = HmacSigner.Sign("frog_catch_v1", result.Score, result.PlayTimeSec,
-                    ts, serverConfig.HmacBaseKey, serverConfig.BuildGuid);
-                var endResp = await _sessionApi.EndAsync(session.SessionId, new[]
+                var subs = new List<ScoreSubmission>(results.Count);
+                long now = TimeSync.GetSyncedTimestamp();
+                foreach (var r in results)
                 {
-                    new ScoreSubmission
+                    long ts = now;
+                    string sig = HmacSigner.Sign(r.GameId, r.Score, r.PlayTimeSec, ts,
+                        serverConfig.HmacBaseKey, serverConfig.BuildGuid);
+                    subs.Add(new ScoreSubmission
                     {
-                        GameId = "frog_catch_v1",
-                        Score = result.Score,
-                        PlayTime = result.PlayTimeSec,
-                        Cleared = result.Score > 0,
+                        GameId = r.GameId,
+                        Score = r.Score,
+                        PlayTime = r.PlayTimeSec,
+                        Cleared = r.Score > 0,
                         Timestamp = ts,
                         Signature = sig,
-                    },
-                });
+                    });
+                }
+                var endResp = await _sessionApi.EndAsync(session.SessionId, subs.ToArray());
                 Debug.Log($"[Bootstrap] end accepted={string.Join(",", endResp.Accepted)} rejected={string.Join(",", endResp.Rejected)}");
 
-                ShowResult(result.Score, endResp);
+                ShowResult(results, endResp);
             }
             catch (System.Exception e)
             {
@@ -213,52 +271,44 @@ namespace ShortGeta.UI.Mobile
             }
         }
 
-        private async UniTask<MinigameResult> PlayFrogCatchAsync()
+        private async UniTask<MinigameResult> PlaySingleAsync(string gameId)
         {
-            // FrogCatch GameObject + Spawner 동적 생성
-            var gameGo = new GameObject("FrogCatchRuntime");
-            var spawnerGo = new GameObject("FrogSpawner");
-            spawnerGo.transform.SetParent(gameGo.transform, false);
-            var spawner = spawnerGo.AddComponent<FrogSpawner>();
-
-            // 개구리 prefab 이 없으므로 런타임에 간단한 sphere primitive 로 대체
-            var primFrog = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            primFrog.name = "FrogPrefab";
-            primFrog.transform.localScale = Vector3.one * 0.6f;
-            var rend = primFrog.GetComponent<Renderer>();
-            rend.material.color = new Color(0.2f, 0.8f, 0.3f);
-            // Frog 컴포넌트 추가
-            // SpriteRenderer 가 RequireComponent 로 강제되므로 dummy 추가
-            primFrog.AddComponent<SpriteRenderer>();
-            var frogComp = primFrog.AddComponent<Frog>();
-            primFrog.SetActive(false);
-            primFrog.transform.SetParent(gameGo.transform, false);
-            // FrogSpawner 에 prefab 주입
-            var sf = typeof(FrogSpawner).GetField("frogPrefab",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            sf?.SetValue(spawner, frogComp);
-
-            var game = gameGo.AddComponent<FrogCatchGame>();
-            game.__TestSetSpawner(spawner);
-
-            var launcher = gameGo.AddComponent<MinigameLauncher>();
+            var go = new GameObject($"Runtime.{gameId}");
+            var game = _registry.Create(gameId, go);
+            var launcher = go.AddComponent<MinigameLauncher>();
             var tcs = new UniTaskCompletionSource<MinigameResult>();
             launcher.OnFinished += r => tcs.TrySetResult(r);
 
-            // 짧은 카운트다운 표시 (Iter 1 minimal — toast 로 대체)
+            // 카운트다운
             for (int s = 3; s > 0; s--)
             {
-                Toast.Show($"시작! {s}", 0.8f);
+                Toast.Show($"{game.Title} 시작! {s}", 0.8f);
                 await UniTask.Delay(System.TimeSpan.FromSeconds(1));
             }
 
             launcher.Launch(game);
             var result = await tcs.Task;
-            Destroy(gameGo);
+            Destroy(go);
             return result;
         }
 
-        private void ShowResult(int score, EndSessionResponse end)
+        private async UniTask<List<MinigameResult>> PlayQueueAsync(string[] gameIds)
+        {
+            var results = new List<MinigameResult>(gameIds.Length);
+            foreach (var id in gameIds)
+            {
+                if (!_registry.Contains(id))
+                {
+                    Debug.LogWarning($"[Bootstrap] unregistered game id '{id}', skipping");
+                    continue;
+                }
+                var r = await PlaySingleAsync(id);
+                results.Add(r);
+            }
+            return results;
+        }
+
+        private void ShowResult(List<MinigameResult> results, EndSessionResponse end)
         {
             if (_homePanel != null) _homePanel.SetActive(false);
             if (_resultPanel != null) Destroy(_resultPanel);
@@ -270,29 +320,52 @@ namespace ShortGeta.UI.Mobile
             rt.anchorMax = Vector2.one;
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
-
             var bg = _resultPanel.AddComponent<Image>();
-            bg.color = new Color(0.05f, 0.05f, 0.08f, 0.9f);
+            bg.color = new Color(0.05f, 0.05f, 0.08f, 0.95f);
 
             var titleGo = new GameObject("Title");
             titleGo.transform.SetParent(_resultPanel.transform, false);
             var trt = titleGo.AddComponent<RectTransform>();
-            trt.anchorMin = new Vector2(0, 0.6f);
-            trt.anchorMax = new Vector2(1, 0.85f);
+            trt.anchorMin = new Vector2(0, 0.85f);
+            trt.anchorMax = new Vector2(1, 0.95f);
             trt.offsetMin = Vector2.zero;
             trt.offsetMax = Vector2.zero;
             var t = titleGo.AddComponent<TextMeshProUGUI>();
-            t.text = $"점수: {score}\n{(end.Accepted != null && end.Accepted.Length > 0 ? "✓ 서버 반영" : "✗ 거부됨")}";
+            t.text = "결과";
             t.fontSize = 64;
             t.alignment = TextAlignmentOptions.Center;
             t.color = Color.white;
 
-            // 다시 버튼
+            var listGo = new GameObject("ScoreList");
+            listGo.transform.SetParent(_resultPanel.transform, false);
+            var lrt = listGo.AddComponent<RectTransform>();
+            lrt.anchorMin = new Vector2(0.1f, 0.3f);
+            lrt.anchorMax = new Vector2(0.9f, 0.8f);
+            lrt.offsetMin = Vector2.zero;
+            lrt.offsetMax = Vector2.zero;
+            var lt = listGo.AddComponent<TextMeshProUGUI>();
+            lt.fontSize = 40;
+            lt.alignment = TextAlignmentOptions.TopLeft;
+            lt.color = Color.white;
+
+            var sb = new System.Text.StringBuilder();
+            int total = 0;
+            var acceptedSet = new HashSet<string>(end.Accepted ?? new string[0]);
+            foreach (var r in results)
+            {
+                string mark = acceptedSet.Contains(r.GameId) ? "✓" : "✗";
+                sb.AppendLine($"{mark} {r.GameId,-20} {r.Score,5}");
+                total += r.Score;
+            }
+            sb.AppendLine();
+            sb.AppendLine($"합계: {total}");
+            lt.text = sb.ToString();
+
             var btnGo = new GameObject("BackButton");
             btnGo.transform.SetParent(_resultPanel.transform, false);
             var brt = btnGo.AddComponent<RectTransform>();
-            brt.anchorMin = new Vector2(0.2f, 0.15f);
-            brt.anchorMax = new Vector2(0.8f, 0.28f);
+            brt.anchorMin = new Vector2(0.2f, 0.1f);
+            brt.anchorMax = new Vector2(0.8f, 0.22f);
             brt.offsetMin = Vector2.zero;
             brt.offsetMax = Vector2.zero;
             var img = btnGo.AddComponent<Image>();
@@ -302,11 +375,11 @@ namespace ShortGeta.UI.Mobile
 
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(btnGo.transform, false);
-            var lrt = labelGo.AddComponent<RectTransform>();
-            lrt.anchorMin = Vector2.zero;
-            lrt.anchorMax = Vector2.one;
-            lrt.offsetMin = Vector2.zero;
-            lrt.offsetMax = Vector2.zero;
+            var llrt = labelGo.AddComponent<RectTransform>();
+            llrt.anchorMin = Vector2.zero;
+            llrt.anchorMax = Vector2.one;
+            llrt.offsetMin = Vector2.zero;
+            llrt.offsetMax = Vector2.zero;
             var lbl = labelGo.AddComponent<TextMeshProUGUI>();
             lbl.text = "홈으로";
             lbl.fontSize = 56;
