@@ -1,18 +1,40 @@
-# shortgeta-server (placeholder, 비활성화)
+# shortgeta-server (활성)
 
-Go 게임 서버 ArgoCD Application **placeholder**.
+Go 게임 서버 ArgoCD Application. dev 브랜치의 `server/deploy/overlays/dev` 를 추적한다.
 
-`application.yaml.disabled` 로 보관 — App-of-Apps 의 `include: '*/application.yaml'`
-글롭에 매칭되지 않아 sync 되지 않는다.
+## 활성화 상태
 
-## 활성화 시점
+`application.yaml` (활성). App-of-Apps 의 include 글롭 `*/application.yaml` 에 매칭되어 ArgoCD 가 자동 sync 한다.
 
-`server/deploy/overlays/dev` 가 실제로 생성되면 다음 명령으로 활성화한다:
+## 이미지 공급 방식 (Phase 1, dev 클러스터)
+
+GHCR 푸시는 Iteration 2 에서 셋업 예정. 현재는 사용자가 로컬에서 빌드해 kind 클러스터에 직접 로드한다:
 
 ```bash
-mv infra/apps/shortgeta-server/application.yaml.disabled \
-   infra/apps/shortgeta-server/application.yaml
-git add -A && git commit -m "feat(infra): enable shortgeta-server ArgoCD app"
+# 1) 이미지 빌드
+cd server
+docker build -t shortgeta-server:dev .
+
+# 2) kind 클러스터로 이미지 로드 (아무 노드에서나 사용 가능)
+kind load docker-image shortgeta-server:dev --name shortgeta
+
+# 3) ArgoCD 가 자동으로 sync. 강제로 새로고침하려면:
+kubectl -n argocd annotate application shortgeta-server-dev \
+  argocd.argoproj.io/refresh=hard --overwrite
+
+# 4) Pod 상태 확인
+kubectl -n shortgeta-dev get pods -w
+
+# 5) port-forward 로 헬스체크
+kubectl -n shortgeta-dev port-forward svc/shortgeta-server 18081:80
+curl http://localhost:18081/health
 ```
 
-활성화 전까지는 `path: server/deploy/overlays/dev` 가 존재하지 않아 sync 가 실패한다.
+## 비활성화 (필요 시)
+
+```bash
+mv application.yaml application.yaml.disabled
+git commit -am "chore(infra): disable shortgeta-server temporarily"
+```
+
+> Iteration 2 이후 GHCR push 가 셋업되면 위 수동 빌드 단계는 제거된다.

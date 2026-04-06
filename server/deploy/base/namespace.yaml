@@ -1,0 +1,6 @@
+# 네임스페이스는 infra/namespaces/namespaces.yaml 에서 이미 생성됨.
+# 이 파일은 base 가 단독 적용될 때를 대비한 placeholder. overlay 가 namespace 를 명시.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shortgeta-dev
