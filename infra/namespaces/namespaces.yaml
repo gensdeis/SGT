@@ -16,6 +16,11 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: monitoring
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   name: shortgeta-dev
 ---
 apiVersion: v1

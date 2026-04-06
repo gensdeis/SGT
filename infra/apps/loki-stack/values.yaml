@@ -1,0 +1,31 @@
+# loki-stack — kind 로컬 dev 프로파일
+loki:
+  enabled: true
+  isDefault: false
+  persistence:
+    enabled: true
+    size: 5Gi
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+
+promtail:
+  enabled: true
+  resources:
+    requests:
+      cpu: "20m"
+      memory: "64Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+
+# Grafana 는 kube-prometheus-stack 이 이미 띄움
+grafana:
+  enabled: false
+
+prometheus:
+  enabled: false
