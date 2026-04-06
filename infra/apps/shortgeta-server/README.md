@@ -30,6 +30,27 @@ kubectl -n shortgeta-dev port-forward svc/shortgeta-server 18081:80
 curl http://localhost:18081/health
 ```
 
+## DB 마이그레이션 (최초 1회)
+
+ArgoCD 가 PostgreSQL StatefulSet 을 띄우지만 스키마는 자동 생성하지 않는다.
+첫 배포 후 한 번만 수동으로 적용한다 (goose annotation 제외 Up SQL 만 추출):
+
+```bash
+# 1) goose annotation 을 제거한 Up SQL 만 추출
+python -c "
+import re
+src = open('server/db/migrations/20260406120001_init.sql', encoding='utf-8').read()
+m = re.search(r'-- \+goose Up\s*\n-- \+goose StatementBegin\s*(.*?)-- \+goose StatementEnd', src, re.S)
+print(m.group(1).strip())
+" > /tmp/init_up.sql
+
+# 2) 인-클러스터 postgres 에 적용
+kubectl -n shortgeta-dev exec -i statefulset/shortgeta-postgres \
+  -- psql -U shortgeta -d shortgeta_dev < /tmp/init_up.sql
+```
+
+> Iteration 2: 서버 시작 시 goose 라이브러리로 자동 마이그레이션 옵션 추가 예정.
+
 ## 비활성화 (필요 시)
 
 ```bash
