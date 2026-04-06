@@ -3,9 +3,10 @@
 숏게타(ShortGameTown) 개발/서비스 인프라.
 계획서 v1.3 §11 스택: **k3s + ArgoCD + GitHub Actions + Traefik + Sealed Secrets**
 
-> 현재 상태: **로컬 단일 노드 (개발용) — Docker Desktop Kubernetes**
-> 매니페스트는 Docker Desktop 내장 k8s에서 바로 적용 가능한 상태.
-> QA/Real 환경 구축 시 실제 k3s로 전환 (별도 클러스터 오버레이 추가).
+> 현재 상태: **로컬 단일 노드 (개발용) — kind (Kubernetes IN Docker)**
+> Docker Desktop 내장 k8s 가 WSL2 cpuset cgroup 이슈로 부팅 실패하여
+> kind 로 전환했다. 매니페스트는 동일하게 사용된다.
+> QA/Real 환경 구축 시 v1.3 명시대로 k3s 로 전환 (별도 클러스터 오버레이 추가).
 
 ---
 
@@ -15,7 +16,8 @@
 infra/
 ├── README.md                  # 이 파일
 ├── bootstrap/                 # 부트스트랩 가이드 (수동 1회 실행)
-│   ├── docker-desktop.md      # 로컬: Docker Desktop Kubernetes (현재 사용)
+│   ├── kind.md                # 로컬: kind 부트스트랩 (현재 사용)
+│   ├── docker-desktop.md      # 참조: Docker Desktop k8s (cpuset 이슈로 미사용)
 │   └── install-k3s.md         # 참조: k3s 설치 가이드 (QA/Real 용)
 ├── clusters/
 │   └── local/                 # 로컬 단일 노드 클러스터 오버레이
@@ -35,12 +37,12 @@ infra/
 
 ## 부트스트랩 절차 (로컬 단일 노드)
 
-상세 가이드: [`bootstrap/docker-desktop.md`](bootstrap/docker-desktop.md)
+상세 가이드: [`bootstrap/kind.md`](bootstrap/kind.md)
 
-1. Docker Desktop → Settings → Kubernetes 활성화
-2. `kubectl apply -n argocd -f apps/argocd/install.yaml` (ArgoCD 설치)
-3. `kubectl apply -k clusters/local` (App-of-Apps 적용)
-4. `kubectl -n argocd port-forward svc/argocd-server 8080:443`로 UI 확인
+1. `kind create cluster --name shortgeta`
+2. `kubectl create namespace argocd && kubectl apply --server-side --force-conflicts -n argocd -f apps/argocd/install.yaml`
+3. `kubectl apply -k clusters/local` (네임스페이스 + App-of-Apps)
+4. `kubectl -n argocd port-forward svc/argocd-server 8080:443` (UI 접근)
 
 > 로컬 단일 노드는 **개발 검증용**이다. QA/Real 환경 구축 시 별도 오버레이 추가 (`clusters/qa/`, `clusters/real/`).
 
