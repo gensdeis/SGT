@@ -44,8 +44,13 @@ client/
 │   │   │   ├── ScoreVariable.cs   # XOR 난독화 SafeInt/SafeFloat
 │   │   │   ├── TimeSync.cs
 │   │   │   └── TagSystem.cs
-│   │   ├── Minigames/         # 오리지널 미니게임
-│   │   │   └── FrogCatch/     # Iter 1: 1개만, 나머지 5개는 Iter 2~3
+│   │   ├── Minigames/         # 오리지널 미니게임 (Iter 2A: 6개 모두 구현 완료)
+│   │   │   ├── FrogCatch/     # frog_catch_v1   30s  max 1000
+│   │   │   ├── NoodleBoil/    # noodle_boil_v1  45s  max 500
+│   │   │   ├── PokerFace/     # poker_face_v1   60s  max 800
+│   │   │   ├── DarkSouls/     # dark_souls_v1   30s  max 300
+│   │   │   ├── KakaoUnread/   # kakao_unread_v1 20s  max 600
+│   │   │   └── MathGenius/    # math_genius_v1  30s  max 1500
 │   │   ├── UI/Mobile/         # BootstrapController, Toast 등
 │   │   ├── Network/           # ApiClient, HmacSigner, *Api, JwtStore, ServerConfig, Models
 │   │   └── ShortGeta.Runtime.asmdef
