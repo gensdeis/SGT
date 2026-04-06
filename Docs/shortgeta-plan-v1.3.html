@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>숏게타 — v1.2 개발 계획서</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@300;400;600;800&family=Fraunces:wght@700;900&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── 리포트 베이스 ── */
+:root{
+  --bg:#0c0e13;--surface:#14161d;--surface2:#1b1e28;--border:#2a2e3a;
+  --text:#e2e4ea;--text-dim:#8b8fa3;
+  --accent:#5eead4;--accent2:#a78bfa;--accent3:#f472b6;
+  --accent4:#fbbf24;--accent5:#38bdf8;--accent6:#fb923c;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);line-height:1.75;font-weight:300;overflow-x:hidden;}
+.container{max-width:1100px;margin:0 auto;padding:0 2rem;}
+a{color:var(--accent);text-decoration:none;}
+.mono{font-family:'JetBrains Mono',monospace;}
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:4rem 2rem;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 15% 50%,rgba(94,234,212,.08) 0%,transparent 50%),radial-gradient(ellipse at 85% 15%,rgba(167,139,250,.07) 0%,transparent 50%),radial-gradient(ellipse at 60% 85%,rgba(244,114,182,.05) 0%,transparent 45%);animation:driftBg 22s ease-in-out infinite alternate;}
+@keyframes driftBg{to{transform:translate(-3%,4%);}}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1.25rem;border:1px solid var(--border);border-radius:100px;font-size:.78rem;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;background:rgba(20,22,29,.6);margin-bottom:1.5rem;}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hero h1{font-family:'Fraunces',serif;font-size:clamp(4rem,12vw,9rem);letter-spacing:-.04em;line-height:.95;margin-bottom:1rem;}
+.hero h1 .grad{background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 50%,var(--accent3) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero h1 .sub-name{font-size:clamp(1.2rem,3vw,2rem);color:var(--text-dim);display:block;margin-top:.5rem;font-family:'Noto Sans KR',sans-serif;font-weight:300;letter-spacing:.02em;-webkit-text-fill-color:var(--text-dim);}
+.hero-sub{font-size:1.05rem;color:var(--text-dim);max-width:600px;margin:1.5rem 0 3rem;font-weight:300;}
+.hero-stats{display:flex;gap:3.5rem;flex-wrap:wrap;justify-content:center;margin-bottom:3rem;}
+.hero-stat .num{font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:600;color:var(--accent);}
+.hero-stat .label{font-size:.72rem;color:var(--text-dim);letter-spacing:.07em;text-transform:uppercase;margin-top:.25rem;}
+.scroll-hint{position:absolute;bottom:2rem;display:flex;flex-direction:column;align-items:center;gap:.4rem;font-size:.68rem;color:var(--text-dim);letter-spacing:.15em;text-transform:uppercase;animation:bob 2s ease-in-out infinite;}
+.scroll-hint svg{width:16px;height:16px;stroke:var(--text-dim);}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(7px);}}
+section{padding:5rem 0;}
+.section-label{display:inline-flex;align-items:center;gap:.5rem;font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.85rem;}
+.section-label::before{content:'';width:24px;height:1px;background:var(--accent);}
+h2{font-family:'Fraunces',serif;font-size:clamp(1.8rem,4vw,2.8rem);letter-spacing:-.02em;margin-bottom:.85rem;}
+.lead{font-size:1.02rem;color:var(--text-dim);max-width:720px;margin-bottom:3rem;line-height:1.8;}
+.divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;transition:border-color .3s;}
+.card:hover{border-color:rgba(94,234,212,.2);}
+.card h3{font-size:1rem;font-weight:600;margin-bottom:.6rem;}
+.card p{font-size:.88rem;color:var(--text-dim);line-height:1.7;}
+.card .icon{font-size:1.4rem;margin-bottom:.9rem;}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;}
+.card-grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;}
+.card-grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem;}
+.hl{background:linear-gradient(135deg,rgba(94,234,212,.06),rgba(167,139,250,.04));border:1px solid rgba(94,234,212,.15);border-radius:12px;padding:1.5rem 2rem;margin:1.5rem 0;font-size:.93rem;line-height:1.75;}
+.hl strong{color:var(--accent);}
+.hl.amber{background:linear-gradient(135deg,rgba(251,191,36,.06),rgba(251,191,36,.02));border-color:rgba(251,191,36,.2);}
+.hl.amber strong{color:var(--accent4);}
+.hl.purple{background:linear-gradient(135deg,rgba(167,139,250,.07),rgba(167,139,250,.02));border-color:rgba(167,139,250,.2);}
+.hl.purple strong{color:var(--accent2);}
+.table-wrap{overflow-x:auto;margin:2rem 0;border-radius:12px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:.86rem;}
+th{background:var(--surface2);color:var(--text-dim);font-weight:600;padding:.85rem 1.25rem;text-align:left;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;}
+td{padding:.85rem 1.25rem;border-bottom:1px solid var(--border);color:var(--text-dim);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.015);}
+td strong{color:var(--text);font-weight:600;}
+.rank-1{color:var(--accent);font-weight:600;}
+.badge{display:inline-block;padding:.18rem .65rem;border-radius:100px;font-size:.7rem;font-weight:600;font-family:'JetBrains Mono',monospace;letter-spacing:.03em;vertical-align:middle;}
+.bp1{background:rgba(94,234,212,.12);color:var(--accent);}
+.bp2{background:rgba(167,139,250,.12);color:var(--accent2);}
+.bp3{background:rgba(251,191,36,.12);color:var(--accent4);}
+.bnew{background:rgba(244,114,182,.15);color:var(--accent3);}
+.bstack{background:rgba(56,189,248,.12);color:var(--accent5);}
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;margin:2rem 0;}
+.chart-wrap canvas{max-height:380px;}
+.chart-title{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.25rem;}
+.code-block{background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:1.5rem 0;}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:.72rem;}
+pre{padding:1.25rem;font-family:'JetBrains Mono',monospace;font-size:.8rem;line-height:1.7;overflow-x:auto;margin:0;color:var(--text-dim);}
+pre .k{color:#93c5fd;}pre .s{color:#86efac;}pre .n{color:#fbbf24;}
+pre .c{color:#6b7280;font-style:italic;}pre .t{color:var(--accent);}pre .p{color:#6b7280;}
+.tag-row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:.6rem 0;}
+.tag-label{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text-dim);letter-spacing:.07em;text-transform:uppercase;min-width:70px;}
+.tag{display:inline-block;padding:.22rem .75rem;border-radius:100px;font-size:.77rem;border:1px solid;}
+.tg{background:rgba(94,234,212,.08);border-color:rgba(94,234,212,.25);color:var(--accent);}
+.ti{background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.25);color:var(--accent2);}
+.tt{background:rgba(244,114,182,.08);border-color:rgba(244,114,182,.25);color:var(--accent3);}
+.tm{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.25);color:var(--accent4);}
+.roadmap{position:relative;margin:2rem 0;}
+.roadmap::before{content:'';position:absolute;left:1.5rem;top:0;bottom:0;width:1px;background:var(--border);}
+.phase{padding-left:4.5rem;position:relative;margin-bottom:2.8rem;}
+.phase-dot{position:absolute;left:.82rem;top:.3rem;width:1.35rem;height:1.35rem;border-radius:50%;border:2px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;}
+.phase-dot.now{border-color:var(--accent);background:rgba(94,234,212,.08);}
+.phase-dot.next{border-color:var(--accent4);}
+.phase-dot-inner{width:6px;height:6px;border-radius:50%;}
+.phase-meta{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text-dim);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.4rem;}
+.phase h3{font-size:1rem;font-weight:600;margin-bottom:.6rem;color:var(--text);}
+.phase ul{list-style:none;padding:0;}
+.phase li{font-size:.86rem;color:var(--text-dim);padding:.22rem 0 .22rem 1.1rem;position:relative;line-height:1.6;}
+.phase li::before{content:'—';position:absolute;left:0;color:var(--border);}
+.phase.now li::before{color:var(--accent);}
+.phase.next li::before{color:var(--accent4);}
+.rev-tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin:2rem 0;}
+.rev-tier{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.75rem;position:relative;}
+.rev-tier.feat{border-color:rgba(94,234,212,.3);}
+.rt-label{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text-dim);letter-spacing:.09em;text-transform:uppercase;margin-bottom:.6rem;}
+.rt-name{font-size:1rem;font-weight:600;margin-bottom:.4rem;}
+.rt-price{font-family:'JetBrains Mono',monospace;font-size:1.7rem;font-weight:600;color:var(--accent);margin-bottom:1rem;}
+.rt-price span{font-size:.8rem;color:var(--text-dim);font-weight:400;}
+.rt-badge{position:absolute;top:1rem;right:1rem;background:rgba(94,234,212,.12);color:var(--accent);font-size:.67rem;padding:.18rem .6rem;border-radius:100px;font-family:'JetBrains Mono',monospace;border:1px solid rgba(94,234,212,.2);}
+.rev-tier ul{list-style:none;padding:0;}
+.rev-tier li{font-size:.82rem;color:var(--text-dim);padding:.28rem 0 .28rem 1.2rem;position:relative;}
+.rev-tier li::before{content:'→';position:absolute;left:0;color:var(--accent);}
+.stack-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem;margin:2rem 0;}
+.stack-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;}
+.stack-layer{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem;}
+.stack-name{font-size:.95rem;font-weight:600;margin-bottom:.3rem;}
+.stack-detail{font-size:.82rem;color:var(--text-dim);}
+.persona-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin:2rem 0;}
+.persona-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;}
+.p-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1rem;}
+.p-name{font-size:1rem;font-weight:600;margin-bottom:.2rem;}
+.p-meta{font-size:.8rem;color:var(--text-dim);margin-bottom:1rem;}
+.p-quote{font-size:.85rem;color:var(--text-dim);border-left:2px solid var(--accent);padding-left:.85rem;margin-bottom:1rem;line-height:1.65;font-style:italic;}
+.p-tags{display:flex;flex-wrap:wrap;gap:.3rem;}
+.p-tag{background:var(--surface2);border-radius:8px;padding:.18rem .6rem;font-size:.75rem;color:var(--text-dim);}
+.loop-wrap{overflow-x:auto;padding:1rem 0;margin:2rem 0;}
+.loop{display:flex;align-items:stretch;gap:0;min-width:max-content;}
+.loop-step{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.4rem;text-align:center;width:140px;}
+.ls-num{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--accent);letter-spacing:.1em;margin-bottom:.4rem;}
+.ls-icon{font-size:1.3rem;margin-bottom:.4rem;}
+.ls-title{font-size:.83rem;font-weight:600;margin-bottom:.3rem;}
+.ls-sub{font-size:.73rem;color:var(--text-dim);line-height:1.5;}
+.loop-arrow{display:flex;align-items:center;padding:0 .4rem;color:var(--border);font-size:1rem;}
+.ui-compare{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin:2rem 0;}
+.ui-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.ui-header{padding:1rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem;}
+.ui-platform{font-size:.95rem;font-weight:600;}
+.ui-sub{font-size:.78rem;color:var(--text-dim);}
+.ui-item{display:flex;gap:.75rem;padding:.8rem 1.4rem;border-bottom:1px solid var(--border);font-size:.84rem;}
+.ui-item:last-child{border-bottom:none;}
+.ui-key{color:var(--text-dim);min-width:90px;font-family:'JetBrains Mono',monospace;font-size:.75rem;padding-top:.1rem;}
+.ui-val{color:var(--text);flex:1;line-height:1.6;}
+.toc{position:fixed;right:2rem;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:.45rem;z-index:100;}
+@media(max-width:1300px){.toc{display:none;}}
+.toc a{width:7px;height:7px;border-radius:50%;background:var(--border);transition:all .25s;position:relative;display:block;}
+.toc a:hover,.toc a.active{background:var(--accent);box-shadow:0 0 8px rgba(94,234,212,.4);}
+.toc a::after{content:attr(data-label);position:absolute;right:18px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:.65rem;color:var(--text-dim);opacity:0;transition:opacity .25s;pointer-events:none;font-family:'JetBrains Mono',monospace;}
+.toc a:hover::after{opacity:1;}
+.fade-in{opacity:0;transform:translateY(22px);transition:opacity .65s ease,transform .65s ease;}
+.fade-in.visible{opacity:1;transform:none;}
+.summary-card{background:linear-gradient(135deg,rgba(94,234,212,.05),rgba(167,139,250,.04));border:1px solid rgba(94,234,212,.18);border-radius:20px;padding:2.5rem;max-width:780px;margin:0 auto;}
+.sc-kv{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+.sc-key{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text-dim);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.3rem;}
+.sc-val{font-size:.88rem;color:var(--text);line-height:1.55;}
+footer{padding:4rem 0;border-top:1px solid var(--border);text-align:center;color:var(--text-dim);font-size:.8rem;}
+footer p+p{margin-top:.4rem;}
+
+/* ── 목업 전용 스타일 (mk- 네임스페이스 격리) ── */
+.mk-section-title{font-size:.82rem;font-weight:600;color:var(--text-dim);letter-spacing:.06em;text-transform:uppercase;margin:2.5rem 0 1rem;font-family:'JetBrains Mono',monospace;}
+.mk-platforms{display:flex;gap:32px;flex-wrap:wrap;justify-content:center;margin:2rem 0;}
+.mk-platform-block{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.mk-platform-label{font-size:.75rem;font-weight:600;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}
+
+/* Mobile mockup */
+.mk-phone{width:300px;height:600px;border:2px solid #3a3e50;border-radius:36px;overflow:hidden;background:#0a0b0f;display:flex;flex-direction:column;flex-shrink:0;}
+.mk-statusbar{height:32px;background:#111318;display:flex;align-items:center;justify-content:space-between;padding:0 18px;flex-shrink:0;}
+.mk-statusbar .mk-time{font-size:11px;font-weight:600;color:#e2e4ea;font-family:'JetBrains Mono',monospace;}
+.mk-statusbar .mk-icons{font-size:10px;color:#8b8fa3;}
+.mk-topbar{background:#111318;padding:9px 14px 8px;border-bottom:1px solid #1e2130;flex-shrink:0;}
+.mk-toprow{display:flex;align-items:center;gap:8px;}
+.mk-logo{font-size:14px;font-weight:600;color:#e2e4ea;flex:1;font-family:'Noto Sans KR',sans-serif;}
+.mk-logo em{color:#5eead4;font-style:normal;}
+.mk-searchbar{display:flex;align-items:center;gap:7px;background:#1b1e28;border:1px solid #2a2e3a;border-radius:18px;padding:6px 12px;margin-top:7px;}
+.mk-searchbar svg{width:12px;height:12px;stroke:#8b8fa3;flex-shrink:0;fill:none;}
+.mk-searchbar span{font-size:11px;color:#8b8fa3;}
+.mk-screen{flex:1;overflow-y:auto;background:#0c0e13;}
+.mk-screen::-webkit-scrollbar{display:none;}
+.mk-tab{display:none;padding:11px;}
+.mk-tab.mk-active{display:block;}
+.mk-quick{background:#085041;border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.mk-qt{color:#9FE1CB;font-size:11px;font-weight:600;}
+.mk-qs{color:#5DCAA5;font-size:10px;margin-top:2px;}
+.mk-qbtn{background:#9FE1CB;border-radius:16px;padding:5px 12px;font-size:10px;font-weight:600;color:#04342C;cursor:pointer;white-space:nowrap;}
+.mk-sec{font-size:11px;font-weight:600;color:#e2e4ea;margin-bottom:8px;}
+.mk-card{background:#14161d;border:1px solid #2a2e3a;border-radius:10px;margin-bottom:9px;overflow:hidden;cursor:pointer;}
+.mk-card:hover{border-color:#5eead4;}
+.mk-thumb{aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;position:relative;font-size:26px;}
+.mk-rk{position:absolute;top:6px;left:6px;background:rgba(0,0,0,.6);border-radius:3px;padding:1px 6px;font-size:9px;font-weight:600;color:#fff;font-family:'JetBrains Mono',monospace;}
+.mk-nw{position:absolute;top:6px;right:6px;background:#0F6E56;border-radius:3px;padding:1px 5px;font-size:9px;color:#9FE1CB;font-weight:600;}
+.mk-ht{position:absolute;bottom:6px;right:6px;font-size:13px;cursor:pointer;}
+.mk-cbody{padding:8px 10px 10px;}
+.mk-crow{display:flex;align-items:flex-start;justify-content:space-between;}
+.mk-ctitle{font-size:11px;font-weight:600;color:#e2e4ea;line-height:1.3;}
+.mk-cmeta{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:5px;}
+.mk-ctag{background:#1b1e28;border-radius:8px;padding:1px 6px;font-size:9px;color:#8b8fa3;}
+.mk-cplays{font-size:9px;color:#8b8fa3;}
+.mk-cscore{background:rgba(94,234,212,.1);border-radius:8px;padding:1px 6px;font-size:9px;color:#5eead4;}
+.mk-filters{display:flex;gap:6px;margin-bottom:10px;}
+.mk-fb{border:1px solid #2a2e3a;border-radius:16px;padding:4px 12px;font-size:10px;cursor:pointer;background:#14161d;color:#8b8fa3;}
+.mk-fb.mk-fon{background:#0F6E56;border-color:#0F6E56;color:#9FE1CB;}
+.mk-empty{text-align:center;padding:32px 16px;}
+.mk-emtitle{font-size:12px;font-weight:600;color:#e2e4ea;margin:8px 0 4px;}
+.mk-emsub{font-size:10px;color:#8b8fa3;}
+.mk-sitem{background:#14161d;border:1px solid #2a2e3a;border-radius:10px;margin-bottom:7px;overflow:hidden;}
+.mk-srow{display:flex;align-items:center;padding:11px 12px;border-bottom:1px solid #2a2e3a;gap:9px;}
+.mk-srow:last-child{border-bottom:none;}
+.mk-sicon{font-size:13px;width:22px;}
+.mk-slabel{flex:1;font-size:11px;color:#e2e4ea;}
+.mk-sval{font-size:10px;color:#8b8fa3;}
+.mk-sarrow{font-size:11px;color:#8b8fa3;}
+.mk-prem{background:#085041;border-radius:10px;padding:12px 14px;margin-bottom:12px;}
+.mk-ptitle{color:#9FE1CB;font-size:11px;font-weight:600;margin-bottom:2px;}
+.mk-psub{color:#5DCAA5;font-size:10px;}
+.mk-pprice{background:#9FE1CB;color:#04342C;border-radius:14px;padding:4px 12px;font-size:10px;font-weight:600;display:inline-block;margin-top:8px;cursor:pointer;}
+.mk-nav{background:#111318;border-top:1px solid #1e2130;display:flex;flex-shrink:0;}
+.mk-ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 0 9px;cursor:pointer;gap:2px;}
+.mk-nlabel{font-size:9px;color:#8b8fa3;}
+.mk-nlabel.mk-non{color:#5eead4;font-weight:600;}
+.mk-nicon{width:18px;height:18px;stroke:#8b8fa3;fill:none;}
+.mk-nicon.mk-non{stroke:#5eead4;}
+
+/* PC mockup */
+.mk-pc{border:1px solid #2a2e3a;border-radius:10px;overflow:hidden;background:#0a0b0f;display:flex;flex-direction:column;width:100%;}
+.mk-titlebar{height:28px;background:#0d0f14;display:flex;align-items:center;padding:0 12px;gap:7px;border-bottom:1px solid #1e2130;flex-shrink:0;}
+.mk-tbdot{width:9px;height:9px;border-radius:50%;}
+.mk-tbtitle{font-size:10px;color:#8b8fa3;flex:1;text-align:center;font-family:'JetBrains Mono',monospace;}
+.mk-pcbody{display:flex;flex:1;min-height:0;}
+.mk-sidebar{width:170px;background:#0d0f14;border-right:1px solid #1e2130;display:flex;flex-direction:column;flex-shrink:0;padding:12px 0;}
+.mk-sblogo{padding:0 14px 12px;border-bottom:1px solid #1e2130;margin-bottom:6px;}
+.mk-sblogo-text{font-size:14px;font-weight:600;color:#e2e4ea;font-family:'Noto Sans KR',sans-serif;}
+.mk-sblogo-text em{color:#5eead4;font-style:normal;}
+.mk-sbsec{font-size:9px;color:#8b8fa3;letter-spacing:.08em;text-transform:uppercase;padding:10px 14px 3px;font-family:'JetBrains Mono',monospace;}
+.mk-sbitem{display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;font-size:11px;color:#8b8fa3;transition:background .15s;}
+.mk-sbitem:hover{background:#14161d;}
+.mk-sbitem.mk-sbon{background:#14161d;color:#5eead4;font-weight:600;border-right:2px solid #5eead4;}
+.mk-sbitem svg{width:13px;height:13px;stroke:currentColor;fill:none;flex-shrink:0;}
+.mk-sbtag{display:flex;align-items:center;gap:7px;padding:5px 14px 5px 24px;font-size:10px;color:#8b8fa3;cursor:pointer;}
+.mk-sbtag:hover{color:#e2e4ea;}
+.mk-sbdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.mk-sbuser{padding:10px 14px 0;border-top:1px solid #1e2130;margin-top:auto;display:flex;align-items:center;gap:8px;}
+.mk-sbav{width:24px;height:24px;border-radius:50%;background:#0F6E56;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#9FE1CB;flex-shrink:0;}
+.mk-sbname{font-size:11px;color:#e2e4ea;font-weight:600;}
+.mk-sbrank{font-size:9px;color:#8b8fa3;}
+.mk-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.mk-topbar2{height:40px;background:#111318;border-bottom:1px solid #1e2130;display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;}
+.mk-search2{flex:1;max-width:280px;background:#1b1e28;border:1px solid #2a2e3a;border-radius:16px;padding:5px 12px;display:flex;align-items:center;gap:7px;}
+.mk-search2 svg{width:11px;height:11px;stroke:#8b8fa3;fill:none;flex-shrink:0;}
+.mk-search2 span{font-size:10px;color:#8b8fa3;}
+.mk-tbactions{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.mk-tbbtn{border:1px solid #2a2e3a;border-radius:14px;padding:4px 12px;font-size:10px;color:#8b8fa3;cursor:pointer;background:#14161d;}
+.mk-tbbtn.mk-tbprimary{background:#0F6E56;border-color:#0F6E56;color:#9FE1CB;}
+.mk-content{flex:1;overflow-y:auto;padding:16px;}
+.mk-content::-webkit-scrollbar{width:3px;}
+.mk-content::-webkit-scrollbar-thumb{background:#2a2e3a;border-radius:2px;}
+.mk-panel{display:none;}
+.mk-panel.mk-active{display:block;}
+.mk-banner{background:#085041;border-radius:8px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.mk-bleft{}
+.mk-bbadge{display:inline-block;background:rgba(95,221,171,.15);border:1px solid rgba(95,221,171,.25);border-radius:8px;padding:1px 8px;font-size:9px;color:#9FE1CB;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;}
+.mk-btitle{font-size:14px;font-weight:600;color:#E1F5EE;margin-bottom:2px;}
+.mk-bsub{font-size:10px;color:#9FE1CB;}
+.mk-bbtnrow{display:flex;gap:7px;margin-top:10px;}
+.mk-bbtn{background:#9FE1CB;color:#04342C;border-radius:14px;padding:5px 14px;font-size:10px;font-weight:600;cursor:pointer;}
+.mk-bbtn2{border:1px solid rgba(95,221,171,.3);border-radius:14px;padding:5px 12px;font-size:10px;color:#9FE1CB;cursor:pointer;}
+.mk-bthumb{width:60px;height:107px;background:rgba(159,225,203,.08);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 14px;border:1px solid rgba(159,225,203,.15);}
+.mk-pcsec{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.mk-pcsec-t{font-size:12px;font-weight:600;color:#e2e4ea;}
+.mk-pcsec-more{font-size:10px;color:#5eead4;cursor:pointer;}
+.mk-grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+.mk-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.mk-gcard{background:#14161d;border:1px solid #2a2e3a;border-radius:8px;overflow:hidden;cursor:pointer;}
+.mk-gcard:hover{border-color:#5eead4;}
+.mk-gthumb{aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;position:relative;font-size:22px;}
+.mk-grk{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.6);border-radius:3px;padding:1px 5px;font-size:8px;font-weight:600;color:#fff;font-family:'JetBrains Mono',monospace;}
+.mk-gnw{position:absolute;top:5px;right:5px;background:#0F6E56;border-radius:3px;padding:1px 4px;font-size:8px;color:#9FE1CB;font-weight:600;}
+.mk-ght{position:absolute;bottom:5px;right:5px;font-size:11px;cursor:pointer;}
+.mk-gbody{padding:6px 8px 8px;}
+.mk-gtitle{font-size:10px;font-weight:600;color:#e2e4ea;margin-bottom:3px;line-height:1.3;}
+.mk-gmeta{display:flex;gap:3px;flex-wrap:wrap;}
+.mk-gtag{background:#1b1e28;border-radius:6px;padding:1px 5px;font-size:8px;color:#8b8fa3;}
+.mk-gplays{font-size:8px;color:#8b8fa3;margin-top:2px;}
+.mk-lbwrap{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+.mk-lbbox{background:#14161d;border:1px solid #2a2e3a;border-radius:8px;overflow:hidden;}
+.mk-lbhead{padding:8px 12px;border-bottom:1px solid #2a2e3a;display:flex;align-items:center;justify-content:space-between;}
+.mk-lbname{font-size:10px;font-weight:600;color:#e2e4ea;}
+.mk-lbf{display:flex;gap:4px;}
+.mk-lff{font-size:8px;padding:1px 6px;border-radius:8px;cursor:pointer;border:1px solid #2a2e3a;color:#8b8fa3;font-family:'JetBrains Mono',monospace;}
+.mk-lff.mk-lfon{background:#0F6E56;border-color:#0F6E56;color:#9FE1CB;}
+.mk-lbrow{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid #2a2e3a;}
+.mk-lbrow:last-child{border-bottom:none;}
+.mk-lbrow.mk-me{background:rgba(94,234,212,.04);}
+.mk-lbnum{font-size:10px;font-weight:600;min-width:16px;color:#8b8fa3;font-family:'JetBrains Mono',monospace;}
+.mk-lbnum.mk-g{color:#BA7517;}
+.mk-lbnum.mk-s{color:#888780;}
+.mk-lbnum.mk-b{color:#D85A30;}
+.mk-lbuname{flex:1;font-size:10px;color:#e2e4ea;}
+.mk-lbscore{font-size:10px;font-weight:600;color:#5eead4;font-variant-numeric:tabular-nums;}
+.mk-popf{display:flex;gap:6px;margin-bottom:12px;}
+.mk-pf{border:1px solid #2a2e3a;border-radius:14px;padding:4px 12px;font-size:10px;cursor:pointer;background:#14161d;color:#8b8fa3;}
+.mk-pf.mk-pon{background:#0F6E56;border-color:#0F6E56;color:#9FE1CB;}
+.mk-scgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.mk-scard{background:#14161d;border:1px solid #2a2e3a;border-radius:8px;overflow:hidden;}
+.mk-sctitle{font-size:9px;font-weight:600;color:#8b8fa3;padding:8px 12px;border-bottom:1px solid #2a2e3a;letter-spacing:.06em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}
+.mk-scrow{display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid #2a2e3a;gap:8px;}
+.mk-scrow:last-child{border-bottom:none;}
+.mk-scicon{font-size:11px;width:18px;}
+.mk-sclabel{flex:1;font-size:10px;color:#e2e4ea;}
+.mk-scval{font-size:9px;color:#8b8fa3;}
+.mk-prem-pc{background:#085041;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;}
+.mk-prem-pc .mk-ptitle2{color:#9FE1CB;font-size:11px;font-weight:600;margin-bottom:2px;}
+.mk-prem-pc .mk-psub2{color:#5DCAA5;font-size:10px;}
+.mk-prem-pc .mk-pprice2{background:#9FE1CB;color:#04342C;border-radius:12px;padding:4px 12px;font-size:10px;font-weight:600;cursor:pointer;margin-left:auto;white-space:nowrap;}
+
+@media(max-width:768px){
+  .rev-tiers{grid-template-columns:1fr;}
+  .persona-grid{grid-template-columns:1fr;}
+  .ui-compare{grid-template-columns:1fr;}
+  .sc-kv{grid-template-columns:1fr;}
+  .mk-platforms{flex-direction:column;align-items:center;}
+  .mk-lbwrap,.mk-scgrid{grid-template-columns:1fr;}
+  .mk-grid5{grid-template-columns:repeat(3,1fr);}
+}
+</style>
+</head>
+<body>
+
+<nav class="toc">
+  <a href="#hero" data-label="Top"></a>
+  <a href="#overview" data-label="프로젝트 개요"></a>
+  <a href="#concept" data-label="플랫폼 컨셉"></a>
+  <a href="#target" data-label="타겟 유저"></a>
+  <a href="#experience" data-label="핵심 경험"></a>
+  <a href="#content" data-label="콘텐츠 전략"></a>
+  <a href="#viral" data-label="바이럴 루프"></a>
+  <a href="#algorithm" data-label="추천 알고리즘"></a>
+  <a href="#leaderboard" data-label="리더보드"></a>
+  <a href="#revenue" data-label="수익 모델"></a>
+  <a href="#ugc-policy" data-label="UGC 정책"></a>
+  <a href="#uxui" data-label="UI/UX 설계"></a>
+  <a href="#tech" data-label="기술 스택"></a>
+  <a href="#roadmap" data-label="로드맵"></a>
+  <a href="#summary" data-label="한 장 요약"></a>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="hero">
+  <div class="hero-badge"><span class="dot"></span>개발 계획서 v1.3 · 2026.04 · 피드백 반영</div>
+  <h1><span class="grad">숏게타</span><span class="sub-name">ShortGameTown</span></h1>
+  <p class="hero-sub">밈 기반 미니게임 플랫폼 — 자투리 시간을 위한 넷플릭스식 게임 생태계</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">2~3분</div><div class="label">세션 길이</div></div>
+    <div class="hero-stat"><div class="num">9:16</div><div class="label">게임 비율</div></div>
+    <div class="hero-stat"><div class="num">3단계</div><div class="label">개발 로드맵</div></div>
+    <div class="hero-stat"><div class="num">UGC</div><div class="label">장기 확장 전략</div></div>
+  </div>
+  <div class="scroll-hint">SCROLL<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 5v14M19 12l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+</header>
+<div class="divider"></div>
+
+<!-- 01 프로젝트 개요 -->
+<section id="overview" class="fade-in">
+<div class="container">
+  <div class="section-label">01 — 프로젝트 개요</div>
+  <h2>무엇을 만드는가</h2>
+  <p class="lead">1~2인 인디 개발팀이 Unity + Go 스택으로 제작하는 밈 기반 미니게임 플랫폼. 오리지널 게임으로 시작해 UGC 생태계로 확장하는 넷플릭스식 구조를 지향한다.</p>
+  <div class="card-grid-4">
+    <div class="card"><div class="icon">🎮</div><h3>장르</h3><p>WarioWare식 자동 전환 미니게임 컬렉션. 2~3분 세션, 병맛/밈 정체성.</p></div>
+    <div class="card"><div class="icon">📺</div><h3>플랫폼 모델</h3><p>넷플릭스식. 오리지널로 품질 기준 수립, UGC로 콘텐츠 볼륨 확보.</p></div>
+    <div class="card"><div class="icon">📱</div><h3>출시 플랫폼</h3><p>Android 선행 출시 → iOS → Steam 패키지. 모바일과 PC UI 분리 설계.</p></div>
+    <div class="card"><div class="icon">⚙️</div><h3>개발 환경</h3><p>Unity + Claude MCP 워크플로우. Go 백엔드, k3s 인프라.</p></div>
+  </div>
+  <div class="hl"><strong>네이밍 배경:</strong> 2000년대 무료게임타운(무게타)의 정신을 현대적으로 계승. 줄임말 "숏게타"가 자연스럽게 밈화되는 것을 의도. 무게타 세대(90년대생)와 밈 소비 세대(2000년대생) 양쪽을 모두 포섭.</div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 02 플랫폼 컨셉 -->
+<section id="concept" class="fade-in">
+<div class="container">
+  <div class="section-label">02 — 플랫폼 컨셉</div>
+  <h2>핵심 포지셔닝</h2>
+  <p class="lead">세 가지 레퍼런스의 교차점. WarioWare의 게임성, 넷플릭스의 플랫폼 전략, 무게타의 커뮤니티 정서.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>레퍼런스</th><th>차용하는 것</th><th>우리만의 차별점</th></tr></thead>
+      <tbody>
+        <tr><td><strong>WarioWare</strong></td><td>자동 전환, 예측 불가 순서, 짧은 게임</td><td>글로벌 랭킹, UGC 확장, 태그 큐레이션</td></tr>
+        <tr><td><strong>넷플릭스</strong></td><td>오리지널→UGC 전략, 추천 알고리즘, 플랫폼 생태계</td><td>게임 플랫폼 특화, 경쟁/랭킹 요소 결합</td></tr>
+        <tr><td><strong>무게타</strong></td><td>커뮤니티 감성, 진입 장벽 없음, 다양한 게임</td><td>모바일 최적화, 알고리즘 큐레이션, 글로벌 타겟</td></tr>
+        <tr><td><strong>TikTok/Shorts</strong></td><td>9:16 세로형, 스와이프 소비 패턴, 짧은 콘텐츠</td><td>게임 인터랙션 + 경쟁 요소 추가</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card-grid">
+    <div class="card"><div class="icon">🐸</div><h3>밈/병맛 정체성</h3><p>"이게 뭐야 ㅋㅋ" → 클리어 → "한 판 더" → 공유. 이 바이럴 루프가 마케팅을 대신한다. MS Paint 감성, 과장된 효과음, 말도 안 되는 게임 전제가 핵심 정체성.</p></div>
+    <div class="card"><div class="icon">🏙️</div><h3>타운(Town) 철학</h3><p>크리에이터가 게임을 올리고, 유저가 플레이하고, 랭킹으로 경쟁하는 하나의 생태계. "모이는 곳"이라는 플랫폼 정체성이 무게타 계보를 잇는다.</p></div>
+    <div class="card"><div class="icon">⚡</div><h3>스낵 컨셉</h3><p>지하철 두 정거장 사이에 열고, 웃고, 닫는다. 2~3분 세션이 자투리 시간에 최적화된 단위. 근데 내리기 싫어진다.</p></div>
+  </div>
+  <div class="hl purple"><strong>슬로건:</strong> "한판만 더" — 중독 루프를 한 마디로 표현. 모든 UX 결정의 기준이 되는 문장.</div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 03 타겟 유저 -->
+<section id="target" class="fade-in">
+<div class="container">
+  <div class="section-label">03 — 타겟 유저</div>
+  <h2>누구를 위한 플랫폼인가</h2>
+  <p class="lead">10~20대 모바일 캐주얼 유저와 밈/커뮤니티 문화 소비층. 두 페르소나가 겹치는 순간이 최강의 바이럴 포인트다.</p>
+  <div class="persona-grid">
+    <div class="persona-card">
+      <div class="p-avatar" style="background:rgba(94,234,212,.15);">🎮</div>
+      <div class="p-name">페르소나 A — 이동 중 유저</div>
+      <div class="p-meta">10~20대 · 모바일 캐주얼 · 자투리 시간 소비</div>
+      <div class="p-quote">"지하철 타면 핸드폰 꺼내는데 딱히 할 게 없음. 유튜브 틀기엔 이어폰 없고."</div>
+      <div class="p-tags"><span class="p-tag">버스/지하철 통학</span><span class="p-tag">2~3분 집중력</span><span class="p-tag">모바일 퍼스트</span><span class="p-tag">무료 앱 선호</span><span class="p-tag">친구 공유 문화</span></div>
+    </div>
+    <div class="persona-card">
+      <div class="p-avatar" style="background:rgba(244,114,182,.15);">🐸</div>
+      <div class="p-name">페르소나 B — 밈 소비자</div>
+      <div class="p-meta">15~25대 · 커뮤니티 활성 유저 · 밈 생산·소비</div>
+      <div class="p-quote">"ㅋㅋ이게 뭐야. 근데 함. 랭킹 1등 인증샷 커뮤니티에 올려야지."</div>
+      <div class="p-tags"><span class="p-tag">디시/에펨코리아</span><span class="p-tag">X/트위터 활성</span><span class="p-tag">캡처 공유 습관</span><span class="p-tag">랭킹 경쟁 관심</span><span class="p-tag">무게타 향수</span></div>
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">📊 유입 채널 예측 가중치</div>
+    <canvas id="channelChart"></canvas>
+  </div>
+  <div class="hl"><strong>골든 타임:</strong> "버스에서 하다가 ㅋㅋ 미쳤다 싶어서 단톡방에 공유함" — 두 페르소나가 겹치는 이 행동이 바이럴의 시작점이자 핵심 마케팅 루프다.</div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 04 핵심 경험 -->
+<section id="experience" class="fade-in">
+<div class="container">
+  <div class="section-label">04 — 핵심 경험</div>
+  <h2>플레이어가 느끼는 것</h2>
+  <p class="lead">숏게타를 여는 순간부터 닫는 순간까지의 감정 설계. 모든 게임 디자인 결정은 이 루프를 강화하는 방향으로.</p>
+  <div class="loop-wrap">
+    <div class="loop">
+      <div class="loop-step"><div class="ls-num">00</div><div class="ls-icon">📱</div><div class="ls-title">진입</div><div class="ls-sub">앱 열기. 버튼 하나. 즉시 시작.</div></div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step"><div class="ls-num">01</div><div class="ls-icon">❓</div><div class="ls-title">이게 뭐야</div><div class="ls-sub">말도 안 되는 전제. 설명 없이 직관적.</div></div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step"><div class="ls-num">02</div><div class="ls-icon">🎮</div><div class="ls-title">일단 함</div><div class="ls-sub">2~3분. 자동 전환. 다음 게임 모름.</div></div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step"><div class="ls-num">03</div><div class="ls-icon">🏆</div><div class="ls-title">결과</div><div class="ls-sub">점수·랭킹 확인. 과장된 연출.</div></div>
+      <div class="loop-arrow">→</div>
+      <div class="loop-step"><div class="ls-num">04</div><div class="ls-icon">📤</div><div class="ls-title">공유·재도전</div><div class="ls-sub">커뮤니티 공유 / 랭킹 경쟁 / 한판 더.</div></div>
+    </div>
+  </div>
+  <div class="card-grid-3">
+    <div class="card"><h3>🚫 튜토리얼 없음</h3><p>0~10초 안에 규칙을 이해할 수 있어야 한다. 이해 안 되면 게임 디자인 실패. 직관성이 최우선 설계 기준.</p></div>
+    <div class="card"><h3>🎺 과장된 피드백</h3><p>성공 = 에어혼 + 파티. 실패 = 슬픈 효과음 + 밈 이미지. 연출 자체가 게임의 절반이다.</p></div>
+    <div class="card"><h3>❓ 예측 불가 순서</h3><p>다음에 뭐가 나올지 모른다는 것이 훅. WarioWare 핵심을 그대로 계승한 긴장감 설계.</p></div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">📈 2분 30초 세션 내 감정 곡선 설계</div>
+    <canvas id="sessionChart"></canvas>
+  </div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 05 콘텐츠 전략 -->
+<section id="content" class="fade-in">
+<div class="container">
+  <div class="section-label">05 — 콘텐츠 전략</div>
+  <h2>오리지널 → UGC 확장</h2>
+  <p class="lead">개발 속도가 유저 소비 속도를 따라가지 못하는 구조적 한계를 UGC로 해결. 오리지널이 플랫폼의 품질 기준이자 태그 시스템의 레퍼런스 구현체가 된다.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>구분</th><th>역할</th><th>품질 관리</th><th>볼륨 목표</th><th>Phase</th></tr></thead>
+      <tbody>
+        <tr><td><strong>숏게타 오리지널</strong></td><td>플랫폼 얼굴 · 품질 기준점 · 태그 레퍼런스</td><td class="rank-1">직접 관리</td><td>5~7개 (런칭)</td><td><span class="badge bp1">Phase 1</span></td></tr>
+        <tr><td><strong>파트너 크리에이터</strong></td><td>검증된 외부 제작자 · 커뮤니티 신뢰 형성</td><td>심사 + 자동 검증</td><td>반응 보고 모집</td><td><span class="badge bp2">Phase 2</span></td></tr>
+        <tr><td><strong>UGC 오픈</strong></td><td>커뮤니티 콘텐츠 폭발 · 소비 속도 대응</td><td>크리에이터 태그 + 자동 분류</td><td>무제한</td><td><span class="badge bp3">Phase 3</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card-grid">
+    <div class="card"><div class="icon">🐸</div><h3>개구리 잡아라</h3><p>화면 랜덤 등장 개구리 탭. 플랫폼 마스코트 연결.</p><div style="margin-top:.75rem;display:flex;gap:.4rem;flex-wrap:wrap;"><span class="badge bp1" style="font-size:.65rem;">반응속도</span><span class="badge bp1" style="font-size:.65rem;">동물</span><span class="badge bp1" style="font-size:.65rem;">병맛</span></div></div>
+    <div class="card"><div class="icon">🍜</div><h3>라면 끓이지 마라</h3><p>끓어넘치기 직전 타이밍 게임. 한국인 공감 100%.</p><div style="margin-top:.75rem;display:flex;gap:.4rem;flex-wrap:wrap;"><span class="badge bp1" style="font-size:.65rem;">타이밍</span><span class="badge bp1" style="font-size:.65rem;">음식</span><span class="badge bp1" style="font-size:.65rem;">일상</span></div></div>
+    <div class="card"><div class="icon">😐</div><h3>포커페이스 유지</h3><p>웃긴 이미지 연속 출력. 웃으면 탈락.</p><div style="margin-top:.75rem;display:flex;gap:.4rem;flex-wrap:wrap;"><span class="badge bp1" style="font-size:.65rem;">눈치</span><span class="badge bp1" style="font-size:.65rem;">인터넷밈</span></div></div>
+    <div class="card"><div class="icon">💀</div><h3>Dark Souls 도전</h3><p>아무것도 안 하면 클리어. 병맛의 정점.</p><div style="margin-top:.75rem;display:flex;gap:.4rem;flex-wrap:wrap;"><span class="badge bp1" style="font-size:.65rem;">운빨</span><span class="badge bp1" style="font-size:.65rem;">병맛</span></div></div>
+    <div class="card"><div class="icon">📱</div><h3>카톡 읽씹하기</h3><p>읽음 처리 전에 앱 닫기. 한국 밈 직접 게임화.</p><div style="margin-top:.75rem;display:flex;gap:.4rem;flex-wrap:wrap;"><span class="badge bp1" style="font-size:.65rem;">타이밍</span><span class="badge bp1" style="font-size:.65rem;">일상</span></div></div>
+    <div class="card"><div class="icon">🧠</div><h3>수학 천재 도전</h3><p>어려운 문제 나오는 척하다 1+1 나옴. 예측 배반.</p><div style="margin-top:.75rem;display:flex;gap:.4rem;flex-wrap:wrap;"><span class="badge bp1" style="font-size:.65rem;">집중력</span><span class="badge bp1" style="font-size:.65rem;">병맛</span></div></div>
+  </div>
+  <div class="hl"><strong>게임 비율 확정:</strong> 세로형 9:16. 모바일 화면 최적화 + TikTok/Shorts 소비 패턴 일치. 썸네일 카드도 동일 비율 적용. 최소 해상도 720×1280.</div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 06 바이럴 루프 NEW -->
+<section id="viral" class="fade-in">
+<div class="container">
+  <div class="section-label">06 — 바이럴 루프 <span class="badge bnew" style="margin-left:.5rem;">v1.3 신규</span></div>
+  <h2>9:16 하이라이트 자동 공유</h2>
+  <p class="lead">9:16 포맷이 TikTok·릴스와 완전히 일치한다는 것은 단순한 UI 선택이 아니다. 클리어 순간을 자동 캡처해 한 탭으로 공유하면 유저가 마케터가 된다.</p>
+
+  <div class="hl purple"><strong>핵심 인사이트:</strong> 게임 내 바이럴 루프를 만들지 않으면 소셜 공유는 유저의 수고에 의존한다. 자동화된 공유 경험이 "이게 뭐야 ㅋㅋ" → TikTok 업로드 → 신규 유입 루프를 닫는다.</div>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="icon">🎬</div>
+      <h3>하이라이트 자동 녹화</h3>
+      <p>게임 클리어·실패 순간 직전 3초를 자동 캡처. 별도 설정 없이 항상 대기 상태. 9:16 비율이므로 TikTok·릴스·YouTube Shorts에 별도 편집 없이 업로드 가능.</p>
+    </div>
+    <div class="card">
+      <div class="icon">📤</div>
+      <h3>원탭 공유 플로우</h3>
+      <p>결과 화면에서 공유 버튼 하나로 영상 + 점수 + 숏게타 워터마크 자동 합성. 카카오톡·인스타그램·TikTok 직접 연동. 공유 시 리더보드 보너스 포인트 지급.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🌊</div>
+      <h3>바이럴 증폭 구조</h3>
+      <p>영상에 숏게타 로고 + "나도 해봐" QR 코드 자동 삽입. 공유된 영상이 다운로드 유입으로 직결. 유저가 마케터가 되는 구조.</p>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>공유 유형</th><th>트리거</th><th>콘텐츠</th><th>인센티브</th><th>Phase</th></tr></thead>
+      <tbody>
+        <tr><td><strong>클리어 영상</strong></td><td>게임 클리어 직후</td><td>직전 3초 + 점수 오버레이</td><td>리더보드 +50P</td><td><span class="badge bp1">Phase 1</span></td></tr>
+        <tr><td><strong>실패 영상</strong></td><td>황당한 실패 순간</td><td>직전 3초 + 병맛 이펙트</td><td>수치의 전당 포인트</td><td><span class="badge bp1">Phase 1</span></td></tr>
+        <tr><td><strong>랭킹 인증</strong></td><td>TOP 100 진입 시</td><td>랭킹 카드 이미지 (정적)</td><td>칭호 + 배지</td><td><span class="badge bp1">Phase 1</span></td></tr>
+        <tr><td><strong>세션 하이라이트</strong></td><td>세션 종료 후</td><td>세션 중 최고 순간 자동 편집</td><td>—</td><td><span class="badge bp2">Phase 2</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="hl amber"><strong>기술 고려사항:</strong> Android는 MediaRecorder API, iOS는 ReplayKit 활용. Unity에서 RecordingService 플러그인으로 플랫폼 추상화. 9:16 렌더 타겟을 게임 시작부터 별도 유지해야 녹화 품질 보장. Phase 1 스코프에 포함.</div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 07 추천 알고리즘 + DDA -->
+<section id="algorithm" class="fade-in">
+<div class="container">
+  <div class="section-label">07 — 추천 알고리즘</div>
+  <h2>태그 기반 큐레이션 + DDA</h2>
+  <p class="lead">유저 플레이 패턴을 태그로 분석해 취향 맞춤 세션을 구성하고, 유저 성공률(Success Rate) 기반의 다이나믹 난이도 조절(DDA)을 결합해 이탈률을 낮춘다.</p>
+  <div class="card" style="padding:1.5rem;">
+    <div class="tag-row"><span class="tag-label">장르</span><span class="tag tg">반응속도</span><span class="tag tg">타이밍</span><span class="tag tg">기억력</span><span class="tag tg">눈치</span><span class="tag tg">운빨</span><span class="tag tg">집중력</span><span class="tag tg">멀티태스킹</span></div>
+    <div class="tag-row"><span class="tag-label">강도 (DDA)</span><span class="tag ti">하드코어</span><span class="tag ti">중간</span><span class="tag ti">잔잔</span><span class="tag ti">자극적</span></div>
+    <div class="tag-row"><span class="tag-label">소재</span><span class="tag tt">동물</span><span class="tag tt">음식</span><span class="tag tt">직장</span><span class="tag tt">연애</span><span class="tag tt">공포</span><span class="tag tt">일상</span><span class="tag tt">판타지</span></div>
+    <div class="tag-row"><span class="tag-label">밈도</span><span class="tag tm">병맛</span><span class="tag tm">순수개그</span><span class="tag tm">블랙유머</span><span class="tag tm">레트로</span><span class="tag tm">인터넷밈</span></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>단계</th><th>동작</th><th>데이터 소스</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td><strong>STEP 01</strong> 이력 수집</td><td>완료 / 이탈 / 재도전 + 성공률(SR) 기록</td><td>Analytics API</td><td>세션 단위 기록</td></tr>
+        <tr><td><strong>STEP 02</strong> 태그 가중치</td><td>플레이 패턴 → 태그별 선호도 스코어</td><td>Game Registry + 이력</td><td>재도전 횟수 가중 2배</td></tr>
+        <tr><td><strong>STEP 03 <span class="badge bnew">DDA</span></strong> 강도 조절</td><td>SR &gt; 80% → 강도↑ / SR &lt; 40% → 강도↓</td><td>실시간 SR 계산</td><td>강도 태그를 동적 재가중</td></tr>
+        <tr><td><strong>STEP 04</strong> 세션 큐 구성</td><td>선호 태그 비중↑ + DDA 강도 + 신규 발견 20%</td><td>추천 엔진</td><td>신규 발견 비율 고정</td></tr>
+        <tr><td><strong>STEP 05</strong> 피드백 반영</td><td>클리어율·재도전율·이탈 시점으로 업데이트</td><td>실시간 이벤트</td><td>세션 종료 후 배치</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card-grid-3">
+    <div class="card"><h3>📈 DDA 작동 원리</h3><p>Success Rate = 최근 10게임 클리어 수 / 10. SR 임계값 벗어나면 다음 세션 큐에서 "강도" 태그 가중치 자동 조정. 실력이 늘면 자연스럽게 더 어려운 게임이 등장.</p></div>
+    <div class="card"><h3>🎯 이탈률 감소 효과</h3><p>너무 쉬우면 지루해서 이탈. 너무 어려우면 좌절해서 이탈. DDA는 유저를 "아 좀 아깝다" 구간에 계속 유지시킨다. 리텐션 향상의 핵심 메커니즘.</p></div>
+    <div class="card"><h3>⚠️ 설계 주의사항</h3><p>DDA는 유저에게 보이지 않아야 한다. 성취감이 깨지지 않도록. 강도 조절폭을 ±1단계로 제한해 급격한 변화 방지.</p></div>
+  </div>
+  <div class="hl"><strong>Cold Start:</strong> 초기 3세션은 오리지널 게임 + 인기 순 + DDA 중간 강도 기본값. 3세션 이후부터 태그 + DDA 동시 적용.</div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 07 리더보드 -->
+<section id="leaderboard" class="fade-in">
+<div class="container">
+  <div class="section-label">07 — 경쟁 시스템</div>
+  <h2>게임별 리더보드</h2>
+  <p class="lead">글로벌 랭킹 하나만 있으면 상위 0.1%만 경쟁한다. 게임별 리더보드로 누구나 특정 게임의 랭커가 될 수 있는 입체적 경쟁 구조.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>리더보드</th><th>범위</th><th>리셋</th><th>보상</th><th>경쟁심 유발</th></tr></thead>
+      <tbody>
+        <tr><td><strong>게임별 명예의 전당</strong></td><td>게임 단위 전체</td><td>신규 버전 출시 시</td><td class="rank-1">게임별 전용 칭호</td><td>"개구리 잡기 전국 1위" 니치 자랑</td></tr>
+        <tr><td><strong>주간 글로벌</strong></td><td>전체 유저</td><td>매주 월요일</td><td>주간 TOP 타이틀</td><td>주마다 리셋 → 재도전 기회 반복</td></tr>
+        <tr><td><strong>월간 시즌</strong></td><td>전체 유저</td><td>매월 1일</td><td class="rank-1">시즌 엠블럼 영구 부여</td><td>수집 욕구 자극</td></tr>
+        <tr><td><strong>친구 랭킹</strong></td><td>친구 목록</td><td>실시간</td><td>친구 간 자랑</td><td>가장 강력한 재방문 유인</td></tr>
+        <tr><td><strong>수치의 전당</strong></td><td>꼴찌 유저</td><td>상시</td><td style="color:var(--accent3);">병맛 타이틀</td><td>역발상 밈 요소, 공유 유도</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="hl"><strong>경쟁심 유발 핵심 UX:</strong> 유저 자신의 순위 + 바로 위 순위와의 점수 차이를 항상 노출. "저 사람이랑 딱 230점 차이네, 한 판 더" — 이 루프가 세션 연장의 핵심 동력.</div>
+  <div class="chart-wrap">
+    <div class="chart-title">📊 인기 탭 게임 정렬 복합 지표</div>
+    <canvas id="popularChart"></canvas>
+  </div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 08 수익 모델 -->
+<section id="revenue" class="fade-in">
+<div class="container">
+  <div class="section-label">08 — 수익 모델</div>
+  <h2>플랫폼 × 채널별 수익 구조</h2>
+  <p class="lead">모바일은 무료 진입 + 광고 / 광고제거 판매. Steam은 일회성 패키지. 채널별로 최적화된 수익 모델을 분리 운영.</p>
+  <div class="rev-tiers">
+    <div class="rev-tier">
+      <div class="rt-label">모바일 · 기본</div><div class="rt-name">무료 플레이</div>
+      <div class="rt-price">₩0 <span>/ 영구</span></div>
+      <ul><li>전체 미니게임 플레이</li><li>글로벌 · 게임별 랭킹 참여</li><li>세션 종료 후 전면 광고</li><li>배너 광고 상시 노출</li></ul>
+    </div>
+    <div class="rev-tier feat">
+      <span class="rt-badge">핵심 수익원</span>
+      <div class="rt-label">모바일 · 프리미엄</div><div class="rt-name">광고 제거</div>
+      <div class="rt-price">$2.99 <span>/ 1회</span></div>
+      <ul><li>모든 광고 영구 제거</li><li>구매자 전용 프로필 뱃지</li><li>크리에이터 수익 분배 기여</li></ul>
+    </div>
+    <div class="rev-tier">
+      <div class="rt-label">Steam · 유료</div><div class="rt-name">패키지</div>
+      <div class="rt-price">$7.99 <span>/ 1회</span></div>
+      <ul>
+        <li>Steam 독점 오리지널 게임 2개 <span class="badge bnew" style="font-size:.62rem;">독점</span></li>
+        <li>HD 에셋팩 (월페이퍼·이모티콘)</li>
+        <li>광고 없음 (기본)</li>
+        <li>Steam 도전과제 · 트레이딩카드</li>
+        <li>오프라인 플레이 지원</li>
+        <li>출시 세일 20% → $6.39</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="hl amber"><strong>Steam 독점 가치 명분:</strong> "모바일이 무료인데 왜 $7.99를 내는가"에 대한 답이 필요하다. Steam 독점 오리지널 2개 + HD 에셋팩 + 오프라인 플레이가 핵심 명분. 독점 게임은 모바일 출시 3개월 후 Steam에 선행 출시해 희소성 유지.</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Steam 독점 콘텐츠</th><th>내용</th><th>명분</th></tr></thead>
+      <tbody>
+        <tr><td><strong>독점 오리지널 게임 2종</strong></td><td>PC 키보드 조작에 최적화된 미니게임. 모바일 미출시.</td><td class="rank-1">콘텐츠 차별화 — 가장 강력한 명분</td></tr>
+        <tr><td><strong>HD 에셋팩</strong></td><td>4K 월페이퍼, Steam 프로필 배경, 이모티콘 세트</td><td>소장 가치 · 프로필 자랑</td></tr>
+        <tr><td><strong>오프라인 플레이</strong></td><td>인터넷 없이 오리지널 게임 플레이 가능</td><td>비행기·지하 환경 대응</td></tr>
+        <tr><td><strong>UGC 조기 접근</strong></td><td>Phase 3 UGC 게임을 Steam 구매자에게 先공개</td><td>헤비 유저 보상 · 얼리어답터 감성</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="hl amber"><strong>광고 삽입 원칙:</strong> 세션 중 광고 없음. 세션 종료 결과 화면 이후에만 전면 광고 삽입. 보상형 광고는 자발적 시청으로만 운영. 광고가 플레이 흐름을 끊지 않는 것이 최우선.</div>
+  <div class="chart-wrap">
+    <div class="chart-title">📊 MAU 10만 기준 월 수익 구성 시나리오</div>
+    <canvas id="revenueChart"></canvas>
+  </div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 09 UGC 저작권 및 심사 정책 NEW -->
+<section id="ugc-policy" class="fade-in">
+<div class="container">
+  <div class="section-label">09 — UGC 정책 <span class="badge bnew" style="margin-left:.5rem;">v1.3 신규</span></div>
+  <h2>저작권 & 콘텐츠 심사 정책</h2>
+  <p class="lead">밈 기반 게임은 저작권 이슈에 구조적으로 취약하다. Phase 3 UGC 오픈 전에 정책 설계와 자동 필터링 시스템을 완성해야 플랫폼이 안전하다.</p>
+
+  <div class="hl"><strong>설계는 지금, 구현은 Phase 3:</strong> UGC 시스템 설계 시 저작권 정책을 처음부터 반영해야 나중에 구조를 뜯지 않아도 된다. 크리에이터 SDK 설계 단계에서 제약을 명시하는 것이 핵심.</div>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="icon">©️</div>
+      <h3>UGC 저작권 가이드라인</h3>
+      <p>크리에이터가 올릴 수 있는 리소스의 범위를 명시. 직접 제작한 그래픽·사운드만 허용. 유명 캐릭터·상표·음악 사용 금지. 등록 시 서약 동의 필수. 저작권 침해 신고 → 72시간 내 처리 SLA.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🤖</div>
+      <h3>자동 필터링 시스템</h3>
+      <p>이미지 해시 기반 저작권 소재 감지 (유명 IP·로고). 텍스트 분석으로 혐오 표현·성인 내용 차단. 사운드 지문 매칭으로 저작권 음원 차단. 1차 자동, 2차 수동 심사 2단계 구조.</p>
+    </div>
+    <div class="card">
+      <div class="icon">⚖️</div>
+      <h3>"병맛"과 "선 넘음" 경계</h3>
+      <p>병맛 정체성을 유지하면서도 혐오/차별을 거르는 기준이 필요. 특정 인물 비하·정치적 내용·종교 비하는 자동 차단 키워드 목록 관리. 커뮤니티 신고 시스템으로 크라우드소싱 심사 보완.</p>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>필터 유형</th><th>감지 대상</th><th>처리 방식</th><th>구현 시점</th></tr></thead>
+      <tbody>
+        <tr><td><strong>저작권 이미지</strong></td><td>유명 IP, 로고, 유명인 얼굴</td><td>자동 차단 + 크리에이터 알림</td><td><span class="badge bp3">Phase 3 시작 전</span></td></tr>
+        <tr><td><strong>저작권 음원</strong></td><td>상업 음악 지문 매칭</td><td>오디오 자동 제거 or 등록 거부</td><td><span class="badge bp3">Phase 3 시작 전</span></td></tr>
+        <tr><td><strong>혐오 표현</strong></td><td>텍스트 키워드, 이미지 분류</td><td>자동 차단 + 수동 검토 큐</td><td><span class="badge bp3">Phase 3 시작 전</span></td></tr>
+        <tr><td><strong>성인 콘텐츠</strong></td><td>이미지 분류 모델</td><td>자동 차단</td><td><span class="badge bp3">Phase 3 시작 전</span></td></tr>
+        <tr><td><strong>커뮤니티 신고</strong></td><td>유저 신고 누적</td><td>임계치 초과 시 자동 비공개 + 수동 검토</td><td><span class="badge bp2">Phase 2 설계</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="hl amber"><strong>파트너 크리에이터 베타 (Phase 2) 활용:</strong> 소수 검증된 크리에이터와 내부 테스트를 통해 심사 기준과 자동 필터 오탐률을 사전에 조정. Phase 3 전면 오픈 전에 정책을 검증하는 버퍼 구간.</div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- ── 10 UI/UX 설계 (목업 포함) ── -->
+<section id="uxui" class="fade-in">
+<div class="container">
+  <div class="section-label">10 — UI/UX 설계 <span class="badge bnew" style="margin-left:.5rem;">v1.2 목업 추가</span></div>
+  <h2>모바일 · PC 분리 설계</h2>
+  <p class="lead">Android 선행 출시 → iOS → Steam 순서. 모바일은 YouTube 모바일 UX 참고, PC는 Steam 클라이언트 스타일. 공통 디자인 언어를 유지하되 플랫폼 특성에 맞게 분리.</p>
+
+  <div class="ui-compare">
+    <div class="ui-box">
+      <div class="ui-header"><span style="font-size:1.2rem;">📱</span><div><div class="ui-platform">모바일 (Android 우선 → iOS)</div><div class="ui-sub">YouTube 모바일 UX 참고</div></div></div>
+      <div class="ui-item"><span class="ui-key">네비게이션</span><span class="ui-val">하단 탭 4개 — 홈 · 인기 · 보관함 · 설정</span></div>
+      <div class="ui-item"><span class="ui-key">홈 탭</span><span class="ui-val">알고리즘 세션 즉시 시작 버튼 + 취향 맞춤 카드 리스트</span></div>
+      <div class="ui-item"><span class="ui-key">인기 탭</span><span class="ui-val">지금 핫한 / 역대 명작 필터 분리</span></div>
+      <div class="ui-item"><span class="ui-key">보관함</span><span class="ui-val">하트 누른 게임 저장. 내 최고 점수 표시.</span></div>
+      <div class="ui-item"><span class="ui-key">검색</span><span class="ui-val">상단 바 공통 배치 (전 탭 공유)</span></div>
+      <div class="ui-item"><span class="ui-key">광고 제거 유도</span><span class="ui-val">설정 탭 상단 고정 카드</span></div>
+      <div class="ui-item"><span class="ui-key">게임 카드</span><span class="ui-val">9:16 세로형 썸네일 · 태그 · 플레이 수 · 하트</span></div>
+    </div>
+    <div class="ui-box">
+      <div class="ui-header"><span style="font-size:1.2rem;">🖥️</span><div><div class="ui-platform">PC (Steam 클라이언트)</div><div class="ui-sub">Steam 클라이언트 스타일</div></div></div>
+      <div class="ui-item"><span class="ui-key">네비게이션</span><span class="ui-val">좌측 사이드바 — 홈 · 인기 · 보관함 · 리더보드 · 설정</span></div>
+      <div class="ui-item"><span class="ui-key">리더보드</span><span class="ui-val">독립 탭. 게임별 · 글로벌 · 친구 동시 표시.</span></div>
+      <div class="ui-item"><span class="ui-key">태그 필터</span><span class="ui-val">사이드바 하단 태그 목록으로 빠른 장르 탐색</span></div>
+      <div class="ui-item"><span class="ui-key">인기 필터</span><span class="ui-val">지금 핫한 / 역대 명작 / 클리어율 / 재도전</span></div>
+      <div class="ui-item"><span class="ui-key">검색</span><span class="ui-val">상단 바. 게임명 + 태그 복합 검색.</span></div>
+      <div class="ui-item"><span class="ui-key">설정</span><span class="ui-val">해상도 / 프레임 / 볼륨 / 언어 / 버그 제보</span></div>
+      <div class="ui-item"><span class="ui-key">게임 카드</span><span class="ui-val">동일 9:16 썸네일. PC는 5열 그리드.</span></div>
+    </div>
+  </div>
+
+  <!-- ── 인터랙티브 목업 ── -->
+  <div class="mk-section-title">인터랙티브 목업 — 탭을 눌러 화면 전환</div>
+  <div class="mk-platforms">
+
+    <!-- 모바일 목업 -->
+    <div class="mk-platform-block">
+      <div class="mk-platform-label">📱 Android</div>
+      <div class="mk-phone">
+        <div class="mk-statusbar"><span class="mk-time">9:41</span><span class="mk-icons">●●● 100%</span></div>
+        <div class="mk-topbar">
+          <div class="mk-toprow">
+            <div class="mk-logo">숏<em>게</em>타</div>
+            <div style="width:24px;height:24px;border-radius:50%;background:#0F6E56;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#9FE1CB;cursor:pointer;">냉</div>
+          </div>
+          <div class="mk-searchbar">
+            <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+            <span>게임 검색</span>
+          </div>
+        </div>
+        <div class="mk-screen">
+          <!-- 홈 -->
+          <div class="mk-tab mk-active" id="mob-home">
+            <div class="mk-quick">
+              <div><div class="mk-qt">알고리즘 세션 시작</div><div class="mk-qs">반응속도 · 동물 취향 맞춤</div></div>
+              <div class="mk-qbtn">▶ 바로 시작</div>
+            </div>
+            <div class="mk-sec">내 취향 게임</div>
+            <div class="mk-card">
+              <div class="mk-thumb" style="background:#0d3020;"><span>🐸</span><span class="mk-ht" onclick="mht(this)">❤️</span></div>
+              <div class="mk-cbody"><div class="mk-crow"><div class="mk-ctitle">개구리 잡아라</div></div><div class="mk-cmeta"><span class="mk-ctag">반응속도</span><span class="mk-ctag">동물</span><span class="mk-cplays">3.2만 플레이</span><span class="mk-cscore">내 최고 9,847</span></div></div>
+            </div>
+            <div class="mk-card">
+              <div class="mk-thumb" style="background:#2a1a08;"><span>🍜</span><span class="mk-ht" onclick="mht(this)">🤍</span></div>
+              <div class="mk-cbody"><div class="mk-crow"><div class="mk-ctitle">라면 끓이지 마라</div></div><div class="mk-cmeta"><span class="mk-ctag">타이밍</span><span class="mk-ctag">음식</span><span class="mk-cplays">2.8만 플레이</span></div></div>
+            </div>
+            <div style="height:6px;"></div>
+            <div class="mk-sec">새로 나왔어요</div>
+            <div class="mk-card">
+              <div class="mk-thumb" style="background:#250d18;"><span>😐</span><span class="mk-nw">NEW</span><span class="mk-ht" onclick="mht(this)">🤍</span></div>
+              <div class="mk-cbody"><div class="mk-crow"><div class="mk-ctitle">포커페이스 유지</div></div><div class="mk-cmeta"><span class="mk-ctag">눈치</span><span class="mk-ctag">밈</span><span class="mk-cplays">신규</span></div></div>
+            </div>
+          </div>
+          <!-- 인기 -->
+          <div class="mk-tab" id="mob-hot">
+            <div class="mk-filters">
+              <div class="mk-fb mk-fon" id="mf1" onclick="mFilter('mf1')">지금 핫한</div>
+              <div class="mk-fb" id="mf2" onclick="mFilter('mf2')">역대 명작</div>
+            </div>
+            <div class="mk-card"><div class="mk-thumb" style="background:#1a0505;"><span class="mk-rk">1위</span><span>💀</span><span class="mk-ht" onclick="mht(this)">🤍</span></div><div class="mk-cbody"><div class="mk-crow"><div class="mk-ctitle">Dark Souls 도전</div></div><div class="mk-cmeta"><span class="mk-ctag">운빨</span><span class="mk-ctag">병맛</span><span class="mk-cplays">주간 9,800</span></div></div></div>
+            <div class="mk-card"><div class="mk-thumb" style="background:#0d3020;"><span class="mk-rk">2위</span><span>🐸</span><span class="mk-ht" onclick="mht(this)">❤️</span></div><div class="mk-cbody"><div class="mk-crow"><div class="mk-ctitle">개구리 잡아라</div></div><div class="mk-cmeta"><span class="mk-ctag">반응속도</span><span class="mk-cplays">주간 8,200</span></div></div></div>
+            <div class="mk-card"><div class="mk-thumb" style="background:#2a1a08;"><span class="mk-rk">3위</span><span>🍜</span><span class="mk-ht" onclick="mht(this)">🤍</span></div><div class="mk-cbody"><div class="mk-crow"><div class="mk-ctitle">라면 끓이지 마라</div></div><div class="mk-cmeta"><span class="mk-ctag">타이밍</span><span class="mk-cplays">주간 7,400</span></div></div></div>
+          </div>
+          <!-- 보관함 -->
+          <div class="mk-tab" id="mob-saved">
+            <div class="mk-card"><div class="mk-thumb" style="background:#0d3020;"><span>🐸</span><span class="mk-ht" onclick="mht(this)">❤️</span></div><div class="mk-cbody"><div class="mk-crow"><div class="mk-ctitle">개구리 잡아라</div></div><div class="mk-cmeta"><span class="mk-ctag">반응속도</span><span class="mk-cscore">내 최고 9,847</span></div></div></div>
+            <div style="text-align:center;padding:14px;font-size:10px;color:#8b8fa3;">하트 누르면 여기 저장돼요</div>
+          </div>
+          <!-- 설정 -->
+          <div class="mk-tab" id="mob-settings">
+            <div class="mk-prem"><div class="mk-ptitle">광고 없이 즐기기</div><div class="mk-psub">모든 광고를 영구 제거하세요</div><div class="mk-pprice">$2.99 한 번만</div></div>
+            <div class="mk-sitem">
+              <div class="mk-srow"><span class="mk-sicon">👤</span><span class="mk-slabel">계정 정보</span><span class="mk-sarrow">›</span></div>
+              <div class="mk-srow"><span class="mk-sicon">🏆</span><span class="mk-slabel">내 랭킹 현황</span><span class="mk-sval">글로벌 #247</span></div>
+            </div>
+            <div class="mk-sitem">
+              <div class="mk-srow"><span class="mk-sicon">🔔</span><span class="mk-slabel">알림 설정</span><span class="mk-sarrow">›</span></div>
+              <div class="mk-srow"><span class="mk-sicon">🎨</span><span class="mk-slabel">그래픽 설정</span><span class="mk-sarrow">›</span></div>
+              <div class="mk-srow"><span class="mk-sicon">🌐</span><span class="mk-slabel">언어</span><span class="mk-sval">한국어</span></div>
+            </div>
+            <div class="mk-sitem">
+              <div class="mk-srow"><span class="mk-sicon">🐛</span><span class="mk-slabel">버그 제보</span><span class="mk-sarrow">›</span></div>
+              <div class="mk-srow"><span class="mk-sicon">ℹ️</span><span class="mk-slabel">버전 정보</span><span class="mk-sval">v1.0.0</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- 하단 탭 -->
+        <div class="mk-nav">
+          <div class="mk-ni" onclick="mobTab('home')" id="mn-home">
+            <svg class="mk-nicon mk-non" id="mni-home" viewBox="0 0 24 24" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22V12h6v10" stroke-linecap="round"/></svg>
+            <span class="mk-nlabel mk-non" id="mnl-home">홈</span>
+          </div>
+          <div class="mk-ni" onclick="mobTab('hot')" id="mn-hot">
+            <svg class="mk-nicon" id="mni-hot" viewBox="0 0 24 24" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="mk-nlabel" id="mnl-hot">인기</span>
+          </div>
+          <div class="mk-ni" onclick="mobTab('saved')" id="mn-saved">
+            <svg class="mk-nicon" id="mni-saved" viewBox="0 0 24 24" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="mk-nlabel" id="mnl-saved">보관함</span>
+          </div>
+          <div class="mk-ni" onclick="mobTab('settings')" id="mn-settings">
+            <svg class="mk-nicon" id="mni-settings" viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="mk-nlabel" id="mnl-settings">설정</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PC 목업 -->
+    <div class="mk-platform-block" style="width:100%;max-width:640px;">
+      <div class="mk-platform-label">🖥️ PC — Steam 클라이언트</div>
+      <div class="mk-pc">
+        <div class="mk-titlebar">
+          <div class="mk-tbdot" style="background:#E24B4A;"></div>
+          <div class="mk-tbdot" style="background:#EF9F27;"></div>
+          <div class="mk-tbdot" style="background:#639922;"></div>
+          <span class="mk-tbtitle">숏게타 (ShortGameTown) — v1.0.0</span>
+        </div>
+        <div class="mk-pcbody">
+          <div class="mk-sidebar">
+            <div class="mk-sblogo"><div class="mk-sblogo-text">숏<em>게</em>타</div></div>
+            <div class="mk-sbsec">메뉴</div>
+            <div class="mk-sbitem mk-sbon" id="psi-home" onclick="pcTab('home')"><svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22V12h6v10" stroke-linecap="round"/></svg>홈</div>
+            <div class="mk-sbitem" id="psi-popular" onclick="pcTab('popular')"><svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linecap="round" stroke-linejoin="round"/></svg>인기</div>
+            <div class="mk-sbitem" id="psi-saved" onclick="pcTab('saved')"><svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" stroke-linecap="round" stroke-linejoin="round"/></svg>보관함</div>
+            <div class="mk-sbitem" id="psi-leaderboard" onclick="pcTab('leaderboard')"><svg viewBox="0 0 24 24" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>리더보드</div>
+            <div class="mk-sbitem" id="psi-settings" onclick="pcTab('settings')"><svg viewBox="0 0 24 24" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke-linecap="round" stroke-linejoin="round"/></svg>설정</div>
+            <div class="mk-sbsec">태그</div>
+            <div class="mk-sbtag"><span class="mk-sbdot" style="background:#1D9E75;"></span>반응속도</div>
+            <div class="mk-sbtag"><span class="mk-sbdot" style="background:#D85A30;"></span>타이밍</div>
+            <div class="mk-sbtag"><span class="mk-sbdot" style="background:#7F77DD;"></span>눈치</div>
+            <div class="mk-sbtag"><span class="mk-sbdot" style="background:#888780;"></span>+ 더보기</div>
+            <div class="mk-sbuser"><div class="mk-sbav">냉</div><div><div class="mk-sbname">냉삼</div><div class="mk-sbrank">글로벌 #247</div></div></div>
+          </div>
+          <div class="mk-main">
+            <div class="mk-topbar2">
+              <div class="mk-search2"><svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg><span>게임 검색, 태그로 찾기</span></div>
+              <div class="mk-tbactions"><div class="mk-tbbtn">랭킹</div><div class="mk-tbbtn mk-tbprimary">▶ 바로 시작</div></div>
+            </div>
+            <div class="mk-content">
+              <!-- 홈 -->
+              <div class="mk-panel mk-active" id="pc-home">
+                <div class="mk-banner">
+                  <div class="mk-bleft"><div class="mk-bbadge">오리지널 신작</div><div class="mk-btitle">포커페이스 유지</div><div class="mk-bsub">웃기면 탈락 · 눈치 · 인터넷 밈</div><div class="mk-bbtnrow"><div class="mk-bbtn">▶ 플레이</div><div class="mk-bbtn2">리더보드</div></div></div>
+                  <div class="mk-bthumb">😐</div>
+                </div>
+                <div class="mk-pcsec"><span class="mk-pcsec-t">취향 맞춤 — 반응속도 · 동물</span><span class="mk-pcsec-more">전체 보기 ›</span></div>
+                <div class="mk-grid5">
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#0d3020;"><span>🐸</span><span class="mk-ght" onclick="pht(this)">❤️</span></div><div class="mk-gbody"><div class="mk-gtitle">개구리 잡아라</div><div class="mk-gmeta"><span class="mk-gtag">반응속도</span></div><div class="mk-gplays">3.2만</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#2a1a08;"><span>🍜</span><span class="mk-ght" onclick="pht(this)">🤍</span></div><div class="mk-gbody"><div class="mk-gtitle">라면 끓이지 마라</div><div class="mk-gmeta"><span class="mk-gtag">타이밍</span></div><div class="mk-gplays">2.8만</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#250d18;"><span class="mk-gnw">NEW</span><span>😐</span><span class="mk-ght" onclick="pht(this)">🤍</span></div><div class="mk-gbody"><div class="mk-gtitle">포커페이스</div><div class="mk-gmeta"><span class="mk-gtag">눈치</span></div><div class="mk-gplays">신규</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#1a0505;"><span>💀</span><span class="mk-ght" onclick="pht(this)">🤍</span></div><div class="mk-gbody"><div class="mk-gtitle">Dark Souls</div><div class="mk-gmeta"><span class="mk-gtag">운빨</span></div><div class="mk-gplays">2.1만</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#0a1520;"><span>📱</span><span class="mk-ght" onclick="pht(this)">🤍</span></div><div class="mk-gbody"><div class="mk-gtitle">카톡 읽씹</div><div class="mk-gmeta"><span class="mk-gtag">타이밍</span></div><div class="mk-gplays">1.7만</div></div></div>
+                </div>
+                <div class="mk-pcsec"><span class="mk-pcsec-t">이번 주 핫한</span><span class="mk-pcsec-more">전체 보기 ›</span></div>
+                <div class="mk-grid5">
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#1a0505;"><span class="mk-grk">🔥 1위</span><span>💀</span></div><div class="mk-gbody"><div class="mk-gtitle">Dark Souls</div><div class="mk-gplays">주간 9,800</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#0d3020;"><span class="mk-grk">2위</span><span>🐸</span></div><div class="mk-gbody"><div class="mk-gtitle">개구리 잡기</div><div class="mk-gplays">주간 8,200</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#2a1a08;"><span class="mk-grk">3위</span><span>🍜</span></div><div class="mk-gbody"><div class="mk-gtitle">라면 끓이지 마라</div><div class="mk-gplays">주간 7,400</div></div></div>
+                </div>
+              </div>
+              <!-- 인기 -->
+              <div class="mk-panel" id="pc-popular">
+                <div class="mk-popf">
+                  <div class="mk-pf mk-pon" id="ppf1" onclick="ppFilter('ppf1')">지금 핫한</div>
+                  <div class="mk-pf" id="ppf2" onclick="ppFilter('ppf2')">역대 명작</div>
+                  <div class="mk-pf" id="ppf3" onclick="ppFilter('ppf3')">클리어율 높은</div>
+                  <div class="mk-pf" id="ppf4" onclick="ppFilter('ppf4')">재도전 많은</div>
+                </div>
+                <div class="mk-grid5">
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#1a0505;"><span class="mk-grk">1위</span><span>💀</span><span class="mk-ght" onclick="pht(this)">🤍</span></div><div class="mk-gbody"><div class="mk-gtitle">Dark Souls 도전</div><div class="mk-gmeta"><span class="mk-gtag">운빨</span><span class="mk-gtag">병맛</span></div><div class="mk-gplays">9,800</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#0d3020;"><span class="mk-grk">2위</span><span>🐸</span><span class="mk-ght" onclick="pht(this)">❤️</span></div><div class="mk-gbody"><div class="mk-gtitle">개구리 잡아라</div><div class="mk-gmeta"><span class="mk-gtag">반응속도</span></div><div class="mk-gplays">8,200</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#2a1a08;"><span class="mk-grk">3위</span><span>🍜</span><span class="mk-ght" onclick="pht(this)">🤍</span></div><div class="mk-gbody"><div class="mk-gtitle">라면 끓이지 마라</div><div class="mk-gmeta"><span class="mk-gtag">타이밍</span></div><div class="mk-gplays">7,400</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#250d18;"><span class="mk-gnw">NEW</span><span>😐</span><span class="mk-ght" onclick="pht(this)">🤍</span></div><div class="mk-gbody"><div class="mk-gtitle">포커페이스</div><div class="mk-gmeta"><span class="mk-gtag">눈치</span></div><div class="mk-gplays">신규</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#0a1520;"><span class="mk-grk">5위</span><span>📱</span><span class="mk-ght" onclick="pht(this)">🤍</span></div><div class="mk-gbody"><div class="mk-gtitle">카톡 읽씹하기</div><div class="mk-gmeta"><span class="mk-gtag">타이밍</span></div><div class="mk-gplays">4,100</div></div></div>
+                </div>
+              </div>
+              <!-- 보관함 -->
+              <div class="mk-panel" id="pc-saved">
+                <div class="mk-pcsec"><span class="mk-pcsec-t">찜한 게임 2개</span></div>
+                <div class="mk-grid5">
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#0d3020;"><span>🐸</span><span class="mk-ght" onclick="pht(this)">❤️</span></div><div class="mk-gbody"><div class="mk-gtitle">개구리 잡아라</div><div class="mk-gplays" style="color:#5eead4;font-weight:600;">최고 9,847</div></div></div>
+                  <div class="mk-gcard"><div class="mk-gthumb" style="background:#2a1a08;"><span>🍜</span><span class="mk-ght" onclick="pht(this)">❤️</span></div><div class="mk-gbody"><div class="mk-gtitle">라면 끓이지 마라</div><div class="mk-gplays" style="color:#5eead4;font-weight:600;">최고 7,210</div></div></div>
+                </div>
+                <div style="text-align:center;padding:12px;font-size:10px;color:#8b8fa3;">❤️를 눌러 보관함에 추가</div>
+              </div>
+              <!-- 리더보드 -->
+              <div class="mk-panel" id="pc-leaderboard">
+                <div class="mk-lbwrap">
+                  <div class="mk-lbbox">
+                    <div class="mk-lbhead"><span class="mk-lbname">🌍 글로벌 랭킹</span><div class="mk-lbf"><span class="mk-lff mk-lfon">주간</span><span class="mk-lff">월간</span></div></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum mk-g">1</span><span class="mk-lbuname">ㅇㅅㅇ광수</span><span class="mk-lbscore">142,800</span></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum mk-s">2</span><span class="mk-lbuname">개구리요리사</span><span class="mk-lbscore">139,200</span></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum mk-b">3</span><span class="mk-lbuname">할일없는직장인</span><span class="mk-lbscore">128,500</span></div>
+                    <div class="mk-lbrow mk-me"><span class="mk-lbnum" style="color:#5eead4;">247</span><span class="mk-lbuname" style="color:#5eead4;font-weight:600;">나 (냉삼)</span><span class="mk-lbscore">41,200</span></div>
+                  </div>
+                  <div class="mk-lbbox">
+                    <div class="mk-lbhead"><span class="mk-lbname">🐸 개구리 잡아라</span><div class="mk-lbf"><span class="mk-lff mk-lfon">전체</span><span class="mk-lff">친구</span></div></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum mk-g">1</span><span class="mk-lbuname">ㅇㅅㅇ광수</span><span class="mk-lbscore">9,847</span></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum mk-s">2</span><span class="mk-lbuname">개구리마스터</span><span class="mk-lbscore">9,210</span></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum mk-b">3</span><span class="mk-lbuname">반응속도왕</span><span class="mk-lbscore">8,995</span></div>
+                    <div class="mk-lbrow mk-me"><span class="mk-lbnum" style="color:#5eead4;">38</span><span class="mk-lbuname" style="color:#5eead4;font-weight:600;">나 (냉삼)</span><span class="mk-lbscore">4,120</span></div>
+                  </div>
+                  <div class="mk-lbbox">
+                    <div class="mk-lbhead"><span class="mk-lbname">💀 Dark Souls</span></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum mk-g">1</span><span class="mk-lbuname">아무것도안함</span><span class="mk-lbscore">99,999</span></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum mk-s">2</span><span class="mk-lbuname">무위자연</span><span class="mk-lbscore">87,400</span></div>
+                    <div class="mk-lbrow mk-me"><span class="mk-lbnum" style="color:#5eead4;">512</span><span class="mk-lbuname" style="color:#5eead4;font-weight:600;">나 (냉삼)</span><span class="mk-lbscore">1,200</span></div>
+                  </div>
+                  <div class="mk-lbbox">
+                    <div class="mk-lbhead"><span class="mk-lbname">🏆 수치의 전당</span></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum" style="color:#E24B4A;">꼴</span><span class="mk-lbuname">도전하다죽음</span><span style="font-size:9px;color:#E24B4A;border:1px solid #E24B4A;border-radius:6px;padding:1px 5px;">전설의 빵점</span></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum" style="color:#E24B4A;">꼴</span><span class="mk-lbuname">왜하는거지</span><span style="font-size:9px;color:#E24B4A;border:1px solid #E24B4A;border-radius:6px;padding:1px 5px;">명예 꼴찌</span></div>
+                    <div class="mk-lbrow"><span class="mk-lbnum" style="color:#E24B4A;">꼴</span><span class="mk-lbuname">ㅠㅠ</span><span style="font-size:9px;color:#E24B4A;border:1px solid #E24B4A;border-radius:6px;padding:1px 5px;">진짜 못함</span></div>
+                  </div>
+                </div>
+              </div>
+              <!-- 설정 -->
+              <div class="mk-panel" id="pc-settings">
+                <div class="mk-prem-pc"><div><div class="mk-ptitle2">Steam 패키지 구매 완료</div><div class="mk-psub2">광고 없음 · 오리지널 전체 · 스팀 도전과제</div></div></div>
+                <div class="mk-scgrid">
+                  <div class="mk-scard"><div class="mk-sctitle">계정</div><div class="mk-scrow"><span class="mk-scicon">👤</span><span class="mk-sclabel">계정 정보</span><span class="mk-scval">›</span></div><div class="mk-scrow"><span class="mk-scicon">🏆</span><span class="mk-sclabel">내 랭킹</span><span class="mk-scval">#247</span></div></div>
+                  <div class="mk-scard"><div class="mk-sctitle">화면 · 그래픽</div><div class="mk-scrow"><span class="mk-scicon">🖥️</span><span class="mk-sclabel">해상도</span><span class="mk-scval">1920×1080</span></div><div class="mk-scrow"><span class="mk-scicon">⚡</span><span class="mk-sclabel">프레임 제한</span><span class="mk-scval">60fps</span></div></div>
+                  <div class="mk-scard"><div class="mk-sctitle">사운드</div><div class="mk-scrow"><span class="mk-scicon">🔊</span><span class="mk-sclabel">마스터 볼륨</span><span class="mk-scval">80%</span></div><div class="mk-scrow"><span class="mk-scicon">🎵</span><span class="mk-sclabel">BGM</span><span class="mk-scval">켜짐</span></div></div>
+                  <div class="mk-scard"><div class="mk-sctitle">기타</div><div class="mk-scrow"><span class="mk-scicon">🐛</span><span class="mk-sclabel">버그 제보</span><span class="mk-scval">›</span></div><div class="mk-scrow"><span class="mk-scicon">ℹ️</span><span class="mk-sclabel">버전 정보</span><span class="mk-scval">v1.0.0</span></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /mk-platforms -->
+
+  <div class="hl"><strong>공통 설계 원칙:</strong> 게임 카드 썸네일 비율 9:16 통일. 최소 해상도 720×1280. 오리지널 게임이 크리에이터 가이드라인의 기준이 되므로 썸네일 품질이 플랫폼 첫인상을 결정한다.</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>출시 순서</th><th>플랫폼</th><th>수익 모델</th><th>타겟</th><th>우선순위</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1순위</strong></td><td>Android</td><td>무료 + 광고 + 광고제거 $2.99</td><td>10~20대 모바일 캐주얼</td><td class="rank-1">선행 출시</td></tr>
+        <tr><td><strong>2순위</strong></td><td>Steam (PC)</td><td>패키지 $7.99</td><td>인디게임 유저, 무게타 세대</td><td>Android 반응 보고 결정</td></tr>
+        <tr><td><strong>3순위</strong></td><td>iOS</td><td>무료 + 광고 + 광고제거 $2.99</td><td>Android 유저 확장</td><td>앱스토어 심사 일정 고려</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 11 기술 스택 -->
+<section id="tech" class="fade-in">
+<div class="container">
+  <div class="section-label">11 — 기술 스택</div>
+  <h2>개발 환경 & 인프라</h2>
+  <p class="lead">클라이언트는 Unity + Claude MCP 워크플로우. 서버는 Go + k3s. 기존 게임 서버 개발 경험이 직접 투입되는 구간.</p>
+  <div class="stack-grid">
+    <div class="stack-item"><div class="stack-layer">클라이언트</div><div class="stack-name">Unity (2022.3 LTS)</div><div class="stack-detail">Steam + Android + iOS 멀티 타겟. Addressables로 게임 번들 런타임 로드. UGC 게임을 동일 인터페이스로 실행.</div></div>
+    <div class="stack-item"><div class="stack-layer">AI 개발 워크플로우</div><div class="stack-name">Claude Desktop + MCP for Unity</div><div class="stack-detail">CoplayDev unity-mcp 패키지. Claude가 Unity Editor 직접 조작. 씬 생성, 스크립트 작성, 컴포넌트 수정 자동화.</div></div>
+    <div class="stack-item"><div class="stack-layer">백엔드 API</div><div class="stack-name">Go</div><div class="stack-detail">Game Registry / Ranking / Analytics / Creator API. 게임 서버 경험 직접 활용. HMAC 기반 Anti-cheat 구조 적용.</div></div>
+    <div class="stack-item"><div class="stack-layer">인프라</div><div class="stack-name">k3s + ArgoCD</div><div class="stack-detail">기존 계획 스택 그대로 적용. GitHub Actions CI/CD. Traefik 인그레스. Sealed Secrets.</div></div>
+    <div class="stack-item"><div class="stack-layer">게임 번들 배포</div><div class="stack-name">Unity Addressables + CDN</div><div class="stack-detail">게임 번들 런타임 다운로드. UGC 게임 등록 시 CDN 업로드 자동화. 플랫폼 독립적 로드 구조.</div></div>
+    <div class="stack-item"><div class="stack-layer">핵심 인터페이스</div><div class="stack-name">IMinigame (C#)</div><div class="stack-detail">모든 미니게임(오리지널+UGC)이 구현하는 표준 계약. GameId / Tags / OnGameStart / GetScore / OnInput 포함.</div></div>
+  </div>
+  <div class="code-block">
+    <div class="code-header"><span class="badge bstack">C# · Unity</span><span style="color:var(--text-dim);font-size:.72rem;">IMinigame — UGC 확장성의 핵심 인터페이스</span></div>
+    <pre><span class="c">// 모든 미니게임이 구현해야 하는 표준 계약</span>
+<span class="k">public interface</span> <span class="t">IMinigame</span>
+<span class="p">{</span>
+    <span class="k">string</span>   GameId    <span class="p">{</span> <span class="k">get</span><span class="p">; }</span>  <span class="c">// "frog_catch_v1"</span>
+    <span class="k">string</span>   Title     <span class="p">{</span> <span class="k">get</span><span class="p">; }</span>  <span class="c">// "개구리 잡아라"</span>
+    <span class="k">string</span>   CreatorId <span class="p">{</span> <span class="k">get</span><span class="p">; }</span>  <span class="c">// 오리지널 or UGC 크리에이터</span>
+    <span class="k">float</span>    TimeLimit <span class="p">{</span> <span class="k">get</span><span class="p">; }</span>  <span class="c">// 제한시간 (초)</span>
+    <span class="k">string</span><span class="p">[]</span> Tags      <span class="p">{</span> <span class="k">get</span><span class="p">; }</span>  <span class="c">// ["반응속도", "동물", "병맛"]</span>
+
+    <span class="k">void</span> <span class="t">OnGameStart</span><span class="p">();</span>
+    <span class="k">void</span> <span class="t">OnGameEnd</span><span class="p">();</span>
+    <span class="k">int</span>  <span class="t">GetScore</span><span class="p">();</span>
+    <span class="k">void</span> <span class="t">OnInput</span><span class="p">(</span><span class="t">InputEvent</span> input<span class="p">);</span>  <span class="c">// 터치/클릭 추상화</span>
+<span class="p">}</span></pre>
+  </div>
+
+  <div class="hl amber"><strong>MCP Prompt Engineering 가이드 필요 <span class="badge bnew">v1.3</span>:</strong> AI가 생성한 코드의 일관성·유지보수성을 위해 내부 가이드를 별도 문서로 관리. 핵심 항목 — C# 네이밍 컨벤션 (파스칼 케이스 강제), 폴더 구조 규칙 (Scripts/Minigames/), IMinigame 구현 체크리스트, 주석 형식 표준, 테스트 코드 요건. Claude에게 매번 전달하는 시스템 프롬프트 형태로 운용. 가이드 없이 AI 생성 코드를 누적하면 6개월 후 레거시가 된다.</div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 12 로드맵 -->
+<section id="roadmap" class="fade-in">
+<div class="container">
+  <div class="section-label">12 — 개발 로드맵</div>
+  <h2>3단계 실행 계획</h2>
+  <p class="lead">UGC를 처음부터 고려한 구조로 짜되 런칭은 오리지널로. 개발 속도와 콘텐츠 소비 속도의 차이를 Phase 3 UGC가 메운다.</p>
+  <div class="roadmap">
+    <div class="phase now">
+      <div class="phase-dot now"><div class="phase-dot-inner" style="background:var(--accent);"></div></div>
+      <div class="phase-meta">Phase 1 — 지금 시작 · 6~9개월</div>
+      <h3>기반 구축 & 오리지널 제작 & Android 출시</h3>
+      <ul>
+        <li>Unity MCP 개발 환경 셋업 (Windows 11 + Claude Desktop + CoplayDev)</li>
+        <li>MCP Prompt Engineering 가이드 초안 작성 <span class="badge bnew">v1.3</span></li>
+        <li>IMinigame 인터페이스 + 태그 메타데이터 스키마 설계 <span class="badge bp1">핵심</span></li>
+        <li>MinigameLauncher + WarioWare식 자동 전환 구현</li>
+        <li>오리지널 미니게임 5~7개 제작 (9:16 비율, 태그 레퍼런스 포함)</li>
+        <li>9:16 하이라이트 자동 녹화 + 원탭 공유 시스템 <span class="badge bnew">v1.3</span></li>
+        <li>DDA 기반 세션 강도 조절 기초 로직 <span class="badge bnew">v1.3</span></li>
+        <li>Go 백엔드 — Game Registry / Ranking / Analytics API</li>
+        <li>게임별 리더보드 + 글로벌 랭킹 서버 <span class="badge bp1">핵심</span></li>
+        <li>UGC 저작권·심사 정책 설계 문서화 (구현은 Phase 3) <span class="badge bnew">v1.3</span></li>
+        <li>모바일 UI — 홈 · 인기 · 보관함 · 설정 (하단 탭, YouTube 모바일 참고)</li>
+        <li>Android 출시 — 무료 + 광고 + 광고제거 $2.99</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <div class="phase-dot"><div class="phase-dot-inner" style="background:var(--border);"></div></div>
+      <div class="phase-meta">Phase 2 — +6개월 · Android 반응 이후</div>
+      <h3>알고리즘 고도화 + Steam + iOS 출시</h3>
+      <ul>
+        <li>플레이 이력 기반 태그 가중치 알고리즘 실 적용</li>
+        <li>DDA Success Rate 데이터 기반 강도 자동 조정 고도화</li>
+        <li>세션 하이라이트 자동 편집 기능 (세션 종료 후 최고 순간 편집)</li>
+        <li>Steam 패키지 $7.99 출시 — Steam 독점 오리지널 2종 포함 <span class="badge bnew">v1.3</span></li>
+        <li>iOS 출시 (앱스토어 심사 일정 고려)</li>
+        <li>시즌제 글로벌 랭킹 + 엠블럼 영구 부여 시스템</li>
+        <li>친구 리더보드 소셜 기능</li>
+        <li>파트너 크리에이터 소수 모집 + 자동 필터 오탐률 사전 검증</li>
+        <li>커뮤니티 신고 시스템 설계 및 구현 <span class="badge bnew">v1.3</span></li>
+      </ul>
+    </div>
+    <div class="phase next">
+      <div class="phase-dot next"><div class="phase-dot-inner" style="background:var(--accent4);"></div></div>
+      <div class="phase-meta">Phase 3 — +12개월 · 출시 성공 이후</div>
+      <h3>UGC 생태계 오픈</h3>
+      <ul>
+        <li>Creator SDK 공개 — IMinigame 기반 제작 도구</li>
+        <li>저작권·혐오 표현 자동 필터링 시스템 전면 적용 <span class="badge bnew">v1.3</span></li>
+        <li>게임 등록 포털 + 태그 자동 분류 + 2단계 심사 시스템</li>
+        <li>플레이 수 기반 크리에이터 수익 분배 (YouTube식)</li>
+        <li>Steam 구매자 UGC 조기 접근 특권 적용 <span class="badge bnew">v1.3</span></li>
+        <li>추천 알고리즘 A/B 테스트 인프라</li>
+      </ul>
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-title">📊 콘텐츠 성장 시나리오 — 오리지널 vs UGC 누적 게임 수</div>
+    <canvas id="growthChart"></canvas>
+  </div>
+</div>
+</section>
+<div class="divider"></div>
+
+<!-- 12 한 장 요약 -->
+<section id="summary" class="fade-in">
+<div class="container">
+  <div class="section-label">13 — 한 장 요약</div>
+  <h2>숏게타 v1.3 계획서 요약</h2>
+  <p class="lead">모든 설계 결정의 기준점. 이 카드가 흔들리면 다시 읽는다.</p>
+  <div class="summary-card">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1.75rem;">숏게타 (ShortGameTown) — Development Plan v1.3</div>
+    <div class="sc-kv">
+      <div><div class="sc-key">플랫폼 정체성</div><div class="sc-val">밈/병맛 기반 미니게임 플랫폼<br>무게타 계보 × 넷플릭스 전략</div></div>
+      <div><div class="sc-key">타겟</div><div class="sc-val">10~20대 모바일 캐주얼 유저<br>밈/커뮤니티 문화 소비층</div></div>
+      <div><div class="sc-key">핵심 순간</div><div class="sc-val">지하철/버스 자투리 시간<br>2~3분 WarioWare식 세션</div></div>
+      <div><div class="sc-key">게임 비율</div><div class="sc-val">세로형 9:16 · TikTok 최적화<br>클리어 순간 3초 자동 녹화·공유</div></div>
+      <div><div class="sc-key">추천 + DDA</div><div class="sc-val">태그 4축 큐레이션<br>SR 기반 다이나믹 난이도 조절</div></div>
+      <div><div class="sc-key">경쟁 구조</div><div class="sc-val">게임별 + 글로벌 + 친구 랭킹<br>수치의 전당 (밈 역발상)</div></div>
+      <div><div class="sc-key">수익 모델</div><div class="sc-val">Android: 무료+광고 / 광고제거 $2.99<br>Steam: 패키지 $7.99 (독점 2종 포함)</div></div>
+      <div><div class="sc-key">출시 순서</div><div class="sc-val">Android → Steam (독점 선행) → iOS</div></div>
+      <div><div class="sc-key">모바일 UX</div><div class="sc-val">YouTube 모바일 참고<br>하단 탭 4개 · 9:16 카드</div></div>
+      <div><div class="sc-key">PC UX</div><div class="sc-val">Steam 클라이언트 스타일<br>사이드바 · 리더보드 독립 탭</div></div>
+      <div><div class="sc-key">기술 스택</div><div class="sc-val">Unity (Claude MCP) + Go<br>k3s · ArgoCD · Addressables</div></div>
+      <div><div class="sc-key">UGC 정책</div><div class="sc-val">저작권·혐오 자동 필터 설계 Phase 1<br>2단계 심사 시스템 Phase 3 오픈 전</div></div>
+    </div>
+    <div style="margin-top:2rem;padding-top:1.75rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+      <div><div style="font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text-dim);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.35rem;">슬로건</div><div style="font-size:1.3rem;color:var(--accent);font-weight:600;font-family:'Fraunces',serif;">"한판만 더"</div></div>
+      <div style="text-align:right;"><div style="font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text-dim);letter-spacing:.07em;text-transform:uppercase;margin-bottom:.35rem;">문서 버전</div><div style="font-size:.88rem;color:var(--text-dim);">v1.3 · 2026.04 · 피드백 반영</div></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<footer>
+  <div class="container">
+    <p style="color:var(--accent);font-weight:600;font-size:.95rem;margin-bottom:.6rem;">숏게타 (ShortGameTown)</p>
+    <p>v1.3 개발 계획서 · 피드백 반영 (바이럴 루프 / DDA / Steam 독점 가치 / UGC 정책) · 내부 기획 문서</p>
+    <p>2026.04 — 1인 개발 · Unity + Go + Claude MCP</p>
+  </div>
+</footer>
+
+<script>
+/* ── 차트 ── */
+Chart.defaults.color='#8b8fa3';
+Chart.defaults.borderColor='#2a2e3a';
+Chart.defaults.font.family="'Noto Sans KR',sans-serif";
+
+new Chart(document.getElementById('channelChart'),{type:'bar',data:{labels:['커뮤니티 공유','지인 추천','앱스토어 검색','Steam 탐색','유튜브/틱톡'],datasets:[{data:[38,27,16,12,7],backgroundColor:['rgba(94,234,212,.75)','rgba(94,234,212,.6)','rgba(167,139,250,.6)','rgba(167,139,250,.45)','rgba(244,114,182,.5)'],borderRadius:6,borderSkipped:false}]},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#2a2e3a'},ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}}}});
+
+new Chart(document.getElementById('sessionChart'),{type:'line',data:{labels:['0s','10s','30s','60s','90s','120s','140s','150s'],datasets:[{label:'긴장감',data:[0,30,55,75,90,95,60,20],borderColor:'rgba(94,234,212,.8)',backgroundColor:'rgba(94,234,212,.06)',fill:true,tension:0.4,borderWidth:2,pointRadius:3},{label:'웃음/병맛',data:[10,60,40,65,50,80,95,85],borderColor:'rgba(244,114,182,.8)',backgroundColor:'rgba(244,114,182,.06)',fill:true,tension:0.4,borderWidth:2,pointRadius:3}]},options:{responsive:true,plugins:{legend:{position:'top'}},scales:{y:{grid:{color:'#2a2e3a'},min:0,max:100},x:{grid:{color:'#2a2e3a'}}}}});
+
+new Chart(document.getElementById('popularChart'),{type:'doughnut',data:{labels:['최근 7일 플레이','재도전 횟수','공유 횟수','클리어율','리더보드 도전'],datasets:[{data:[35,25,20,12,8],backgroundColor:['rgba(94,234,212,.8)','rgba(167,139,250,.7)','rgba(244,114,182,.7)','rgba(251,191,36,.7)','rgba(56,189,248,.7)'],borderColor:'#14161d',borderWidth:3}]},options:{responsive:true,plugins:{legend:{position:'right'}}}});
+
+new Chart(document.getElementById('revenueChart'),{type:'bar',data:{labels:['전면 광고','광고제거 판매','보상형 광고','Steam 패키지'],datasets:[{data:[42,32,16,10],backgroundColor:['rgba(94,234,212,.6)','rgba(94,234,212,.85)','rgba(167,139,250,.65)','rgba(251,191,36,.65)'],borderRadius:6,borderSkipped:false}]},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.raw+'%'}}},scales:{x:{grid:{color:'#2a2e3a'},ticks:{callback:v=>v+'%'}},y:{grid:{display:false}}}}});
+
+new Chart(document.getElementById('growthChart'),{type:'bar',data:{labels:['M1','M3','M6','M9','M12','M18','M24'],datasets:[{label:'오리지널',data:[3,5,7,9,12,15,18],backgroundColor:'rgba(94,234,212,.75)',borderRadius:4,borderSkipped:false},{label:'UGC',data:[0,0,0,0,10,45,120],backgroundColor:'rgba(167,139,250,.65)',borderRadius:4,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{position:'top'}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:'#2a2e3a'},title:{display:true,text:'누적 게임 수'}}}}});
+
+/* ── 모바일 목업 ── */
+const mTabs=['home','hot','saved','settings'];
+function mobTab(t){
+  mTabs.forEach(id=>{
+    const c=document.getElementById('mob-'+id);
+    const nl=document.getElementById('mnl-'+id);
+    const ni=document.getElementById('mni-'+id);
+    if(c) c.classList.toggle('mk-active',id===t);
+    if(nl){nl.classList.toggle('mk-non',id===t);}
+    if(ni){ni.classList.toggle('mk-non',id===t);}
+  });
+}
+function mht(el){el.textContent=el.textContent==='🤍'?'❤️':'🤍';}
+function mFilter(id){
+  ['mf1','mf2'].forEach(f=>{const e=document.getElementById(f);if(e)e.classList.toggle('mk-fon',f===id);});
+}
+
+/* ── PC 목업 ── */
+const pTabs=['home','popular','saved','leaderboard','settings'];
+function pcTab(t){
+  pTabs.forEach(id=>{
+    const c=document.getElementById('pc-'+id);
+    const si=document.getElementById('psi-'+id);
+    if(c) c.classList.toggle('mk-active',id===t);
+    if(si) si.classList.toggle('mk-sbon',id===t);
+  });
+}
+function pht(el){el.textContent=el.textContent==='🤍'?'❤️':'🤍';}
+function ppFilter(id){
+  ['ppf1','ppf2','ppf3','ppf4'].forEach(f=>{const e=document.getElementById(f);if(e)e.classList.toggle('mk-pon',f===id);});
+}
+
+/* ── Fade-in & TOC ── */
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.07});
+document.querySelectorAll('.fade-in').forEach(el=>obs.observe(el));
+const secs=document.querySelectorAll('section[id],header[id]');
+const tocs=document.querySelectorAll('.toc a');
+window.addEventListener('scroll',()=>{
+  let cur='';
+  secs.forEach(s=>{if(window.scrollY>=s.offsetTop-200)cur=s.id;});
+  tocs.forEach(a=>{a.classList.toggle('active',a.getAttribute('href')==='#'+cur);});
+});
+</script>
+</body>
+</html>
