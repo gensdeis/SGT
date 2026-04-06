@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# QA 클러스터 — 미구축. qa k3s 클러스터 도입 시 채울 것.
+# - 외부 PostgreSQL/Redis 사용 → base 의 postgres/redis StatefulSet 은 patch 로 제거 필요
+# - SealedSecret 으로 secret.yaml 교체
+# - 이미지: ghcr.io/gensdeis/shortgeta-server:<sha> + imagePullSecrets
+
+namespace: shortgeta-qa
+
+resources:
+  - ../../base
+
+# TODO: qa 환경에서 postgres/redis StatefulSet 제거 패치 추가
+# patches:
+#   - patch: |-
+#       $patch: delete
+#       apiVersion: apps/v1
+#       kind: StatefulSet
+#       metadata:
+#         name: shortgeta-postgres
