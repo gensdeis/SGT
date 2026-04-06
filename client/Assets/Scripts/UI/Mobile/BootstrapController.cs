@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using ShortGeta.Core;
+using ShortGeta.Core.Bundles;
 using ShortGeta.Core.Recording;
 using ShortGeta.Minigames.DarkSouls;
 using ShortGeta.Minigames.FrogCatch;
@@ -36,6 +37,8 @@ namespace ShortGeta.UI.Mobile
 
         private MinigameRegistry _registry;
         private IRecordingService _recording;
+        private IBundleLoader _bundleLoader;
+        private BundleManifest _bundleManifest = new BundleManifest();
         private readonly List<SavedHighlight> _sessionHighlights = new List<SavedHighlight>();
 
         private Canvas _rootCanvas;
@@ -65,9 +68,17 @@ namespace ShortGeta.UI.Mobile
             try
             {
                 Debug.Log($"[Bootstrap] device id={JwtStore.DeviceId}");
+
+                // Bundle loader 초기화 + 데모 자산 로드 (Iter 2C MVP)
+                await InitializeBundleLoaderAsync();
+
                 await _authApi.LoginByDeviceAsync(JwtStore.DeviceId);
                 _games = await _gameApi.ListAsync();
                 Debug.Log($"[Bootstrap] loaded {_games.Length} games");
+
+                _bundleManifest.RegisterAll(_games);
+                Debug.Log($"[Bundles] manifest registered {_bundleManifest.Count} entries (non-empty: {_bundleManifest.NonEmptyCount})");
+
                 ShowHome();
             }
             catch (System.Exception e)
@@ -91,6 +102,36 @@ namespace ShortGeta.UI.Mobile
             _registry.Register("dark_souls_v1", parent => parent.AddComponent<DarkSoulsGame>());
             _registry.Register("kakao_unread_v1", parent => parent.AddComponent<KakaoUnreadGame>());
             _registry.Register("math_genius_v1", parent => parent.AddComponent<MathGeniusGame>());
+        }
+
+        // Addressables 기반 IBundleLoader 초기화. 실패 시 Stub 으로 fallback.
+        // 데모 자산 (demo/hello) 1개 로드 시도 — 사용자가 1회 마크해야 동작.
+        private async UniTask InitializeBundleLoaderAsync()
+        {
+            try
+            {
+                _bundleLoader = new AddressableBundleLoader();
+                await _bundleLoader.InitializeAsync();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Bundles] Addressables init failed, using stub: {e.Message}");
+                _bundleLoader = new StubBundleLoader();
+            }
+
+            // 데모 자산 로드 (없어도 무회귀)
+            try
+            {
+                var hello = await _bundleLoader.LoadAssetAsync<TextAsset>("demo/hello");
+                if (hello != null)
+                {
+                    Debug.Log($"[Bundles] {hello.text}");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Bundles] demo asset load failed (expected if not marked yet): {e.Message}");
+            }
         }
 
         // 플랫폼별 RecordingService 분기. Editor / Standalone 만 실 구현,
