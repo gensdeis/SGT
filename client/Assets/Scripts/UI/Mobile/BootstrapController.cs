@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using ShortGeta.Core;
+using ShortGeta.Core.Recording;
 using ShortGeta.Minigames.DarkSouls;
 using ShortGeta.Minigames.FrogCatch;
 using ShortGeta.Minigames.KakaoUnread;
@@ -34,6 +35,8 @@ namespace ShortGeta.UI.Mobile
         private AnalyticsApi _analyticsApi;
 
         private MinigameRegistry _registry;
+        private IRecordingService _recording;
+        private readonly List<SavedHighlight> _sessionHighlights = new List<SavedHighlight>();
 
         private Canvas _rootCanvas;
         private GameObject _homePanel;
@@ -56,6 +59,7 @@ namespace ShortGeta.UI.Mobile
             _analyticsApi = new AnalyticsApi(_api);
 
             BuildRegistry();
+            BuildRecordingService();
             BuildRootUI();
 
             try
@@ -87,6 +91,29 @@ namespace ShortGeta.UI.Mobile
             _registry.Register("dark_souls_v1", parent => parent.AddComponent<DarkSoulsGame>());
             _registry.Register("kakao_unread_v1", parent => parent.AddComponent<KakaoUnreadGame>());
             _registry.Register("math_genius_v1", parent => parent.AddComponent<MathGeniusGame>());
+        }
+
+        // 플랫폼별 RecordingService 분기. Editor / Standalone 만 실 구현,
+        // 모바일은 Iter 2B' 까지 stub.
+        private void BuildRecordingService()
+        {
+            var go = new GameObject("[RecordingService]");
+            go.transform.SetParent(transform, false);
+            switch (Application.platform)
+            {
+                case RuntimePlatform.WindowsEditor:
+                case RuntimePlatform.OSXEditor:
+                case RuntimePlatform.LinuxEditor:
+                case RuntimePlatform.WindowsPlayer:
+                case RuntimePlatform.OSXPlayer:
+                case RuntimePlatform.LinuxPlayer:
+                    _recording = go.AddComponent<EditorRecordingService>();
+                    break;
+                default:
+                    _recording = go.AddComponent<NativeStubRecordingService>();
+                    break;
+            }
+            Debug.Log($"[Bootstrap] recording service = {_recording.GetType().Name} (supported={_recording.IsSupported})");
         }
 
         private IMinigame CreateFrogCatch(GameObject parent)
@@ -222,6 +249,7 @@ namespace ShortGeta.UI.Mobile
             try
             {
                 _homePanel.SetActive(false);
+                _sessionHighlights.Clear();
                 Debug.Log("[Bootstrap] starting session...");
                 var session = await _sessionApi.StartAsync();
                 Debug.Log($"[Bootstrap] session={session.SessionId} games={string.Join(",", session.GameIds)}");
@@ -286,8 +314,21 @@ namespace ShortGeta.UI.Mobile
                 await UniTask.Delay(System.TimeSpan.FromSeconds(1));
             }
 
+            // 녹화 시작
+            string tag = $"{gameId}-{System.DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+            _recording?.StartRecording(tag);
+
             launcher.Launch(game);
             var result = await tcs.Task;
+
+            // 녹화 종료 + 저장
+            _recording?.StopRecording();
+            var clip = _recording?.FlushLastClip();
+            if (clip.HasValue)
+            {
+                _sessionHighlights.Add(clip.Value);
+            }
+
             Destroy(go);
             return result;
         }
@@ -361,11 +402,52 @@ namespace ShortGeta.UI.Mobile
             sb.AppendLine($"합계: {total}");
             lt.text = sb.ToString();
 
+            // 하이라이트 보기 버튼 (highlight 가 있을 때만)
+            if (_sessionHighlights.Count > 0)
+            {
+                var hlBtnGo = new GameObject("HighlightButton");
+                hlBtnGo.transform.SetParent(_resultPanel.transform, false);
+                var hbrt = hlBtnGo.AddComponent<RectTransform>();
+                hbrt.anchorMin = new Vector2(0.2f, 0.23f);
+                hbrt.anchorMax = new Vector2(0.8f, 0.32f);
+                hbrt.offsetMin = Vector2.zero;
+                hbrt.offsetMax = Vector2.zero;
+                var hImg = hlBtnGo.AddComponent<Image>();
+                hImg.color = new Color(1f, 0.6f, 0.2f);
+                var hBtn = hlBtnGo.AddComponent<Button>();
+                hBtn.targetGraphic = hImg;
+
+                var hLabelGo = new GameObject("Label");
+                hLabelGo.transform.SetParent(hlBtnGo.transform, false);
+                var hlrt = hLabelGo.AddComponent<RectTransform>();
+                hlrt.anchorMin = Vector2.zero;
+                hlrt.anchorMax = Vector2.one;
+                hlrt.offsetMin = Vector2.zero;
+                hlrt.offsetMax = Vector2.zero;
+                var hLbl = hLabelGo.AddComponent<TextMeshProUGUI>();
+                hLbl.text = $"📁 하이라이트 보기 ({_sessionHighlights.Count})";
+                hLbl.fontSize = 44;
+                hLbl.alignment = TextAlignmentOptions.Center;
+                hLbl.color = Color.white;
+
+                hBtn.onClick.AddListener(() =>
+                {
+                    if (_recording != null && _recording.IsSupported)
+                    {
+                        _recording.OpenLastClipExternally();
+                    }
+                    else
+                    {
+                        Toast.Show("Iter 2B' 에서 모바일 공유 추가 예정", 3f);
+                    }
+                });
+            }
+
             var btnGo = new GameObject("BackButton");
             btnGo.transform.SetParent(_resultPanel.transform, false);
             var brt = btnGo.AddComponent<RectTransform>();
             brt.anchorMin = new Vector2(0.2f, 0.1f);
-            brt.anchorMax = new Vector2(0.8f, 0.22f);
+            brt.anchorMax = new Vector2(0.8f, 0.2f);
             brt.offsetMin = Vector2.zero;
             brt.offsetMax = Vector2.zero;
             var img = btnGo.AddComponent<Image>();
