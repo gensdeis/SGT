@@ -1,0 +1,195 @@
+// Command api 는 숏게타 게임 서버 진입점.
+//
+// 모든 환경변수 분기 / Mock 결정은 이 파일에서만 이루어진다.
+// 비즈니스 로직(internal/*)에는 os.Getenv 호출이 없다.
+package main
+
+import (
+	"context"
+	"errors"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/ansrivas/fiberprometheus/v2"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/redis/go-redis/v9"
+
+	"github.com/gensdeis/SGT/server/internal/analytics"
+	"github.com/gensdeis/SGT/server/internal/anticheat"
+	"github.com/gensdeis/SGT/server/internal/auth"
+	"github.com/gensdeis/SGT/server/internal/config"
+	"github.com/gensdeis/SGT/server/internal/game"
+	"github.com/gensdeis/SGT/server/internal/purchase"
+	"github.com/gensdeis/SGT/server/internal/purchase/playstore"
+	"github.com/gensdeis/SGT/server/internal/ranking"
+	"github.com/gensdeis/SGT/server/internal/ratelimit"
+	"github.com/gensdeis/SGT/server/internal/session"
+	"github.com/gensdeis/SGT/server/internal/storage"
+	"github.com/gensdeis/SGT/server/pkg/db"
+	hmacpkg "github.com/gensdeis/SGT/server/pkg/hmac"
+)
+
+func main() {
+	// === 1. 로거 ===
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: parseLogLevel(os.Getenv("LOG_LEVEL"))}))
+	slog.SetDefault(logger)
+
+	// === 2. 설정 ===
+	cfg, err := config.Load()
+	if err != nil {
+		slog.Error("config load failed", "error", err)
+		os.Exit(1)
+	}
+	games, err := config.LoadGames(cfg.GamesConfigPath)
+	if err != nil {
+		slog.Error("games yaml load failed", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("games loaded", "count", len(games.All()))
+
+	// === 3. DB ===
+	rootCtx, rootCancel := context.WithCancel(context.Background())
+	defer rootCancel()
+
+	pool, err := db.NewPool(rootCtx, db.PoolConfig{
+		DatabaseURL: cfg.DatabaseURL,
+		MaxConns:    cfg.DBMaxConns,
+		MinConns:    cfg.DBMinConns,
+	})
+	if err != nil {
+		slog.Error("db pool init failed", "error", err)
+		os.Exit(1)
+	}
+	defer pool.Close()
+	go db.StartMetricsLoop(rootCtx, pool, 5*time.Second)
+	store := storage.New(pool)
+
+	// === 4. Redis ===
+	redisOpts, err := redis.ParseURL(cfg.RedisURL)
+	if err != nil {
+		slog.Error("redis url parse failed", "error", err)
+		os.Exit(1)
+	}
+	rdb := redis.NewClient(redisOpts)
+	defer rdb.Close()
+	if err := rdb.Ping(rootCtx).Err(); err != nil {
+		slog.Warn("redis ping failed (continuing)", "error", err)
+	}
+
+	// === 5. 도메인 컴포넌트 (DI) ===
+	jwtIssuer := auth.NewJWTIssuer(cfg.JWTSecret, cfg.JWTTTL)
+	authSvc := auth.NewService(store, jwtIssuer)
+	authHandler := auth.NewHandler(authSvc)
+	authMW := auth.RequireAuth(jwtIssuer)
+
+	gameSvc := game.NewService(games, store)
+	gameHandler := game.NewHandler(gameSvc)
+
+	hmacVerifier := hmacpkg.NewVerifier(cfg.HMACBaseKey, cfg.BuildGUID, cfg.HMACReplayWindow)
+	limiter := ratelimit.NewRedisLimiter(rdb)
+	validator := anticheat.NewValidator(hmacVerifier, games, limiter)
+
+	rankingSvc := ranking.NewService(store)
+	rankingWorker := ranking.NewWorker(store, 500, 3)
+	rankingWorker.Start(rootCtx)
+	rankingHandler := ranking.NewHandler(rankingSvc)
+
+	analyticsWorker := analytics.NewWorker(store, 1000, 5, 100, 5*time.Second)
+	analyticsWorker.Start(rootCtx)
+	analyticsHandler := analytics.NewHandler(analyticsWorker)
+
+	recommender := session.NewRecommender(games, store)
+	sessionSvc := session.NewService(store, recommender, validator, rankingWorker)
+	sessionHandler := session.NewHandler(sessionSvc)
+
+	// Purchase: 환경변수 분기 (Mock vs Real)
+	var verifier playstore.Verifier
+	if cfg.DevMockReceipt {
+		slog.Warn("DEV_MOCK_RECEIPT=true — playstore Mock 사용 (개발 전용)")
+		verifier = playstore.Mock{}
+	} else {
+		slog.Info("playstore Real verifier 사용")
+		verifier = &playstore.Real{PackageName: "com.shortgeta.app"}
+	}
+	purchaseSvc := purchase.NewService(store, verifier)
+	purchaseHandler := purchase.NewHandler(purchaseSvc)
+
+	// === 6. Fiber ===
+	app := fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+		AppName:               "shortgeta-server",
+		ReadTimeout:           10 * time.Second,
+		WriteTimeout:          10 * time.Second,
+	})
+	app.Use(recover.New())
+
+	// Prometheus 미들웨어
+	prom := fiberprometheus.New("shortgeta_server")
+	prom.RegisterAt(app, "/metrics")
+	app.Use(prom.Middleware)
+
+	// 헬스체크
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{"status": "ok"})
+	})
+	app.Get("/ready", func(c *fiber.Ctx) error {
+		ctx, cancel := context.WithTimeout(c.UserContext(), 2*time.Second)
+		defer cancel()
+		if err := store.Ping(ctx); err != nil {
+			return fiber.NewError(fiber.StatusServiceUnavailable, "db not ready")
+		}
+		return c.JSON(fiber.Map{"status": "ready"})
+	})
+
+	// v1 라우트
+	v1 := app.Group("/v1")
+	authHandler.Register(v1)
+	gameHandler.Register(v1, authMW)
+	sessionHandler.Register(v1, authMW)
+	rankingHandler.Register(v1, authMW)
+	analyticsHandler.Register(v1, authMW)
+	purchaseHandler.Register(v1, authMW)
+
+	// === 7. 시작 ===
+	go func() {
+		addr := ":" + cfg.Port
+		slog.Info("server starting", "addr", addr)
+		if err := app.Listen(addr); err != nil && !errors.Is(err, context.Canceled) {
+			slog.Error("listen error", "error", err)
+		}
+	}()
+
+	// === 8. Graceful Shutdown ===
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	slog.Info("shutdown signal received, draining...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := app.ShutdownWithContext(shutdownCtx); err != nil {
+		slog.Error("fiber shutdown error", "error", err)
+	}
+	analyticsWorker.Shutdown(shutdownCtx)
+	rankingWorker.Shutdown(shutdownCtx)
+	rootCancel()
+	slog.Info("server shutdown complete")
+}
+
+func parseLogLevel(s string) slog.Level {
+	switch s {
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}

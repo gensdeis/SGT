@@ -73,13 +73,16 @@ GET  /v1/creator/reviews    심사 상태 조회
 ### Phase 1 — Android 출시 (지금 시작 · 6~9개월)
 계획서 v1.3 §12 Phase 1에서 백엔드 항목:
 
-- [ ] Game Registry API (오리지널 게임 등록)
-- [ ] Ranking API — 게임별 + 글로벌 (핵심)
-- [ ] Analytics API — 이벤트 수집 + 태그 가중치 입력
-- [ ] DDA 기초 로직 (서버 측 강도 태그 산출)
-- [ ] HMAC 점수 서명 검증 (Anti-cheat 기반)
-- [ ] k3s + ArgoCD 배포 파이프라인
-- [ ] 디바이스 인증 + 광고제거 영수증 검증($2.99)
+- [x] Game Registry API (오리지널 게임 등록) — `internal/game`, `config/games.yaml` 6개 게임
+- [x] Ranking API — 게임별 + 글로벌 (핵심) — `internal/ranking` + Worker Pool
+- [x] Analytics API — 이벤트 수집 + 태그 가중치 입력 — `internal/analytics` + Worker Pool (1000 buf, 5 workers, 100/5s flush)
+- [x] DDA 기초 로직 (서버 측 강도 태그 산출) — `internal/dda` + 추천기 통합
+- [x] HMAC 점수 서명 검증 (Anti-cheat 기반) — `pkg/hmac` + `internal/anticheat` (HMAC + games.yaml + Redis rate limit 3단계)
+- [x] k3s + ArgoCD 배포 파이프라인 — `server/deploy/{base,overlays/dev}` + `infra/apps/shortgeta-server/application.yaml`
+- [x] 디바이스 인증 + 광고제거 영수증 검증($2.99) — `internal/auth` (device→JWT) + `internal/purchase` (Mock 동작, Real skeleton)
+
+> Iteration 1 결과: `go run ./cmd/api` 로 동작, kind 클러스터에 ArgoCD 배포 검증 완료.
+> 후속 (Iteration 2): GHCR push 자동화, SealedSecret 적용, Google Play Real verifier 구현.
 
 > UGC 저작권·심사 정책은 **문서화만** (구현은 Phase 3)
 

@@ -1,0 +1,66 @@
+# 숏게타 — 게임별 검증/메타 설정
+# 새 미니게임 추가 시 이 파일만 수정한다 (Go 코드 변경 금지)
+# 필드:
+#   id              : "lower_snake_v숫자" 형식
+#   title           : 한국어 표시명
+#   creator_id      : "shotgeta_official" 또는 UGC 크리에이터 ID
+#   time_limit_sec  : 클라이언트 제한시간 (초)
+#   min_play_seconds: 점수 검증 — 이보다 짧으면 거부
+#   max_score       : 점수 검증 — 이보다 크면 거부
+#   rate_limit_per_min: 분당 점수 제출 횟수 한도
+#   tags            : [장르, 강도, 소재, 밈도] 중 1개 이상씩
+
+games:
+  - id: "frog_catch_v1"
+    title: "개구리 잡아라"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 30
+    min_play_seconds: 8
+    max_score: 1000
+    rate_limit_per_min: 10
+    tags: ["반응속도", "동물", "병맛"]
+
+  - id: "noodle_boil_v1"
+    title: "라면 끓이지 마라"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 45
+    min_play_seconds: 15
+    max_score: 500
+    rate_limit_per_min: 8
+    tags: ["타이밍", "음식", "일상"]
+
+  - id: "poker_face_v1"
+    title: "포커페이스 유지"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 60
+    min_play_seconds: 20
+    max_score: 800
+    rate_limit_per_min: 6
+    tags: ["눈치", "인터넷밈", "블랙유머"]
+
+  - id: "dark_souls_v1"
+    title: "Dark Souls 도전"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 30
+    min_play_seconds: 5
+    max_score: 300
+    rate_limit_per_min: 15
+    tags: ["운빨", "병맛", "인터넷밈"]
+
+  - id: "kakao_unread_v1"
+    title: "카톡 읽씹하기"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 20
+    min_play_seconds: 6
+    max_score: 600
+    rate_limit_per_min: 12
+    tags: ["타이밍", "일상"]
+
+  - id: "math_genius_v1"
+    title: "수학 천재 도전"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 30
+    min_play_seconds: 10
+    max_score: 1500
+    rate_limit_per_min: 8
+    tags: ["집중력", "병맛"]

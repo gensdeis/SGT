@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shortgeta-server
+  labels:
+    app: shortgeta-server
+spec:
+  type: ClusterIP
+  selector:
+    app: shortgeta-server
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080

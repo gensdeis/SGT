@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shortgeta-server
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: api
+          # dev 는 로컬 빌드 이미지를 kind load 로 주입한다.
+          # docker build -t shortgeta-server:dev server/
+          # kind load docker-image shortgeta-server:dev --name shortgeta
+          image: shortgeta-server:dev
+          imagePullPolicy: IfNotPresent
