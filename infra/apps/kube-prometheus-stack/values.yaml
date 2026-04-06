@@ -1,0 +1,78 @@
+# kube-prometheus-stack — kind 로컬 클러스터 dev 프로파일
+# https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml
+
+# CRD 는 이미 chart 가 자동 설치한다.
+crds:
+  enabled: true
+
+# 컴포넌트별 리소스 절약 (kind 단일 노드 보호)
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    # ServiceMonitor 자동 발견 — 모든 namespace 의 ServiceMonitor 픽업
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    podMonitorNamespaceSelector: {}
+    # 로컬 PV (kind 의 standard StorageClass)
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "32Mi"
+      limits:
+        cpu: "100m"
+        memory: "128Mi"
+
+grafana:
+  enabled: true
+  # 초기 admin 비밀번호 (로컬 dev 전용 — qa/real 은 SealedSecret)
+  adminPassword: "shortgeta-dev"
+  service:
+    type: ClusterIP
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+  # Loki 데이터소스 자동 등록 (Loki Application 이 같은 monitoring ns 에 있음)
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki:3100
+      isDefault: false
+
+# kind 환경에서 자주 깨지는 컴포넌트 비활성화
+kubeControllerManager:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+# node-exporter / kube-state-metrics 는 유지 (node 메트릭 + k8s 객체 메트릭)
+nodeExporter:
+  enabled: true
+kubeStateMetrics:
+  enabled: true

@@ -1,0 +1,17 @@
+# Prometheus Operator ServiceMonitor — shortgeta-server /metrics 자동 스크래이핑
+# kube-prometheus-stack 의 Prometheus 가 모든 namespace 의 ServiceMonitor 를 픽업하도록 설정됨.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: shortgeta-server
+  labels:
+    app: shortgeta-server
+    release: kps  # kube-prometheus-stack helm release 와 일치해야 픽업
+spec:
+  selector:
+    matchLabels:
+      app: shortgeta-server
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
