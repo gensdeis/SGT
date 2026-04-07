@@ -65,6 +65,15 @@ public class HighlightRecorder {
     private String currentTag = "untagged";
     private String lastClipDir = null;
     private boolean recording = false;
+    // Iter 2B''''': 음성 캡처 옵션. 시그니처만 — 실 AudioRecord 통합은 후속.
+    private boolean audioEnabled = false;
+
+    public void setAudioEnabled(boolean enabled) {
+        this.audioEnabled = enabled;
+        Log.i(TAG, "setAudioEnabled=" + enabled + " (signature only — actual capture pending)");
+    }
+
+    public boolean isAudioEnabled() { return audioEnabled; }
 
     public HighlightRecorder(Activity activity) {
         this.activity = activity;

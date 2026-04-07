@@ -1,5 +1,20 @@
 # 하이라이트 녹화 native plugin 빌드 가이드 (Iter 2B')
 
+## Iter 2B''''' 변경 사항
+
+- **Mp4Encoder 상수 → public static** — C# 에서 `AndroidJavaClass.SetStatic` 으로
+  런타임 변경 가능 (`AndroidRecordingService.SetEncoderConfig(bitRate, fps, watermark)`)
+- **drawWatermark** — `Mp4Encoder.encodeJpegSequence` 의 bitmap 단계에서
+  우하단에 검정 박스 + 흰색 W 마크 placeholder 그리기 (WatermarkOverlay.cs 와 동일 컨셉)
+- **WATERMARK_ENABLED** 토글 (기본 true)
+- **HighlightRecorder.setAudioEnabled(boolean)** — 음성 캡처 옵션 시그니처 추가
+  (실 AudioRecord 통합은 후속 — 본 iter 는 bridge 만)
+- **AndroidManifest** RECORD_AUDIO 권한 활성화 (런타임 권한 요청 별도 필요)
+- **C# bridge** `AndroidRecordingService.SetAudioEnabled(bool)` 추가
+- **iOS** `HighlightRecorder.mm` 워터마크/음성 TODO 주석 추가 (실 합성은 후속)
+
+
+
 이 문서는 Android / iOS native 측 highlight recording 코드를 빌드해서 Unity 에
 통합하는 절차를 설명합니다.
 
