@@ -52,16 +52,47 @@ Unity Editor ▶ Play 시 Console 에 다음 로그가 보여야 함:
 
 빌드된 bundle 은 기본적으로 StreamingAssets 로 복사되어 Player 빌드에 포함된다.
 
-## Remote 호스팅 (Iter 2C')
+## FrogCatch prefab 자동 셋업 (Iter 2C')
 
-현재 Iter 2C MVP 는 **로컬 (StreamingAssets) 만** 다룬다. Iter 2C' 에서 다음을 추가:
+`Assets/Editor/Bundles/SetupFrogCatchPrefab.cs` 가 Editor 시작 시 자동 실행되어:
+
+1. `Assets/Minigames/Prefabs/` 디렉토리 생성
+2. `FrogCatch.prefab` 이 없으면 새로 생성:
+   - Root + FrogCatchGame
+   - FrogSpawner child (frogPrefab 직렬화 할당)
+   - Frog template child (SetActive=false)
+3. AddressableAssetSettings 의 DefaultGroup 에 entry 등록 → address `minigame/frog_catch_v1`
+
+수동 재실행: `ShortGeta → Bundles → Setup FrogCatch Prefab`
+
+자동 셋업이 실패한 경우 (예: AddressableAssetSettings 가 아직 없을 때):
+- Window → Asset Management → Addressables → Groups → "Create Addressables Settings"
+- 그 후 메뉴로 수동 재실행
+
+### Bootstrap 동작 분기
+
+`BootstrapController` 의 `PlaySingleAsync(gameId)` 는 frog_catch_v1 에 대해:
+
+1. `forceCodeFactoryForFrogCatch` 토글이 false 이면 → `Addressables.LoadAssetAsync<GameObject>("minigame/frog_catch_v1")` 시도
+2. 실패하거나 토글이 true 이면 → 기존 코드 팩토리 fallback
+
+Console 로그:
+- 성공: `[Bundles] FrogCatch loaded from Addressables`
+- 실패/fallback: `[Bundles] FrogCatch loaded from code factory (fallback)`
+
+## Remote 호스팅 (Iter 2C'' 후속)
+
+현재까지 (Iter 2C') 는 **로컬 (StreamingAssets / FastMode) 만** 다룬다. Iter 2C''
+에서 다음을 추가:
 
 1. AddressableAssetSettings → Profiles → 새 profile 'Remote'
-2. RemoteBuildPath 와 RemoteLoadPath 를 GHCR 또는 별도 HTTP CDN URL 로 설정
+2. RemoteBuildPath / RemoteLoadPath 를 `https://api.shortgeta.example/v1/bundles/[BuildTarget]` 형태로 설정
 3. 그룹별로 Build/Load 경로를 Remote 로 변경
-4. Build → New Build → 결과물을 CDN 에 업로드
-5. 서버 `Game.bundle_url` 에 CDN 의 catalog.json URL 입력
-6. 클라이언트는 `Addressables.LoadContentCatalogAsync(url)` 로 catalog 갱신
+4. Build → New Build → 결과물을 서버 정적 디렉토리에 업로드
+5. **서버 측**: `server/internal/bundles/handler.go` 에 `/v1/bundles/*` 라우트 추가, `static/` 디렉토리 서빙
+6. **서버 DB**: `Game.bundle_url` 에 catalog URL + `bundle_hash` 채우기
+7. **클라이언트**: 시작 시 `Addressables.LoadContentCatalogAsync(catalogUrl)` 로 catalog 갱신
+8. **무결성**: bundle_hash 로 서버 응답과 다운로드 결과 비교
 
 ## 트러블슈팅
 
