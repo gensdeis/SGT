@@ -2,4 +2,5 @@
   <Project Path="ShortGeta.Runtime.csproj" />
   <Project Path="ShortGeta.Tests.PlayMode.csproj" />
   <Project Path="ShortGeta.Tests.EditMode.csproj" />
+  <Project Path="ShortGeta.Editor.csproj" />
 </Solution>

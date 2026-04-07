@@ -36,6 +36,10 @@ namespace ShortGeta.UI.Mobile
         private SessionApi _sessionApi;
         private RankingApi _rankingApi;
         private AnalyticsApi _analyticsApi;
+        private ProfileApi _profileApi;
+        private MissionsApi _missionsApi;
+        private ShareApi _shareApi;
+        private ProfileResponse _me;
 
         private MinigameRegistry _registry;
         private IRecordingService _recording;
@@ -63,6 +67,9 @@ namespace ShortGeta.UI.Mobile
             _sessionApi = new SessionApi(_api);
             _rankingApi = new RankingApi(_api);
             _analyticsApi = new AnalyticsApi(_api);
+            _profileApi = new ProfileApi(_api);
+            _missionsApi = new MissionsApi(_api);
+            _shareApi = new ShareApi(_api);
 
             BuildRegistry();
             BuildRecordingService();
@@ -76,6 +83,16 @@ namespace ShortGeta.UI.Mobile
                 await InitializeBundleLoaderAsync();
 
                 await _authApi.LoginByDeviceAsync(JwtStore.DeviceId);
+                // Iter 3: profile fetch (best-effort)
+                try
+                {
+                    _me = await _profileApi.GetMeAsync();
+                    Debug.Log($"[Profile] me loaded nick='{_me.Nickname}' coins={_me.Coins}");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[Profile] load failed: {e.Message}");
+                }
                 _games = await _gameApi.ListAsync();
                 Debug.Log($"[Bootstrap] loaded {_games.Length} games");
 
@@ -368,6 +385,86 @@ namespace ShortGeta.UI.Mobile
             btnText.color = Color.white;
 
             btn.onClick.AddListener(() => StartSession().Forget());
+
+            // Iter 3: 미션 버튼 (홈 우상단)
+            CreateHomeMiniButton("MissionBtn", new Vector2(0.65f, 0.27f), new Vector2(0.95f, 0.33f),
+                new Color(0.4f, 0.5f, 0.9f), "📋 미션", () => ShowMissionsAsync().Forget());
+
+            // 코인 표시 (좌상단)
+            if (_me != null)
+            {
+                var coinGo = new GameObject("Coins");
+                coinGo.transform.SetParent(_homePanel.transform, false);
+                var crt = coinGo.AddComponent<RectTransform>();
+                crt.anchorMin = new Vector2(0.05f, 0.27f);
+                crt.anchorMax = new Vector2(0.45f, 0.33f);
+                crt.offsetMin = Vector2.zero;
+                crt.offsetMax = Vector2.zero;
+                var ct = coinGo.AddComponent<TextMeshProUGUI>();
+                ct.text = $"🪙 {_me.Coins}";
+                ct.fontSize = 36;
+                ct.alignment = TextAlignmentOptions.Left;
+                ct.color = new Color(1f, 0.9f, 0.3f);
+            }
+        }
+
+        private void CreateHomeMiniButton(string name, Vector2 amin, Vector2 amax, Color color, string label, System.Action onClick)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(_homePanel.transform, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = amin; rt.anchorMax = amax; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+            var img = go.AddComponent<Image>(); img.color = color;
+            var btn = go.AddComponent<Button>(); btn.targetGraphic = img;
+            var lg = new GameObject("Label"); lg.transform.SetParent(go.transform, false);
+            var lr = lg.AddComponent<RectTransform>();
+            lr.anchorMin = Vector2.zero; lr.anchorMax = Vector2.one; lr.offsetMin = Vector2.zero; lr.offsetMax = Vector2.zero;
+            var lt = lg.AddComponent<TextMeshProUGUI>();
+            lt.text = label; lt.fontSize = 32; lt.alignment = TextAlignmentOptions.Center; lt.color = Color.white;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+        }
+
+        // Iter 3: 미션 리스트 + 첫 claimable 자동 claim
+        private async UniTaskVoid ShowMissionsAsync()
+        {
+            try
+            {
+                var resp = await _missionsApi.TodayAsync();
+                Debug.Log($"[Missions] {resp.Missions?.Length ?? 0} today");
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("【오늘의 미션】");
+                if (resp.Missions != null)
+                {
+                    foreach (var m in resp.Missions)
+                    {
+                        string state = m.Claimed ? "✅" : (m.Completed ? "🎁" : $"{m.Progress}/{m.Target}");
+                        sb.AppendLine($"{state} {m.Title} (+{m.Reward})");
+                    }
+                }
+                Toast.Show(sb.ToString(), 5f);
+
+                // 첫 claimable 자동 claim
+                if (resp.Missions != null)
+                {
+                    foreach (var m in resp.Missions)
+                    {
+                        if (m.Completed && !m.Claimed)
+                        {
+                            var cr = await _missionsApi.ClaimAsync(m.MissionId);
+                            if (cr.Ok)
+                            {
+                                Toast.Show($"미션 보상 +{cr.Reward}🪙 (총 {cr.Coins})", 4f);
+                                if (_me != null) _me.Coins = cr.Coins;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                Toast.Show("미션 로드 실패: " + e.Message, 4f);
+            }
         }
 
         private async UniTaskVoid StartSession()
@@ -572,8 +669,15 @@ namespace ShortGeta.UI.Mobile
                     {
                         if (_recording != null) _recording.ShareLastClip();
                         else Toast.Show("녹화 서비스 없음", 3f);
+                        // Iter 3: 공유 보상 claim (서버 일 1회 limit)
+                        ClaimShareRewardAsync().Forget();
                     });
             }
+
+            // Iter 3: 랭킹 보기 버튼 (홈으로 위)
+            CreateRectButton("RankingButton", new Vector2(0.05f, 0.34f), new Vector2(0.95f, 0.42f),
+                new Color(0.4f, 0.5f, 0.9f), "🏆 랭킹 보기", 38,
+                () => ShowRankingAsync(results).Forget());
 
             var btnGo = new GameObject("BackButton");
             btnGo.transform.SetParent(_resultPanel.transform, false);
@@ -606,6 +710,53 @@ namespace ShortGeta.UI.Mobile
                 _resultPanel = null;
                 ShowHome();
             });
+        }
+
+        // Iter 3: 공유 보상 claim
+        private async UniTaskVoid ClaimShareRewardAsync()
+        {
+            try
+            {
+                var cr = await _shareApi.ClaimAsync("unknown", "session");
+                if (cr.Ok)
+                {
+                    Toast.Show($"공유 보상 +{cr.Reward}🪙 (총 {cr.Coins})", 4f);
+                    if (_me != null) _me.Coins = cr.Coins;
+                }
+                else
+                {
+                    Toast.Show("오늘 공유 보상은 이미 받았어요", 3f);
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Share] claim failed: {e.Message}");
+            }
+        }
+
+        // Iter 3: 첫 게임 기준 top 10 표시
+        private async UniTaskVoid ShowRankingAsync(List<MinigameResult> results)
+        {
+            try
+            {
+                string gameId = (results != null && results.Count > 0) ? results[0].GameId : "frog_catch_v1";
+                var resp = await _rankingApi.ByGameAsync(gameId, 10);
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"【{gameId} TOP 10】");
+                if (resp.Rankings != null)
+                {
+                    foreach (var r in resp.Rankings)
+                    {
+                        string uid = r.UserId.Length > 8 ? r.UserId.Substring(0, 8) : r.UserId;
+                        sb.AppendLine($"{r.Rank,2}. {uid}  {r.BestScore}");
+                    }
+                }
+                Toast.Show(sb.ToString(), 6f);
+            }
+            catch (System.Exception e)
+            {
+                Toast.Show("랭킹 로드 실패: " + e.Message, 3f);
+            }
         }
 
         // 작은 helper — Result UI 에 평면 버튼 추가
