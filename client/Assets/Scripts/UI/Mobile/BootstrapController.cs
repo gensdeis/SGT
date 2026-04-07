@@ -40,6 +40,7 @@ namespace ShortGeta.UI.Mobile
         private IBundleLoader _bundleLoader;
         private BundleManifest _bundleManifest = new BundleManifest();
         private readonly List<SavedHighlight> _sessionHighlights = new List<SavedHighlight>();
+        private int _currentDdaIntensity;
 
         private Canvas _rootCanvas;
         private GameObject _homePanel;
@@ -293,7 +294,8 @@ namespace ShortGeta.UI.Mobile
                 _sessionHighlights.Clear();
                 Debug.Log("[Bootstrap] starting session...");
                 var session = await _sessionApi.StartAsync();
-                Debug.Log($"[Bootstrap] session={session.SessionId} games={string.Join(",", session.GameIds)}");
+                _currentDdaIntensity = session.DdaIntensity;
+                Debug.Log($"[Bootstrap] session={session.SessionId} games={string.Join(",", session.GameIds)} dda_intensity={_currentDdaIntensity}");
 
                 _analyticsApi.EventAsync("session", "start", new { session_id = session.SessionId }).Forget();
 
@@ -344,6 +346,14 @@ namespace ShortGeta.UI.Mobile
         {
             var go = new GameObject($"Runtime.{gameId}");
             var game = _registry.Create(gameId, go);
+
+            // DDA 강도 적용 (옵션 인터페이스, OnGameStart 이전)
+            if (game is IDifficultyAware diffAware)
+            {
+                diffAware.SetDifficulty(_currentDdaIntensity);
+                Debug.Log($"[DDA] {gameId} difficulty={_currentDdaIntensity}");
+            }
+
             var launcher = go.AddComponent<MinigameLauncher>();
             var tcs = new UniTaskCompletionSource<MinigameResult>();
             launcher.OnFinished += r => tcs.TrySetResult(r);
@@ -431,6 +441,11 @@ namespace ShortGeta.UI.Mobile
             lt.color = Color.white;
 
             var sb = new System.Text.StringBuilder();
+            string ddaLabel = _currentDdaIntensity == 1 ? "+1 어려움"
+                            : _currentDdaIntensity == -1 ? "-1 쉬움"
+                            : "0 기본";
+            sb.AppendLine($"DDA: {ddaLabel}");
+            sb.AppendLine();
             int total = 0;
             var acceptedSet = new HashSet<string>(end.Accepted ?? new string[0]);
             foreach (var r in results)

@@ -8,7 +8,7 @@ namespace ShortGeta.Minigames.MathGenius
     // 수학 천재 도전 — 1자리수 +/- 4지선다.
     //
     // 정답 +50, 오답 -10. 30초 동안 30문제 정답 = 1500 (max).
-    public class MathGeniusGame : MonoBehaviour, IMinigame
+    public class MathGeniusGame : MonoBehaviour, IMinigame, IDifficultyAware
     {
         public string GameId => "math_genius_v1";
         public string Title => "수학 천재 도전";
@@ -19,6 +19,14 @@ namespace ShortGeta.Minigames.MathGenius
         private const int MaxScore = 1500;
         private const int CorrectGain = 50;
         private const int WrongPenalty = -10;
+        private int _offsetRange = 5; // DDA: -1=3 (가까운 오답, 쉬움), 0=5, +1=8 (혼동 큼)
+        private int _difficulty;
+
+        public void SetDifficulty(int intensity)
+        {
+            _difficulty = Mathf.Clamp(intensity, -1, 1);
+            _offsetRange = _difficulty == -1 ? 3 : (_difficulty == 1 ? 8 : 5);
+        }
 
         private SafeInt _score;
         private bool _running;
@@ -76,7 +84,7 @@ namespace ShortGeta.Minigames.MathGenius
                 }
                 else
                 {
-                    int off = Random.Range(-5, 6);
+                    int off = Random.Range(-_offsetRange, _offsetRange + 1);
                     if (off == 0) off = 1;
                     candidate = answer + off;
                 }

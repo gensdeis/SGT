@@ -9,7 +9,7 @@ namespace ShortGeta.Minigames.KakaoUnread
     //
     // 매 1초마다 +30 자동 가산 (20s × 30 = 600)
     // 매 3초마다 가짜 카톡 버블이 1초간 화면 등장. 탭하면 -50 (읽씹 실패)
-    public class KakaoUnreadGame : MonoBehaviour, IMinigame
+    public class KakaoUnreadGame : MonoBehaviour, IMinigame, IDifficultyAware
     {
         public string GameId => "kakao_unread_v1";
         public string Title => "카톡 읽씹하기";
@@ -20,8 +20,15 @@ namespace ShortGeta.Minigames.KakaoUnread
         private const int MaxScore = 600;
         private const int PerSecondGain = 30;
         private const int ReadPenalty = -50;
-        private const float NotifInterval = 3f;
+        private float _notifInterval = 3f; // DDA: -1=4, 0=3, +1=2
         private const float NotifDuration = 1f;
+        private int _difficulty;
+
+        public void SetDifficulty(int intensity)
+        {
+            _difficulty = Mathf.Clamp(intensity, -1, 1);
+            _notifInterval = _difficulty == -1 ? 4f : (_difficulty == 1 ? 2f : 3f);
+        }
 
         private SafeInt _score;
         private bool _running;
@@ -68,11 +75,11 @@ namespace ShortGeta.Minigames.KakaoUnread
                 _lastSecondTick = now;
                 UpdateLabel();
             }
-            if (!_notifVisible && now - _lastNotifAt >= NotifInterval)
+            if (!_notifVisible && now - _lastNotifAt >= _notifInterval)
             {
                 ShowNotif();
             }
-            if (_notifVisible && now - _lastNotifAt >= NotifInterval + NotifDuration)
+            if (_notifVisible && now - _lastNotifAt >= _notifInterval + NotifDuration)
             {
                 HideNotif();
             }
