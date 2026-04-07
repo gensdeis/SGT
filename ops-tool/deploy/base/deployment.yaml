@@ -23,9 +23,13 @@ spec:
               name: http
           env:
             - name: NEXT_PUBLIC_API_BASE
-              value: "http://shortgeta-server.shortgeta-dev/v1"
+              value: "http://localhost:18081/v1"
             - name: NODE_ENV
               value: "production"
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: PORT
+              value: "3000"
           resources:
             requests:
               cpu: "50m"
