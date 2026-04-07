@@ -43,6 +43,7 @@ namespace ShortGeta.UI.Mobile
         private MissionsApi _missionsApi;
         private ShareApi _shareApi;
         private ProfileResponse _me;
+        private System.Collections.Generic.Dictionary<string, GameStat> _gameStats = new();
 
         private MinigameRegistry _registry;
         private IRecordingService _recording;
@@ -97,6 +98,21 @@ namespace ShortGeta.UI.Mobile
                     Debug.LogWarning($"[Profile] load failed: {e.Message}");
                 }
                 _games = await _gameApi.ListAsync();
+                // 게임 stats (play_count / my_best / favorited) 동시 로드
+                try
+                {
+                    var statsResp = await _profileApi.GetGameStatsAsync();
+                    _gameStats.Clear();
+                    if (statsResp?.Stats != null)
+                    {
+                        foreach (var s in statsResp.Stats) _gameStats[s.GameId] = s;
+                    }
+                    Debug.Log($"[GameStats] loaded {_gameStats.Count} entries");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning($"[GameStats] load failed: {e.Message}");
+                }
                 Debug.Log($"[Bootstrap] loaded {_games.Length} games");
 
                 _bundleManifest.RegisterAll(_games);
@@ -419,6 +435,34 @@ namespace ShortGeta.UI.Mobile
             BuildBottomNav();
         }
 
+        private static string FormatCount(long n)
+        {
+            if (n >= 100_000_000) return $"{n / 100_000_000f:0.#}억";
+            if (n >= 10_000) return $"{n / 10_000f:0.#}만";
+            if (n >= 1_000) return $"{n / 1_000f:0.#}천";
+            return n.ToString();
+        }
+
+        private async UniTaskVoid ToggleFavoriteAsync(string gameId, TMPro.TextMeshProUGUI heartLabel)
+        {
+            try
+            {
+                bool currently = _gameStats.TryGetValue(gameId, out var s) && s.Favorited;
+                FavoriteResult res = currently
+                    ? await _profileApi.RemoveFavoriteAsync(gameId)
+                    : await _profileApi.AddFavoriteAsync(gameId);
+                if (_gameStats.TryGetValue(gameId, out var existing))
+                    existing.Favorited = res.Favorited;
+                else
+                    _gameStats[gameId] = new GameStat { GameId = gameId, Favorited = res.Favorited };
+                heartLabel.text = res.Favorited ? "♥" : "♡";
+            }
+            catch (System.Exception e)
+            {
+                Toast.Show("보관함 실패: " + e.Message, 3f);
+            }
+        }
+
         private void BuildProfileAvatar(Transform parent)
         {
             // 우상단 원형 아바타 (닉네임 첫글자) + 코인 mini
@@ -498,15 +542,16 @@ namespace ShortGeta.UI.Mobile
             UIBuilder.Label(thumb.transform, emoji, 160, DesignTokens.Text,
                 TextAlignmentOptions.Center);
 
-            // 우상단 하트 (보관함 토글 — 현재는 placeholder)
+            // 우상단 하트 (보관함 토글 — 실 API 연동)
+            bool favorited = _gameStats.TryGetValue(g.Id, out var stat0) && stat0.Favorited;
             var heart = UIBuilder.Panel(thumb.transform, "Heart",
                 new Vector2(0.85f, 0.05f), new Vector2(0.97f, 0.20f),
                 DesignTokens.Alpha(DesignTokens.Bg, 0f));
             var heartBtn = heart.AddComponent<Button>();
             heartBtn.targetGraphic = heart.GetComponent<Image>();
-            UIBuilder.Label(heart.transform, "♥", 56, DesignTokens.Hex("#f472b6"),
-                TextAlignmentOptions.Center);
-            heartBtn.onClick.AddListener(() => Toast.Show("보관함 기능은 곧 나옵니다", 2f));
+            var heartLabel = UIBuilder.Label(heart.transform, favorited ? "♥" : "♡", 56,
+                DesignTokens.Hex("#f472b6"), TextAlignmentOptions.Center);
+            heartBtn.onClick.AddListener(() => ToggleFavoriteAsync(g.Id, heartLabel).Forget());
 
             // ─── 2. 정보 영역 (하단 32%) ───
             // 제목
@@ -539,8 +584,12 @@ namespace ShortGeta.UI.Mobile
                 }
             }
 
-            // 플레이 수
-            string plays = FakePlayCount.TryGetValue(g.Id, out var p) ? p : "—";
+            // 플레이 수 (실 데이터 우선, 없으면 fake fallback)
+            string plays;
+            if (_gameStats.TryGetValue(g.Id, out var stat) && stat.PlayCount > 0)
+                plays = FormatCount(stat.PlayCount);
+            else
+                plays = FakePlayCount.TryGetValue(g.Id, out var p) ? p : "—";
             var playLabel = new GameObject("Plays");
             playLabel.transform.SetParent(metaRow.transform, false);
             var plt = playLabel.AddComponent<TextMeshProUGUI>();
@@ -555,7 +604,8 @@ namespace ShortGeta.UI.Mobile
             var bestLabel = new GameObject("Best");
             bestLabel.transform.SetParent(metaRow.transform, false);
             var blt = bestLabel.AddComponent<TextMeshProUGUI>();
-            blt.text = "내 최고 —";
+            int myBest = (_gameStats.TryGetValue(g.Id, out var st2)) ? st2.MyBest : 0;
+            blt.text = myBest > 0 ? $"내 최고 {myBest:N0}" : "내 최고 —";
             blt.fontSize = DesignTokens.FontTag;
             blt.color = DesignTokens.Accent;
             blt.alignment = TextAlignmentOptions.MidlineLeft;
