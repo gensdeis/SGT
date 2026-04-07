@@ -28,5 +28,10 @@ namespace ShortGeta.Core.Recording
         {
             Debug.Log("[Recording] (stub) OpenLastClipExternally — Android/iOS native share 는 Iter 2B'");
         }
+
+        public void ShareLastClip()
+        {
+            Debug.Log("[Recording] (stub) ShareLastClip — no-op");
+        }
     }
 }

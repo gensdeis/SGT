@@ -27,7 +27,7 @@ namespace ShortGeta.UI.Mobile
     {
         [SerializeField] private ServerConfig serverConfig;
         [SerializeField] private bool runFrogCatchOnly = false; // true=Iter1 동작 (디버그용)
-        [SerializeField] private bool forceCodeFactoryForFrogCatch = false; // true=Iter 2C' Addressable 경로 skip
+        [SerializeField] private bool forceCodeFactoryForAllGames = false; // true=Iter 2C'' Addressable 경로 skip 전체
 
         private ApiClient _api;
         private AuthApi _authApi;
@@ -165,29 +165,30 @@ namespace ShortGeta.UI.Mobile
             Debug.Log($"[Bootstrap] recording service = {_recording.GetType().Name} (supported={_recording.IsSupported})");
         }
 
-        // Iter 2C': Addressable prefab 'minigame/frog_catch_v1' 로드 시도.
-        // 성공 시 instance 의 FrogCatchGame 반환, 실패/없음 시 null.
-        private async UniTask<IMinigame> TryLoadFrogCatchFromAddressableAsync(GameObject parent)
+        // Iter 2C'': 임의 minigame address 'minigame/{gameId}' 로 Addressable 시도.
+        // 성공 시 instance 의 IMinigame 반환, 실패/없음 시 null.
+        private async UniTask<IMinigame> TryLoadMinigameFromAddressableAsync(string gameId, GameObject parent)
         {
             if (_bundleLoader == null || !_bundleLoader.IsReady) return null;
+            string address = $"minigame/{gameId}";
             try
             {
-                var prefab = await _bundleLoader.LoadAssetAsync<GameObject>("minigame/frog_catch_v1");
+                var prefab = await _bundleLoader.LoadAssetAsync<GameObject>(address);
                 if (prefab == null) return null;
                 var inst = Instantiate(prefab, parent.transform);
-                inst.name = "FrogCatch(Addressable)";
-                var game = inst.GetComponent<FrogCatchGame>();
+                inst.name = $"{gameId}(Addressable)";
+                var game = inst.GetComponent<IMinigame>();
                 if (game == null)
                 {
-                    Debug.LogWarning("[Bundles] FrogCatch prefab loaded but no FrogCatchGame component");
+                    Debug.LogWarning($"[Bundles] {address} loaded but no IMinigame component");
                     return null;
                 }
-                Debug.Log("[Bundles] FrogCatch loaded from Addressables");
+                Debug.Log($"[Bundles] {gameId} loaded from Addressables");
                 return game;
             }
             catch (System.Exception e)
             {
-                Debug.LogWarning($"[Bundles] FrogCatch addressable load failed: {e.Message}");
+                Debug.LogWarning($"[Bundles] {address} load failed: {e.Message}");
                 return null;
             }
         }
@@ -382,17 +383,14 @@ namespace ShortGeta.UI.Mobile
 
             // FrogCatch 만 Addressable 우선 시도 (Iter 2C')
             IMinigame game = null;
-            if (gameId == "frog_catch_v1" && !forceCodeFactoryForFrogCatch)
+            if (!forceCodeFactoryForAllGames)
             {
-                game = await TryLoadFrogCatchFromAddressableAsync(go);
+                game = await TryLoadMinigameFromAddressableAsync(gameId, go);
             }
             if (game == null)
             {
                 game = _registry.Create(gameId, go);
-                if (gameId == "frog_catch_v1")
-                {
-                    Debug.Log("[Bundles] FrogCatch loaded from code factory (fallback)");
-                }
+                Debug.Log($"[Bundles] {gameId} loaded from code factory (fallback)");
             }
 
             // DDA 강도 적용 (옵션 인터페이스, OnGameStart 이전)
@@ -506,45 +504,26 @@ namespace ShortGeta.UI.Mobile
             sb.AppendLine($"합계: {total}");
             lt.text = sb.ToString();
 
-            // 하이라이트 보기 버튼 (highlight 가 있을 때만)
+            // 하이라이트 보기 + 공유 버튼 (highlight 가 있을 때만)
             if (_sessionHighlights.Count > 0)
             {
-                var hlBtnGo = new GameObject("HighlightButton");
-                hlBtnGo.transform.SetParent(_resultPanel.transform, false);
-                var hbrt = hlBtnGo.AddComponent<RectTransform>();
-                hbrt.anchorMin = new Vector2(0.2f, 0.23f);
-                hbrt.anchorMax = new Vector2(0.8f, 0.32f);
-                hbrt.offsetMin = Vector2.zero;
-                hbrt.offsetMax = Vector2.zero;
-                var hImg = hlBtnGo.AddComponent<Image>();
-                hImg.color = new Color(1f, 0.6f, 0.2f);
-                var hBtn = hlBtnGo.AddComponent<Button>();
-                hBtn.targetGraphic = hImg;
-
-                var hLabelGo = new GameObject("Label");
-                hLabelGo.transform.SetParent(hlBtnGo.transform, false);
-                var hlrt = hLabelGo.AddComponent<RectTransform>();
-                hlrt.anchorMin = Vector2.zero;
-                hlrt.anchorMax = Vector2.one;
-                hlrt.offsetMin = Vector2.zero;
-                hlrt.offsetMax = Vector2.zero;
-                var hLbl = hLabelGo.AddComponent<TextMeshProUGUI>();
-                hLbl.text = $"📁 하이라이트 보기 ({_sessionHighlights.Count})";
-                hLbl.fontSize = 44;
-                hLbl.alignment = TextAlignmentOptions.Center;
-                hLbl.color = Color.white;
-
-                hBtn.onClick.AddListener(() =>
-                {
-                    if (_recording != null && _recording.IsSupported)
+                CreateRectButton("HighlightButton", new Vector2(0.05f, 0.23f), new Vector2(0.48f, 0.32f),
+                    new Color(1f, 0.6f, 0.2f), $"📁 보기 ({_sessionHighlights.Count})", 38,
+                    () =>
                     {
-                        _recording.OpenLastClipExternally();
-                    }
-                    else
+                        if (_recording != null && _recording.IsSupported)
+                            _recording.OpenLastClipExternally();
+                        else
+                            Toast.Show("Editor / Standalone 에서만 폴더 열기 가능", 3f);
+                    });
+
+                CreateRectButton("ShareButton", new Vector2(0.52f, 0.23f), new Vector2(0.95f, 0.32f),
+                    new Color(0.2f, 0.7f, 0.4f), "📤 공유", 38,
+                    () =>
                     {
-                        Toast.Show("Iter 2B' 에서 모바일 공유 추가 예정", 3f);
-                    }
-                });
+                        if (_recording != null) _recording.ShareLastClip();
+                        else Toast.Show("녹화 서비스 없음", 3f);
+                    });
             }
 
             var btnGo = new GameObject("BackButton");
@@ -578,6 +557,38 @@ namespace ShortGeta.UI.Mobile
                 _resultPanel = null;
                 ShowHome();
             });
+        }
+
+        // 작은 helper — Result UI 에 평면 버튼 추가
+        private void CreateRectButton(string name, Vector2 anchorMin, Vector2 anchorMax,
+            Color color, string label, int fontSize, System.Action onClick)
+        {
+            var btnGo = new GameObject(name);
+            btnGo.transform.SetParent(_resultPanel.transform, false);
+            var rt = btnGo.AddComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            var img = btnGo.AddComponent<Image>();
+            img.color = color;
+            var btn = btnGo.AddComponent<Button>();
+            btn.targetGraphic = img;
+
+            var labelGo = new GameObject("Label");
+            labelGo.transform.SetParent(btnGo.transform, false);
+            var lrt = labelGo.AddComponent<RectTransform>();
+            lrt.anchorMin = Vector2.zero;
+            lrt.anchorMax = Vector2.one;
+            lrt.offsetMin = Vector2.zero;
+            lrt.offsetMax = Vector2.zero;
+            var lbl = labelGo.AddComponent<TextMeshProUGUI>();
+            lbl.text = label;
+            lbl.fontSize = fontSize;
+            lbl.alignment = TextAlignmentOptions.Center;
+            lbl.color = Color.white;
+
+            btn.onClick.AddListener(() => onClick?.Invoke());
         }
     }
 }
