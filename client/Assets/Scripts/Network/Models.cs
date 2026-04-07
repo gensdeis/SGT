@@ -126,6 +126,34 @@ namespace ShortGeta.Network
     }
 
     [Serializable]
+    public class GameStat
+    {
+        [JsonProperty("game_id")] public string GameId;
+        [JsonProperty("play_count")] public long PlayCount;
+        [JsonProperty("my_best")] public int MyBest;
+        [JsonProperty("favorited")] public bool Favorited;
+    }
+
+    [Serializable]
+    public class GameStatsResponse
+    {
+        [JsonProperty("stats")] public GameStat[] Stats;
+    }
+
+    [Serializable]
+    public class FavoritesResponse
+    {
+        [JsonProperty("game_ids")] public string[] GameIds;
+    }
+
+    [Serializable]
+    public class FavoriteResult
+    {
+        [JsonProperty("ok")] public bool Ok;
+        [JsonProperty("favorited")] public bool Favorited;
+    }
+
+    [Serializable]
     public class MissionView
     {
         [JsonProperty("mission_id")] public string MissionId;
