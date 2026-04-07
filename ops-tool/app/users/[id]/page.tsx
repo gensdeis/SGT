@@ -9,6 +9,7 @@ interface Profile {
   nickname: string;
   avatar_id: number;
   coins: number;
+  banned?: boolean;
 }
 
 export default function UserDetailPage() {
@@ -67,6 +68,24 @@ export default function UserDetailPage() {
                 {d > 0 ? '+' : ''}{d}
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-2 pt-3 border-t border-zinc-800">
+            <span className="text-sm text-zinc-400">Banned:</span>
+            <span className={p.banned ? 'text-red-400' : 'text-green-400'}>{p.banned ? 'YES' : 'NO'}</span>
+            <button
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const res = await apiPost<{ banned: boolean }>(`/admin/users/${id}/ban`, { banned: !p.banned });
+                  setP({ ...p, banned: res.banned });
+                } catch (e) { setErr(e instanceof ApiError ? e.message : String(e)); }
+                finally { setBusy(false); }
+              }}
+              className="ml-auto px-3 py-1.5 bg-zinc-800 rounded text-sm hover:bg-zinc-700"
+            >
+              {p.banned ? '🔓 해제' : '🚫 밴'}
+            </button>
           </div>
         </div>
       )}
