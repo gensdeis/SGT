@@ -15,9 +15,11 @@ import (
 
 	"github.com/ansrivas/fiberprometheus/v2"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/gensdeis/SGT/server/internal/admin"
 	"github.com/gensdeis/SGT/server/internal/analytics"
 	"github.com/gensdeis/SGT/server/internal/anticheat"
 	"github.com/gensdeis/SGT/server/internal/auth"
@@ -118,6 +120,11 @@ func main() {
 	analyticsWorker.Start(rootCtx)
 	analyticsHandler := analytics.NewHandler(analyticsWorker)
 
+	// Iter 4a: 운영툴 admin
+	adminIssuer := admin.NewJWTIssuer(cfg.AdminJWTSecret, cfg.AdminJWTTTL)
+	adminHandler := admin.NewHandler(store, adminIssuer)
+	admin.BootstrapAdmin(rootCtx, store, cfg.AdminBootstrapLogin, cfg.AdminBootstrapPassword)
+
 	// Iter 3: profile / missions / share
 	profileHandler := profile.NewHandler(store)
 	missionsSvc := missions.NewService(store)
@@ -149,6 +156,12 @@ func main() {
 		WriteTimeout:          10 * time.Second,
 	})
 	app.Use(recover.New())
+	// Iter 4a: 운영툴 (Next.js dev) 용 CORS — dev 한정 와일드카드
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+	}))
 
 	// Prometheus 미들웨어
 	prom := fiberprometheus.New("shortgeta_server")
@@ -177,6 +190,7 @@ func main() {
 	analyticsHandler.Register(v1, authMW)
 	purchaseHandler.Register(v1, authMW)
 	profileHandler.Register(v1, authMW)
+	adminHandler.Register(v1)
 	missionsHandler.Register(v1, authMW)
 	shareHandler.Register(v1, authMW)
 
