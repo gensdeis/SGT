@@ -18,6 +18,12 @@ type Game struct {
 	MaxScore        int      `yaml:"max_score"`
 	RateLimitPerMin int      `yaml:"rate_limit_per_min"`
 	Tags            []string `yaml:"tags"`
+
+	// Iter 2C''': Addressables remote bundle 메타.
+	// DB 에 행이 있으면 그쪽 우선, 없으면 yaml 값을 클라이언트 응답에 사용.
+	BundleURL     string `yaml:"bundle_url,omitempty"`
+	BundleVersion string `yaml:"bundle_version,omitempty"`
+	BundleHash    string `yaml:"bundle_hash,omitempty"`
 }
 
 // GameRegistry 는 메모리 캐시. 시작 시 1회 로드 후 read-only.
