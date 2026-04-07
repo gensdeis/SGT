@@ -1,4 +1,6 @@
-#if UNITY_EDITOR
+// Iter 2C'' 부터는 SetupAllMinigamePrefabs 가 6개 모두를 처리한다.
+// 이 파일은 비활성화 (Iter 2C' 의 호환성 stub).
+#if UNITY_EDITOR_DISABLED_BY_ITER_2C_DOUBLE_PRIME
 using System.IO;
 using ShortGeta.Minigames.FrogCatch;
 using UnityEditor;

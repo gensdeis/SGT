@@ -184,6 +184,65 @@ public class HighlightRecorder {
         this.projection = projection;
     }
 
+    /**
+     * Android Intent ACTION_VIEW 로 마지막 클립 디렉토리 열기.
+     * Iter 2B''' 단순화 — 첫 jpeg 만 file viewer 로 전달.
+     */
+    public void openLastClip() {
+        if (lastClipDir == null) return;
+        File dir = new File(lastClipDir);
+        File[] files = dir.listFiles();
+        if (files == null || files.length == 0) return;
+        File first = files[0];
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                activity, "com.shortgeta.app.fileprovider", first);
+            intent.setDataAndType(uri, "image/jpeg");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            activity.startActivity(intent);
+        } catch (Exception e) {
+            Log.w(TAG, "openLastClip failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Android Intent ACTION_SEND 로 share sheet.
+     * 단순화: 첫 jpeg 1개만 공유. Iter 2B'''' 에서 MP4 + multi-frame.
+     */
+    public void shareLastClip() {
+        if (lastClipDir == null) return;
+        File dir = new File(lastClipDir);
+        File[] files = dir.listFiles();
+        if (files == null || files.length == 0) return;
+        File first = files[0];
+        try {
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.setType("image/jpeg");
+            android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                activity, "com.shortgeta.app.fileprovider", first);
+            intent.putExtra(Intent.EXTRA_STREAM, uri);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent chooser = Intent.createChooser(intent, "숏게타 하이라이트 공유");
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            activity.startActivity(chooser);
+        } catch (Exception e) {
+            Log.w(TAG, "shareLastClip failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * MediaMuxer + MediaCodec 으로 MP4 인코딩 (스켈레톤).
+     * 본 iter 에서는 시그니처만 노출, 실제 인코딩은 후속.
+     * 동작: ring buffer → MediaCodec H.264 encode → MediaMuxer mp4 write
+     */
+    public String flushLastClipPathMp4() {
+        // TODO: ImageReader → bitmap → MediaCodec.queueInputBuffer → MediaMuxer.writeSampleData
+        // 본 iter 는 jpeg 시퀀스 사용. 후속 iter 에서 구현.
+        Log.i(TAG, "flushLastClipPathMp4: stub (jpeg sequence used instead)");
+        return flushLastClipPath();
+    }
+
     private byte[] imageToJpeg(Image image) throws Exception {
         Image.Plane[] planes = image.getPlanes();
         ByteBuffer buffer = planes[0].getBuffer();

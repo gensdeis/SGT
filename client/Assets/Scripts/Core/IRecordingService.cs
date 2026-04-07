@@ -22,6 +22,10 @@ namespace ShortGeta.Core
         void StopRecording();
         SavedHighlight? FlushLastClip();
         void OpenLastClipExternally();
+
+        // Iter 2B''': platform 별 share sheet (Android Intent ACTION_SEND, iOS UIActivityViewController).
+        // Editor 는 폴더 열기와 동일하게 폴백.
+        void ShareLastClip();
     }
 
     public struct SavedHighlight

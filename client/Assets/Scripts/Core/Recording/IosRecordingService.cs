@@ -22,6 +22,9 @@ namespace ShortGeta.Core.Recording
 
         [DllImport("__Internal")]
         private static extern bool _ShortGeta_IsAvailable();
+
+        [DllImport("__Internal")]
+        private static extern void _ShortGeta_ShareLastClip();
 #endif
 
         private bool _recording;
@@ -102,8 +105,17 @@ namespace ShortGeta.Core.Recording
 
         public void OpenLastClipExternally()
         {
+            // iOS 에서는 share sheet 와 동일 의미
+            ShareLastClip();
+        }
+
+        public void ShareLastClip()
+        {
             if (!_lastClip.HasValue) return;
-            Debug.Log($"[Recording] iOS share — Iter 2B''': open {_lastClip.Value.Path}");
+#if UNITY_IOS && !UNITY_EDITOR
+            try { _ShortGeta_ShareLastClip(); Debug.Log("[Recording] iOS share triggered"); }
+            catch (System.Exception e) { Debug.LogWarning($"[Recording] iOS share failed: {e.Message}"); }
+#endif
         }
     }
 }

@@ -16,6 +16,7 @@
 
 #import <ReplayKit/ReplayKit.h>
 #import <AVFoundation/AVFoundation.h>
+#import <UIKit/UIKit.h>
 
 #define MAX_BUFFER_FRAMES 90
 #define BUFFER_SECONDS    3.0
@@ -158,6 +159,51 @@ const char* _ShortGeta_FlushLastClipPath(void) {
         NSLog(@"[ShortGeta] flush → %@", gLastClipPath);
         return [gLastClipPath UTF8String];
     }
+}
+
+void _ShortGeta_ShareLastClip(void) {
+    if (gLastClipPath == nil) {
+        NSLog(@"[ShortGeta] ShareLastClip: no clip");
+        return;
+    }
+    NSURL *url = [NSURL fileURLWithPath:gLastClipPath];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:gLastClipPath]) {
+        NSLog(@"[ShortGeta] ShareLastClip: file not found %@", gLastClipPath);
+        return;
+    }
+
+    UIViewController *root = nil;
+    if (@available(iOS 13.0, *)) {
+        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if ([scene isKindOfClass:[UIWindowScene class]]) {
+                UIWindowScene *ws = (UIWindowScene *)scene;
+                for (UIWindow *w in ws.windows) {
+                    if (w.isKeyWindow) { root = w.rootViewController; break; }
+                }
+                if (root) break;
+            }
+        }
+    }
+    if (root == nil) {
+        root = [UIApplication sharedApplication].keyWindow.rootViewController;
+    }
+    if (root == nil) {
+        NSLog(@"[ShortGeta] ShareLastClip: no root view controller");
+        return;
+    }
+
+    UIActivityViewController *vc = [[UIActivityViewController alloc]
+        initWithActivityItems:@[url] applicationActivities:nil];
+
+    // iPad popover anchor
+    if (vc.popoverPresentationController != nil) {
+        vc.popoverPresentationController.sourceView = root.view;
+        vc.popoverPresentationController.sourceRect = CGRectMake(
+            root.view.bounds.size.width / 2, root.view.bounds.size.height / 2, 0, 0);
+        vc.popoverPresentationController.permittedArrowDirections = 0;
+    }
+
+    [root presentViewController:vc animated:YES completion:nil];
 }
 
 } // extern "C"
