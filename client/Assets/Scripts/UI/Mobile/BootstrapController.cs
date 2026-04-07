@@ -4,6 +4,8 @@ using ShortGeta.Core;
 using ShortGeta.Core.Bundles;
 using ShortGeta.Core.Recording;
 using ShortGeta.Core.UI;
+using ShortGeta.UI;
+using ShortGeta.UI.PC;
 // BundleHashVerifier 는 ShortGeta.Core.Bundles 네임스페이스에 있어 위 using 으로 충분
 using ShortGeta.Minigames.DarkSouls;
 using ShortGeta.Minigames.FrogCatch;
@@ -327,7 +329,19 @@ namespace ShortGeta.UI.Mobile
             if (_resultPanel != null) Destroy(_resultPanel);
             if (_homePanel != null) Destroy(_homePanel);
 
-            // 루트 — 다크 배경
+            // 플랫폼 분기 — PC 면 PcHomeController 위임
+            if (PlatformDetector.Detect() == LayoutMode.PC)
+            {
+                _homePanel = new GameObject("PcHomeRoot");
+                _homePanel.transform.SetParent(_rootCanvas.transform, false);
+                var rt = _homePanel.AddComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+                _homePanel.AddComponent<PcHomeController>().Build(_homePanel.transform);
+                return;
+            }
+
+            // 모바일 루트 — 다크 배경
             _homePanel = UIBuilder.Panel(_rootCanvas.transform, "HomePanel",
                 Vector2.zero, Vector2.one, DesignTokens.Bg);
 
