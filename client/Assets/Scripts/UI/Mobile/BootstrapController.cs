@@ -161,19 +161,7 @@ namespace ShortGeta.UI.Mobile
                 _bundleLoader = new StubBundleLoader();
             }
 
-            // 데모 자산 로드 (없어도 무회귀)
-            try
-            {
-                var hello = await _bundleLoader.LoadAssetAsync<TextAsset>("demo/hello");
-                if (hello != null)
-                {
-                    Debug.Log($"[Bundles] {hello.text}");
-                }
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning($"[Bundles] demo asset load failed (expected if not marked yet): {e.Message}");
-            }
+            // demo/hello 자산 로드는 Iter 2C MVP 흔적 — 제거.
         }
 
         // Iter 2C'''': 서버 GameView.bundle_url 의 모든 unique URL 에 대해
