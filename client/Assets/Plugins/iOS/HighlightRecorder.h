@@ -23,6 +23,10 @@ void _ShortGeta_StopRecording(void);
 // 아무 클립도 없으면 NULL.
 const char* _ShortGeta_FlushLastClipPath(void);
 
+// UIActivityViewController 로 마지막 클립 share sheet 표시.
+// 클립이 없으면 no-op.
+void _ShortGeta_ShareLastClip(void);
+
 #ifdef __cplusplus
 }
 #endif

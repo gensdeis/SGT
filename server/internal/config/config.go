@@ -33,6 +33,8 @@ type Config struct {
 	GamesConfigPath string
 	MigrationsPath  string
 	AutoMigrate     bool
+
+	BundlesDir string
 }
 
 // Load 는 환경변수에서 설정을 읽어 Config 를 반환한다.
@@ -54,6 +56,7 @@ func Load() (*Config, error) {
 		GamesConfigPath:  getenvDefault("GAMES_CONFIG_PATH", "./config/games.yaml"),
 		MigrationsPath:   getenvDefault("MIGRATIONS_PATH", "./db/migrations"),
 		AutoMigrate:      getenvBool("AUTO_MIGRATE", true),
+		BundlesDir:       getenvDefault("BUNDLES_DIR", "./bundles"),
 	}
 
 	if cfg.DatabaseURL == "" {

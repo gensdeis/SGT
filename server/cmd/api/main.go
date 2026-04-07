@@ -21,6 +21,7 @@ import (
 	"github.com/gensdeis/SGT/server/internal/analytics"
 	"github.com/gensdeis/SGT/server/internal/anticheat"
 	"github.com/gensdeis/SGT/server/internal/auth"
+	"github.com/gensdeis/SGT/server/internal/bundles"
 	"github.com/gensdeis/SGT/server/internal/config"
 	"github.com/gensdeis/SGT/server/internal/game"
 	"github.com/gensdeis/SGT/server/internal/migrate"
@@ -165,6 +166,11 @@ func main() {
 	rankingHandler.Register(v1, authMW)
 	analyticsHandler.Register(v1, authMW)
 	purchaseHandler.Register(v1, authMW)
+
+	// Iter 2C'': Addressables remote bundle 정적 파일 (인증 없음)
+	bundlesHandler := bundles.NewHandler(cfg.BundlesDir)
+	bundlesHandler.Register(v1)
+	slog.Info("bundles handler registered", "dir", cfg.BundlesDir)
 
 	// === 7. 시작 ===
 	go func() {

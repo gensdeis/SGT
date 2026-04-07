@@ -65,13 +65,18 @@ cd client/Assets/Plugins/Android/HighlightRecording
   ShortGetaRecorder: flushLastClipPath → /sdcard/Android/data/com.shortgeta.app/files/highlights/...
   ```
 
-### 7. 알려진 한계 (Iter 2B' MVP)
-- MediaProjection 권한 요청 흐름이 단순화되어 있음 — `RecordingPermissionActivity`
-  helper 는 후속 (Iter 2B''')
-- Foreground Service 미구현 — Android 14+ 에서 권한은 있으나 service 자체는 없어
-  화면 OFF 시 recording 안 됨
-- jpeg 시퀀스만 (MP4 인코딩 후속)
+### 7. Iter 2B''' 진행 상태
+- ✅ **Foreground Service** (`RecordingService.java`) — `foregroundServiceType="mediaProjection"`
+- ✅ **FileProvider** (`com.shortgeta.app.fileprovider`) + `res/xml/file_paths.xml`
+- ✅ **Intent ACTION_VIEW / ACTION_SEND** (`HighlightRecorder.openLastClip / shareLastClip`)
+  — 첫 jpeg 1개를 share sheet 로
+- ✅ **MP4 시그니처** (`flushLastClipPathMp4`) — 스켈레톤. 실제는 jpeg 사용
+
+### 8. 알려진 한계 (Iter 2B''' MVP)
+- MediaProjection 권한 요청 흐름은 여전히 외부 setProjection 주입 필요
+- MP4 직접 인코딩은 스켈레톤만 (실제 MediaCodec/MediaMuxer 흐름은 후속)
 - 음성 OFF
+- 워터마크 native 미적용 (Editor 만)
 
 ---
 
@@ -119,7 +124,11 @@ client/Assets/Plugins/iOS/
   [ShortGeta] flush → /var/mobile/Containers/Data/Application/.../tmp/highlights/...
   ```
 
-### 6. 알려진 한계 (Iter 2B' MVP)
+### 6. Iter 2B''' 진행 상태
+- ✅ **UIActivityViewController share** (`_ShortGeta_ShareLastClip`)
+  — iOS 13+ UIWindowScene 호환 root view 탐색 + popover anchor
+
+### 7. 알려진 한계 (Iter 2B''' MVP)
 - AVAssetWriter export 가 동기 wait (5초 timeout) — UI 멈춤 가능
 - 권한 거부 시 UI 안내 없음 — 단순 NULL 반환
 - 음성 OFF
