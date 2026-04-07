@@ -313,7 +313,7 @@ namespace ShortGeta.UI.Mobile
             canvasGo.AddComponent<GraphicRaycaster>();
         }
 
-        // ─── Iter (UI v1.3): 게임별 이모지 매핑 ───
+        // ─── Iter (UI v1.3): 게임별 이모지 + 썸네일 배경색 ───
         private static readonly System.Collections.Generic.Dictionary<string, string> GameEmojis = new()
         {
             { "frog_catch_v1", "🐸" },
@@ -322,6 +322,27 @@ namespace ShortGeta.UI.Mobile
             { "dark_souls_v1", "⚔" },
             { "kakao_unread_v1", "💬" },
             { "math_genius_v1", "🧮" },
+        };
+
+        private static readonly System.Collections.Generic.Dictionary<string, string> GameThumbBgHex = new()
+        {
+            { "frog_catch_v1",   "#0d3a2c" }, // 다크 그린 (개구리)
+            { "noodle_boil_v1",  "#3a1d0d" }, // 다크 브라운 (라면)
+            { "poker_face_v1",   "#1d1d3a" }, // 다크 인디고 (눈치)
+            { "dark_souls_v1",   "#2a0d0d" }, // 다크 레드 (소울)
+            { "kakao_unread_v1", "#3a3a0d" }, // 다크 옐로우 (카톡)
+            { "math_genius_v1",  "#0d2a3a" }, // 다크 시안 (수학)
+        };
+
+        // 가짜 플레이 수 (서버 API 전까지 placeholder)
+        private static readonly System.Collections.Generic.Dictionary<string, string> FakePlayCount = new()
+        {
+            { "frog_catch_v1",   "3.2만" },
+            { "noodle_boil_v1",  "2.8만" },
+            { "poker_face_v1",   "1.9만" },
+            { "dark_souls_v1",   "2.1만" },
+            { "kakao_unread_v1", "1.7만" },
+            { "math_genius_v1",  "1.4만" },
         };
 
         private void ShowHome()
@@ -463,49 +484,84 @@ namespace ShortGeta.UI.Mobile
             var card = new GameObject($"Card_{g.Id}");
             card.transform.SetParent(parent, false);
             var le = card.AddComponent<LayoutElement>();
-            le.preferredHeight = 180;
-            var img = card.AddComponent<Image>();
-            img.color = DesignTokens.Surface;
+            le.preferredHeight = 480;
+            var bg = card.AddComponent<Image>();
+            bg.color = DesignTokens.Surface;
 
-            // 좌측 이모지
+            // ─── 1. 썸네일 영역 (상단 70%, 게임별 색상) ───
+            var thumbColorHex = GameThumbBgHex.TryGetValue(g.Id, out var hex) ? hex : "#1b1e28";
+            var thumb = UIBuilder.Panel(card.transform, "Thumb",
+                new Vector2(0f, 0.32f), new Vector2(1f, 1f),
+                DesignTokens.Hex(thumbColorHex));
+
             string emoji = GameEmojis.TryGetValue(g.Id, out var e) ? e : "🎮";
-            UIBuilder.Label(card.transform, emoji, 96, DesignTokens.Text,
-                TextAlignmentOptions.Center,
-                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0.25f, 1f));
+            UIBuilder.Label(thumb.transform, emoji, 160, DesignTokens.Text,
+                TextAlignmentOptions.Center);
 
-            // 우측 정보
+            // 우상단 하트 (보관함 토글 — 현재는 placeholder)
+            var heart = UIBuilder.Panel(thumb.transform, "Heart",
+                new Vector2(0.85f, 0.05f), new Vector2(0.97f, 0.20f),
+                DesignTokens.Alpha(DesignTokens.Bg, 0f));
+            var heartBtn = heart.AddComponent<Button>();
+            heartBtn.targetGraphic = heart.GetComponent<Image>();
+            UIBuilder.Label(heart.transform, "♥", 56, DesignTokens.Hex("#f472b6"),
+                TextAlignmentOptions.Center);
+            heartBtn.onClick.AddListener(() => Toast.Show("보관함 기능은 곧 나옵니다", 2f));
+
+            // ─── 2. 정보 영역 (하단 32%) ───
+            // 제목
             UIBuilder.Label(card.transform, g.Title ?? g.Id,
                 DesignTokens.FontBody, DesignTokens.Text, TextAlignmentOptions.TopLeft,
-                anchorMin: new Vector2(0.27f, 0.55f), anchorMax: new Vector2(0.98f, 0.95f))
+                anchorMin: new Vector2(0.04f, 0.20f), anchorMax: new Vector2(0.96f, 0.32f))
                 .fontStyle = FontStyles.Bold;
 
-            // 태그 (Horizontal layout)
-            var tagsGo = new GameObject("Tags");
-            tagsGo.transform.SetParent(card.transform, false);
-            var trt = tagsGo.AddComponent<RectTransform>();
-            trt.anchorMin = new Vector2(0.27f, 0.25f);
-            trt.anchorMax = new Vector2(0.98f, 0.55f);
-            trt.offsetMin = Vector2.zero;
-            trt.offsetMax = Vector2.zero;
-            var hl = tagsGo.AddComponent<HorizontalLayoutGroup>();
-            hl.spacing = 8;
+            // 태그 + 메타 (한 줄)
+            var metaRow = new GameObject("MetaRow");
+            metaRow.transform.SetParent(card.transform, false);
+            var mrt = metaRow.AddComponent<RectTransform>();
+            mrt.anchorMin = new Vector2(0.04f, 0.04f);
+            mrt.anchorMax = new Vector2(0.96f, 0.20f);
+            mrt.offsetMin = Vector2.zero;
+            mrt.offsetMax = Vector2.zero;
+            var hl = metaRow.AddComponent<HorizontalLayoutGroup>();
+            hl.spacing = 10;
             hl.childAlignment = TextAnchor.MiddleLeft;
             hl.childForceExpandWidth = false;
-            hl.childForceExpandHeight = false;
+            hl.childForceExpandHeight = true;
+
             if (g.Tags != null)
             {
                 int count = 0;
                 foreach (var t in g.Tags)
                 {
-                    if (count++ >= 3) break;
-                    UIBuilder.Tag(tagsGo.transform, t);
+                    if (count++ >= 2) break;
+                    UIBuilder.Tag(metaRow.transform, t);
                 }
             }
 
-            // 하단 메타
-            UIBuilder.Label(card.transform, $"id: {g.Id}",
-                DesignTokens.FontTag, DesignTokens.TextDim, TextAlignmentOptions.BottomLeft,
-                anchorMin: new Vector2(0.27f, 0.05f), anchorMax: new Vector2(0.98f, 0.25f));
+            // 플레이 수
+            string plays = FakePlayCount.TryGetValue(g.Id, out var p) ? p : "—";
+            var playLabel = new GameObject("Plays");
+            playLabel.transform.SetParent(metaRow.transform, false);
+            var plt = playLabel.AddComponent<TextMeshProUGUI>();
+            plt.text = $"{plays} 플레이";
+            plt.fontSize = DesignTokens.FontTag;
+            plt.color = DesignTokens.TextDim;
+            plt.alignment = TextAlignmentOptions.MidlineLeft;
+            var plf = playLabel.AddComponent<ContentSizeFitter>();
+            plf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // 내 최고 점수 (Accent 색)
+            var bestLabel = new GameObject("Best");
+            bestLabel.transform.SetParent(metaRow.transform, false);
+            var blt = bestLabel.AddComponent<TextMeshProUGUI>();
+            blt.text = "내 최고 —";
+            blt.fontSize = DesignTokens.FontTag;
+            blt.color = DesignTokens.Accent;
+            blt.alignment = TextAlignmentOptions.MidlineLeft;
+            blt.fontStyle = FontStyles.Bold;
+            var blf = bestLabel.AddComponent<ContentSizeFitter>();
+            blf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         }
 
         private void BuildBottomNav()
