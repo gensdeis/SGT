@@ -14,7 +14,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
   m_GroupName: Default Local Group
   m_GUID: 51768b33f79f4b34e82eacb87f4efa7e
-  m_SerializeEntries: []
+  m_SerializeEntries:
+  - m_GUID: 66c4e66e6814d124191a5ed372fbdf91
+    m_Address: minigame/dark_souls_v1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6b71c3f014da2294a929c4f628a3bc26
+    m_Address: minigame/kakao_unread_v1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 77841112caf0c4d428ced79c34dd5448
+    m_Address: minigame/math_genius_v1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 84865e544f869254fb794bee057d212a
+    m_Address: minigame/noodle_boil_v1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d6cdaf87ec361e04199fd6154602f7c8
+    m_Address: minigame/frog_catch_v1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e1b71bbf6c7500148a4896b7c83c0b5c
+    m_Address: minigame/poker_face_v1
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: accecf49949a6b14f87c219cf259329e, type: 2}
   m_SchemaSet:
