@@ -101,6 +101,12 @@ namespace ShortGeta.Core.Recording
             Debug.Log($"[Recording] opened {url}");
         }
 
+        public void ShareLastClip()
+        {
+            // Editor 에서는 share sheet 가 없으므로 폴더 열기와 동일.
+            OpenLastClipExternally();
+        }
+
         private IEnumerator CaptureLoop()
         {
             // 첫 capture 전 살짝 대기 (씬 안정화)

@@ -119,8 +119,19 @@ namespace ShortGeta.Core.Recording
         public void OpenLastClipExternally()
         {
             if (!_lastClip.HasValue) return;
-            // Iter 2B''' 에서 Android Intent ACTION_VIEW 또는 ACTION_SEND
-            Debug.Log($"[Recording] Android share — Iter 2B''': open {_lastClip.Value.Path}");
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try { _recorder.Call("openLastClip"); }
+            catch (System.Exception e) { Debug.LogWarning($"[Recording] openLastClip failed: {e.Message}"); }
+#endif
+        }
+
+        public void ShareLastClip()
+        {
+            if (!_lastClip.HasValue) return;
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try { _recorder.Call("shareLastClip"); Debug.Log("[Recording] Android share triggered"); }
+            catch (System.Exception e) { Debug.LogWarning($"[Recording] shareLastClip failed: {e.Message}"); }
+#endif
         }
 
         private void OnDestroy()
