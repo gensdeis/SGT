@@ -503,4 +503,38 @@ UnityEngine.AddressableAssets.InvalidKeyException:
 
 ---
 
+## 2026-04-08 — Addressables 2.10.0 ProjectConfigData CS0426
+
+**증상**
+```
+Library\PackageCache\com.unity.addressables@a1aed830bc3c\Editor\Settings\
+  ProjectConfigData.cs(13,80): error CS0426:
+  The type name 'ResourceLocator' does not exist in the type 'ContentCatalogData'
+```
+Play 가 안됨 (컴파일 자체 실패).
+
+**원인**
+Addressables 2.10.0 의 알려진 내부 빌드 이슈. 일부 internal API 가
+잘못 export 되어 있음. PackageCache 정리만으로는 해결 안 됨.
+
+**해결**
+1. Unity Editor 완전히 종료
+2. `Packages/manifest.json` 의 Addressables 버전 다운그레이드:
+   ```json
+   "com.unity.addressables": "2.5.0",
+   ```
+3. PackageCache + ScriptAssemblies + packages-lock.json 삭제:
+   ```powershell
+   Remove-Item -Recurse -Force F:\SGT\client\Library\PackageCache
+   Remove-Item -Recurse -Force F:\SGT\client\Library\ScriptAssemblies
+   Remove-Item -Force F:\SGT\client\Packages\packages-lock.json
+   ```
+4. Unity Hub 에서 다시 열기 → 패키지 재해결
+
+**재발 방지**
+- Addressables 2.6.x ~ 2.10.x 는 회피
+- 안정 버전: 2.5.0, 2.4.4, 2.3.16
+
+---
+
 > ⬇ 새 항목은 여기 아래에 추가
