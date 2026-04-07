@@ -78,6 +78,27 @@ Console 로그:
 - 성공: `[Bundles] {gameId} loaded from Addressables`
 - 실패/fallback: `[Bundles] {gameId} loaded from code factory (fallback)`
 
+## Iter 2C''' 진행 상태
+
+- ✅ **서버 yaml 에 bundle_url 필드** (`server/internal/config/games.go` Game struct)
+  - frog_catch_v1 에 데모용 `/v1/bundles/StandaloneWindows64/catalog.json` 설정
+- ✅ **Service 가 yaml fallback** — DB 우선, 비어있으면 yaml
+- ✅ **클라이언트 catalog 동적 로드** — `IBundleLoader.LoadCatalogAsync(url)`
+  - `BootstrapController.TryLoadFirstCatalogAsync` 가 첫 번째 비어있지 않은
+    `bundle_url` 로 `Addressables.LoadContentCatalogAsync` 호출
+  - 상대 URL (`/v1/bundles/...`) 은 `ServerConfig.BaseUrl` 과 결합
+- ⏳ bundle_hash 검증 — 로깅만, 실 비교는 후속
+
+### 전체 흐름 (Iter 2C''' 부터)
+```
+1. 사용자가 Addressables Build → catalog.json + .bundle 파일들 생성
+2. kubectl cp 결과물 → server pod /app/bundles/StandaloneWindows64/
+3. 클라이언트가 시작 시:
+   - GET /v1/games → bundle_url 받음
+   - LoadContentCatalogAsync(http://localhost:18081/v1/bundles/StandaloneWindows64/catalog.json)
+   - 이후 LoadAssetAsync("minigame/frog_catch_v1") 가 remote bundle 사용
+```
+
 ## Iter 2C'' 진행 상태
 
 - ✅ **6개 미니게임 prefab 자동 생성** (`SetupAllMinigamePrefabs.cs`)

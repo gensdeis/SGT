@@ -69,14 +69,23 @@ cd client/Assets/Plugins/Android/HighlightRecording
 - ✅ **Foreground Service** (`RecordingService.java`) — `foregroundServiceType="mediaProjection"`
 - ✅ **FileProvider** (`com.shortgeta.app.fileprovider`) + `res/xml/file_paths.xml`
 - ✅ **Intent ACTION_VIEW / ACTION_SEND** (`HighlightRecorder.openLastClip / shareLastClip`)
-  — 첫 jpeg 1개를 share sheet 로
-- ✅ **MP4 시그니처** (`flushLastClipPathMp4`) — 스켈레톤. 실제는 jpeg 사용
 
-### 8. 알려진 한계 (Iter 2B''' MVP)
-- MediaProjection 권한 요청 흐름은 여전히 외부 setProjection 주입 필요
-- MP4 직접 인코딩은 스켈레톤만 (실제 MediaCodec/MediaMuxer 흐름은 후속)
+### 7-1. Iter 2B'''' 진행 상태
+- ✅ **MediaCodec H.264 + MediaMuxer MP4** (`Mp4Encoder.java`)
+  - 720x1280 / 30fps / 2 Mbps / NV12 컬러
+  - ARGB → YUV420 변환 (BT.601)
+  - jpeg 시퀀스 fallback
+- ✅ **`HighlightRecorder.flushLastClipPathMp4`** 본격 구현 (스켈레톤 → 본격)
+- ✅ **RecordingPermissionActivity** (`createScreenCaptureIntent` → `setProjection`)
+  - HighlightRecorder.INSTANCE static singleton 패턴
+  - AndroidManifest 에 Translucent Theme 로 declare
+
+### 8. 알려진 한계 (Iter 2B'''' MVP)
+- MediaCodec/MediaMuxer 코드 컴파일 미검증 — 실 빌드 시 에러 가능
+- INSTANCE static 은 안티패턴 (Unity 환경 1개 인스턴스 가정)
 - 음성 OFF
 - 워터마크 native 미적용 (Editor 만)
+- bitrate 고정 (사용자 설정 옵션 후속)
 
 ---
 
