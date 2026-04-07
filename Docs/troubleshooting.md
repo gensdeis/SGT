@@ -532,8 +532,12 @@ Addressables 2.10.0 의 알려진 내부 빌드 이슈. 일부 internal API 가
 4. Unity Hub 에서 다시 열기 → 패키지 재해결
 
 **재발 방지**
-- Addressables 2.6.x ~ 2.10.x 는 회피
-- 안정 버전: 2.5.0, 2.4.4, 2.3.16
+- Addressables 2.5.0 ~ 2.10.x 는 Unity 6 + 일부 패키지 조합에서 오류
+- **2.4.4 가 가장 안정** (검증됨)
+- 다음 후보: 2.3.16, 2.2.2
+
+**Note**: 2.5.0 은 또 다른 에러 (`FormerlySerializedAs` not found) 발생.
+2.4.4 로 직접 가는 것을 권장.
 
 ---
 
