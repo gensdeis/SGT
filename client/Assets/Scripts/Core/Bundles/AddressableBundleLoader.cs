@@ -41,8 +41,10 @@ namespace ShortGeta.Core.Bundles
             var op = Addressables.LoadAssetAsync<T>(address);
             try
             {
-                var result = await op.ToUniTask();
-                return result;
+                await op.Task;
+                if (op.Status != AsyncOperationStatus.Succeeded)
+                    throw new System.Exception($"LoadAssetAsync failed: {address}");
+                return op.Result;
             }
             catch (System.Exception)
             {
