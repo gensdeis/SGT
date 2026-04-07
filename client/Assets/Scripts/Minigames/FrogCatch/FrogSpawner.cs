@@ -14,6 +14,13 @@ namespace ShortGeta.Minigames.FrogCatch
         [SerializeField] private int maxConcurrent = 5;
         [SerializeField] private Vector2 spawnArea = new Vector2(3f, 5f); // world units
 
+        // DDA 노브: spawn interval 배율. 1 = baseline, < 1 = 빨라짐, > 1 = 느려짐.
+        private float _intervalMultiplier = 1f;
+        public void SetSpawnIntervalMultiplier(float mult)
+        {
+            _intervalMultiplier = Mathf.Max(0.1f, mult);
+        }
+
         private Action _onCaught;
         private Action _onMissed;
         private float _nextSpawnAt;
@@ -45,7 +52,7 @@ namespace ShortGeta.Minigames.FrogCatch
             {
                 SpawnOne();
                 _nextSpawnAt = Time.realtimeSinceStartup +
-                    UnityEngine.Random.Range(minSpawnInterval, maxSpawnInterval);
+                    UnityEngine.Random.Range(minSpawnInterval, maxSpawnInterval) * _intervalMultiplier;
             }
         }
 

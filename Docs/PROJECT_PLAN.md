@@ -197,7 +197,7 @@ Phase 3  자동 필터 전면 적용 후 UGC 오픈
 - [ ] MinigameLauncher + WarioWare식 자동 전환 구현
 - [ ] 오리지널 미니게임 5~7개 제작 (9:16 비율)
 - [ ] 9:16 하이라이트 자동 녹화 + 원탭 공유 시스템
-- [ ] DDA 기반 세션 강도 조절 기초 로직
+- [x] DDA 기반 세션 강도 조절 기초 로직 (서버 SR + 클라이언트 6게임 노브 통합 — Iter 2D)
 - [ ] Go 백엔드 — Game Registry / Ranking / Analytics API
 - [ ] 게임별 리더보드 + 글로벌 랭킹 서버
 - [ ] UGC 저작권·심사 정책 설계 문서화 (구현은 Phase 3)

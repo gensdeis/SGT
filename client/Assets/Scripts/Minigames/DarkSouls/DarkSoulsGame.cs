@@ -9,7 +9,7 @@ namespace ShortGeta.Minigames.DarkSouls
     //
     // "공격" 버튼 탭 → Random.Range(0,10) == 0 이면 +30, 아니면 "YOU DIED" + 0.7s 입력 락
     // 30s 누적, max 300 (10번 성공)
-    public class DarkSoulsGame : MonoBehaviour, IMinigame
+    public class DarkSoulsGame : MonoBehaviour, IMinigame, IDifficultyAware
     {
         public string GameId => "dark_souls_v1";
         public string Title => "Dark Souls 도전";
@@ -20,7 +20,14 @@ namespace ShortGeta.Minigames.DarkSouls
         private const int MaxScore = 300;
         private const int SuccessGain = 30;
         private const float DeadLockSec = 0.7f;
-        private const int SuccessOdds = 10; // 1 in 10
+        private int _successOdds = 10; // 1 in N. DDA: -1=7 (쉬움), 0=10, +1=15 (어려움)
+        private int _difficulty;
+
+        public void SetDifficulty(int intensity)
+        {
+            _difficulty = Mathf.Clamp(intensity, -1, 1);
+            _successOdds = _difficulty == -1 ? 7 : (_difficulty == 1 ? 15 : 10);
+        }
 
         private SafeInt _score;
         private bool _running;
@@ -61,7 +68,7 @@ namespace ShortGeta.Minigames.DarkSouls
         private void OnAttackTapped()
         {
             if (!_running || _locked) return;
-            int r = Random.Range(0, SuccessOdds);
+            int r = Random.Range(0, _successOdds);
             if (r == 0)
             {
                 _score = _score + SuccessGain;
