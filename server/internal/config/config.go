@@ -35,6 +35,12 @@ type Config struct {
 	AutoMigrate     bool
 
 	BundlesDir string
+
+	// Iter 4a: 운영툴 admin
+	AdminJWTSecret       string
+	AdminJWTTTL          time.Duration
+	AdminBootstrapLogin  string
+	AdminBootstrapPassword string
 }
 
 // Load 는 환경변수에서 설정을 읽어 Config 를 반환한다.
@@ -57,6 +63,14 @@ func Load() (*Config, error) {
 		MigrationsPath:   getenvDefault("MIGRATIONS_PATH", "./db/migrations"),
 		AutoMigrate:      getenvBool("AUTO_MIGRATE", true),
 		BundlesDir:       getenvDefault("BUNDLES_DIR", "./bundles"),
+
+		AdminJWTSecret:         getenvDefault("ADMIN_JWT_SECRET", ""),
+		AdminJWTTTL:            time.Duration(getenvInt("ADMIN_JWT_TTL_HOURS", 12)) * time.Hour,
+		AdminBootstrapLogin:    os.Getenv("ADMIN_BOOTSTRAP_LOGIN"),
+		AdminBootstrapPassword: os.Getenv("ADMIN_BOOTSTRAP_PASSWORD"),
+	}
+	if cfg.AdminJWTSecret == "" {
+		cfg.AdminJWTSecret = cfg.JWTSecret + "-admin" // dev fallback
 	}
 
 	if cfg.DatabaseURL == "" {
