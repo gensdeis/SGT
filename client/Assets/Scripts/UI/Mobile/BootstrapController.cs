@@ -137,7 +137,7 @@ namespace ShortGeta.UI.Mobile
         }
 
         // 플랫폼별 RecordingService 분기. Editor / Standalone 만 실 구현,
-        // 모바일은 Iter 2B' 까지 stub.
+        // 플랫폼별 RecordingService — Iter 2B' 부터 Android/iOS native bridge 활성.
         private void BuildRecordingService()
         {
             var go = new GameObject("[RecordingService]");
@@ -151,6 +151,12 @@ namespace ShortGeta.UI.Mobile
                 case RuntimePlatform.OSXPlayer:
                 case RuntimePlatform.LinuxPlayer:
                     _recording = go.AddComponent<EditorRecordingService>();
+                    break;
+                case RuntimePlatform.Android:
+                    _recording = go.AddComponent<AndroidRecordingService>();
+                    break;
+                case RuntimePlatform.IPhonePlayer:
+                    _recording = go.AddComponent<IosRecordingService>();
                     break;
                 default:
                     _recording = go.AddComponent<NativeStubRecordingService>();
