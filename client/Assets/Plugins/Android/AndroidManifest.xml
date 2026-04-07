@@ -30,5 +30,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Iter 2B'''' MediaProjection permission helper Activity -->
+        <activity
+            android:name="com.shortgeta.recording.RecordingPermissionActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="false" />
     </application>
 </manifest>

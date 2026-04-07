@@ -17,5 +17,9 @@ namespace ShortGeta.Core.Bundles
         // Addressables 가 반환한 handle 또는 instance 를 reference count 해제.
         // 호출자가 잘못된 객체를 넘기면 noop.
         void Release(object handle);
+
+        // Iter 2C''': remote catalog 갱신. url 은 catalog.json 의 절대 URL.
+        // 호출 전 InitializeAsync 가 완료되어 있어야 함.
+        UniTask LoadCatalogAsync(string url);
     }
 }

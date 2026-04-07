@@ -52,6 +52,25 @@ namespace ShortGeta.Core.Bundles
             }
         }
 
+        public async UniTask LoadCatalogAsync(string url)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                Debug.LogWarning("[Bundles] LoadCatalogAsync skipped — empty URL");
+                return;
+            }
+            try
+            {
+                var op = Addressables.LoadContentCatalogAsync(url, autoReleaseHandle: true);
+                await op.ToUniTask();
+                Debug.Log($"[Bundles] catalog loaded: {url}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Bundles] LoadContentCatalogAsync failed for {url}: {e.Message}");
+            }
+        }
+
         public void Release(object handle)
         {
             if (handle == null) return;

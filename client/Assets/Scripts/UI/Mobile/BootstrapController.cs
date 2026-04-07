@@ -81,6 +81,9 @@ namespace ShortGeta.UI.Mobile
                 _bundleManifest.RegisterAll(_games);
                 Debug.Log($"[Bundles] manifest registered {_bundleManifest.Count} entries (non-empty: {_bundleManifest.NonEmptyCount})");
 
+                // Iter 2C''': 첫 번째 비어있지 않은 bundle URL 로 catalog 로드 시도
+                await TryLoadFirstCatalogAsync();
+
                 ShowHome();
             }
             catch (System.Exception e)
@@ -137,6 +140,51 @@ namespace ShortGeta.UI.Mobile
         }
 
         // 플랫폼별 RecordingService 분기. Editor / Standalone 만 실 구현,
+        // Iter 2C''': 서버 GameView.bundle_url 중 첫 번째 비어있지 않은 URL 로
+        // Addressables.LoadContentCatalogAsync 호출. 단순화: 모든 게임이 같은 catalog
+        // 가정. 향후 (Iter 2C'''' 또는 v2) 게임별 catalog 분리 지원.
+        private async UniTask TryLoadFirstCatalogAsync()
+        {
+            if (_bundleLoader == null || !_bundleLoader.IsReady)
+            {
+                Debug.LogWarning("[Bundles] LoadCatalogAsync skipped — loader not ready");
+                return;
+            }
+            if (_games == null) return;
+
+            string firstUrl = null;
+            string firstHash = null;
+            foreach (var g in _games)
+            {
+                if (!string.IsNullOrEmpty(g.BundleUrl))
+                {
+                    firstUrl = g.BundleUrl;
+                    firstHash = g.BundleHash;
+                    break;
+                }
+            }
+            if (string.IsNullOrEmpty(firstUrl))
+            {
+                Debug.Log("[Bundles] no remote catalog URL in manifest — using local Addressables");
+                return;
+            }
+
+            // 상대 URL 이면 ServerConfig.BaseUrl 과 결합
+            string fullUrl = firstUrl;
+            if (firstUrl.StartsWith("/"))
+            {
+                fullUrl = serverConfig.BaseUrl.TrimEnd('/') + firstUrl;
+            }
+
+            Debug.Log($"[Bundles] LoadCatalogAsync url={fullUrl}");
+            await _bundleLoader.LoadCatalogAsync(fullUrl);
+
+            if (!string.IsNullOrEmpty(firstHash))
+            {
+                Debug.Log($"[Bundles] hash check skipped (Iter 2C'''') expected={firstHash}");
+            }
+        }
+
         // 플랫폼별 RecordingService — Iter 2B' 부터 Android/iOS native bridge 활성.
         private void BuildRecordingService()
         {
