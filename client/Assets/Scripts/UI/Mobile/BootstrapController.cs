@@ -331,21 +331,26 @@ namespace ShortGeta.UI.Mobile
             _homePanel = UIBuilder.Panel(_rootCanvas.transform, "HomePanel",
                 Vector2.zero, Vector2.one, DesignTokens.Bg);
 
-            // 1) 상단바 (top 8%)
+            // 1) 상단바 (top 7%) — 로고 + 프로필 아바타
             var topBar = UIBuilder.Panel(_homePanel.transform, "TopBar",
-                new Vector2(0f, 0.92f), new Vector2(1f, 1f), DesignTokens.NavBg);
-            UIBuilder.Label(topBar.transform, "숏게타", 56, DesignTokens.Accent,
+                new Vector2(0f, 0.93f), new Vector2(1f, 1f), DesignTokens.Bg);
+            UIBuilder.Label(topBar.transform, "숏게타", 56, DesignTokens.Text,
                 TextAlignmentOptions.Left,
-                anchorMin: new Vector2(0.05f, 0f), anchorMax: new Vector2(0.5f, 1f))
+                anchorMin: new Vector2(0.05f, 0f), anchorMax: new Vector2(0.7f, 1f))
                 .fontStyle = FontStyles.Bold;
-            int coins = _me?.Coins ?? 0;
-            UIBuilder.Label(topBar.transform, $"🪙 {coins}", 38, DesignTokens.Gold,
-                TextAlignmentOptions.Right,
-                anchorMin: new Vector2(0.5f, 0f), anchorMax: new Vector2(0.95f, 1f));
+            BuildProfileAvatar(topBar.transform);
 
-            // 2) 퀵 시작 카드 (78~90%)
+            // 2) 검색바 (87~92%)
+            var search = UIBuilder.Panel(_homePanel.transform, "SearchBar",
+                new Vector2(0.05f, 0.87f), new Vector2(0.95f, 0.92f), DesignTokens.Surface);
+            UIBuilder.Label(search.transform, "🔍  게임 검색",
+                DesignTokens.FontBody, DesignTokens.TextDim,
+                TextAlignmentOptions.Left,
+                anchorMin: new Vector2(0.05f, 0f), anchorMax: new Vector2(0.95f, 1f));
+
+            // 3) 퀵 시작 카드 (74~85%)
             var quick = UIBuilder.Panel(_homePanel.transform, "QuickStart",
-                new Vector2(0.05f, 0.78f), new Vector2(0.95f, 0.90f), DesignTokens.QuickBg);
+                new Vector2(0.05f, 0.74f), new Vector2(0.95f, 0.85f), DesignTokens.QuickBg);
             UIBuilder.Label(quick.transform, "알고리즘 세션", DesignTokens.FontH2, DesignTokens.PrimaryCTA,
                 TextAlignmentOptions.TopLeft,
                 anchorMin: new Vector2(0.05f, 0.4f), anchorMax: new Vector2(0.6f, 0.95f))
@@ -361,9 +366,9 @@ namespace ShortGeta.UI.Mobile
                 new Vector2(0.62f, 0.2f), new Vector2(0.95f, 0.8f),
                 () => StartSession().Forget());
 
-            // 3) 섹션 헤더
+            // 4) 섹션 헤더
             var sectionHeader = UIBuilder.Panel(_homePanel.transform, "SectionHeader",
-                new Vector2(0.05f, 0.73f), new Vector2(0.95f, 0.78f), DesignTokens.Bg);
+                new Vector2(0.05f, 0.69f), new Vector2(0.95f, 0.74f), DesignTokens.Bg);
             UIBuilder.Label(sectionHeader.transform, "내 취향 게임",
                 DesignTokens.FontBody, DesignTokens.Text, TextAlignmentOptions.Left,
                 anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0.7f, 1f))
@@ -372,18 +377,40 @@ namespace ShortGeta.UI.Mobile
                 DesignTokens.FontCaption, DesignTokens.TextDim, TextAlignmentOptions.Right,
                 anchorMin: new Vector2(0.7f, 0f), anchorMax: new Vector2(1f, 1f));
 
-            // 4) 게임 카드 ScrollView (12~73%)
+            // 5) 게임 카드 ScrollView (10~69%)
             BuildGameList();
 
             // 5) 하단 탭바 (0~10%)
             BuildBottomNav();
         }
 
+        private void BuildProfileAvatar(Transform parent)
+        {
+            // 우상단 원형 아바타 (닉네임 첫글자) + 코인 mini
+            var go = UIBuilder.Panel(parent, "Profile",
+                new Vector2(0.78f, 0.1f), new Vector2(0.95f, 0.9f),
+                DesignTokens.AccentDark);
+            string initial = "?";
+            if (_me != null && !string.IsNullOrEmpty(_me.Nickname))
+                initial = _me.Nickname.Substring(0, 1);
+            else if (_me != null)
+                initial = "냥";
+            UIBuilder.Label(go.transform, initial, 36, DesignTokens.PrimaryCTA,
+                TextAlignmentOptions.Center)
+                .fontStyle = FontStyles.Bold;
+
+            // 코인 라벨 (아바타 왼쪽)
+            int coins = _me?.Coins ?? 0;
+            UIBuilder.Label(parent, $"🪙 {coins}", 32, DesignTokens.Gold,
+                TextAlignmentOptions.Right,
+                anchorMin: new Vector2(0.55f, 0f), anchorMax: new Vector2(0.77f, 1f));
+        }
+
         private void BuildGameList()
         {
             // ScrollRect viewport
             var scroll = UIBuilder.Panel(_homePanel.transform, "GameScroll",
-                new Vector2(0f, 0.10f), new Vector2(1f, 0.73f), DesignTokens.Bg);
+                new Vector2(0f, 0.10f), new Vector2(1f, 0.69f), DesignTokens.Bg);
             var sr = scroll.AddComponent<ScrollRect>();
             sr.horizontal = false;
             sr.vertical = true;
