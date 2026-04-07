@@ -409,4 +409,36 @@ git mv 20260408130001_favorites.sql 20260410120001_favorites.sql
 
 ---
 
+## 2026-04-08 — Unity client "Cannot connect to destination host"
+
+**증상**
+```
+Cysharp.Threading.Tasks.UnityWebRequestException: Cannot connect to destination host
+  at ApiClient.PostJsonAsync ... AuthApi.LoginByDeviceAsync ...
+```
+Editor ▶ Play 시 device login 단계에서 실패.
+
+**원인**
+보통 둘 중 하나:
+1. `kubectl port-forward svc/shortgeta-server 18081:80` 가 안 떠 있음
+2. server pod 가 CrashLoopBackOff (migration 실패 등)
+
+**해결**
+```powershell
+# 1) port-forward 살리기 (별도 터미널)
+kubectl -n shortgeta-dev port-forward svc/shortgeta-server 18081:80
+
+# 2) 검증
+curl.exe http://localhost:18081/health
+
+# 3) pod 상태
+kubectl -n shortgeta-dev get pods -l app=shortgeta-server
+```
+
+**재발 방지**
+- Editor Play 전에 `curl.exe http://localhost:18081/health` 1초 체크 습관
+- ServerConfig-Dev.asset 의 BaseUrl 이 `localhost:18081` 인지 확인
+
+---
+
 > ⬇ 새 항목은 여기 아래에 추가
