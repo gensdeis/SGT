@@ -48,7 +48,7 @@ namespace ShortGeta.Core.UI
             t.fontSize = fontSize;
             t.color = color;
             t.alignment = align;
-            t.enableWordWrapping = true;
+            t.textWrappingMode = TextWrappingModes.Normal;
             return t;
         }
 
