@@ -10,17 +10,18 @@ import (
 // 본 모듈에서만 사용하는 protocol 이므로 store.go 의 sqlc 위임 규칙 예외.
 
 type Profile struct {
-	UserID    uuid.UUID `json:"user_id"`
-	Nickname  string    `json:"nickname"`
-	AvatarID  int32     `json:"avatar_id"`
-	Coins     int32     `json:"coins"`
+	UserID   uuid.UUID `json:"user_id"`
+	Nickname string    `json:"nickname"`
+	AvatarID int32     `json:"avatar_id"`
+	Coins    int32     `json:"coins"`
+	Banned   bool      `json:"banned"`
 }
 
 func (s *Store) GetProfile(ctx context.Context, id uuid.UUID) (Profile, error) {
 	row := s.pool.QueryRow(ctx,
-		`SELECT id, nickname, avatar_id, coins FROM users WHERE id = $1`, id)
+		`SELECT id, nickname, avatar_id, coins, COALESCE(banned, false) FROM users WHERE id = $1`, id)
 	var p Profile
-	if err := row.Scan(&p.UserID, &p.Nickname, &p.AvatarID, &p.Coins); err != nil {
+	if err := row.Scan(&p.UserID, &p.Nickname, &p.AvatarID, &p.Coins, &p.Banned); err != nil {
 		return Profile{}, wrapNoRows(err)
 	}
 	return p, nil
