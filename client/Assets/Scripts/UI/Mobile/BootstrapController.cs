@@ -27,6 +27,7 @@ namespace ShortGeta.UI.Mobile
     {
         [SerializeField] private ServerConfig serverConfig;
         [SerializeField] private bool runFrogCatchOnly = false; // true=Iter1 동작 (디버그용)
+        [SerializeField] private bool forceCodeFactoryForFrogCatch = false; // true=Iter 2C' Addressable 경로 skip
 
         private ApiClient _api;
         private AuthApi _authApi;
@@ -156,6 +157,33 @@ namespace ShortGeta.UI.Mobile
                     break;
             }
             Debug.Log($"[Bootstrap] recording service = {_recording.GetType().Name} (supported={_recording.IsSupported})");
+        }
+
+        // Iter 2C': Addressable prefab 'minigame/frog_catch_v1' 로드 시도.
+        // 성공 시 instance 의 FrogCatchGame 반환, 실패/없음 시 null.
+        private async UniTask<IMinigame> TryLoadFrogCatchFromAddressableAsync(GameObject parent)
+        {
+            if (_bundleLoader == null || !_bundleLoader.IsReady) return null;
+            try
+            {
+                var prefab = await _bundleLoader.LoadAssetAsync<GameObject>("minigame/frog_catch_v1");
+                if (prefab == null) return null;
+                var inst = Instantiate(prefab, parent.transform);
+                inst.name = "FrogCatch(Addressable)";
+                var game = inst.GetComponent<FrogCatchGame>();
+                if (game == null)
+                {
+                    Debug.LogWarning("[Bundles] FrogCatch prefab loaded but no FrogCatchGame component");
+                    return null;
+                }
+                Debug.Log("[Bundles] FrogCatch loaded from Addressables");
+                return game;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Bundles] FrogCatch addressable load failed: {e.Message}");
+                return null;
+            }
         }
 
         private IMinigame CreateFrogCatch(GameObject parent)
@@ -345,7 +373,21 @@ namespace ShortGeta.UI.Mobile
         private async UniTask<MinigameResult> PlaySingleAsync(string gameId)
         {
             var go = new GameObject($"Runtime.{gameId}");
-            var game = _registry.Create(gameId, go);
+
+            // FrogCatch 만 Addressable 우선 시도 (Iter 2C')
+            IMinigame game = null;
+            if (gameId == "frog_catch_v1" && !forceCodeFactoryForFrogCatch)
+            {
+                game = await TryLoadFrogCatchFromAddressableAsync(go);
+            }
+            if (game == null)
+            {
+                game = _registry.Create(gameId, go);
+                if (gameId == "frog_catch_v1")
+                {
+                    Debug.Log("[Bundles] FrogCatch loaded from code factory (fallback)");
+                }
+            }
 
             // DDA 강도 적용 (옵션 인터페이스, OnGameStart 이전)
             if (game is IDifficultyAware diffAware)

@@ -105,6 +105,25 @@ Addressable 로 마크해야 데모 동작:
 > "non-empty: 0" 은 정상 — 서버 `bundle_url` 이 모두 빈 문자열. Iter 2C' 에서
 > 미니게임 prefab 을 실제 bundle 로 만들고 서버에 URL 등록 시 0 → 6 으로 변함.
 
+## FrogCatch Addressable 로드 (Iter 2C')
+
+`Assets/Editor/Bundles/SetupFrogCatchPrefab.cs` 가 Editor 시작 시 자동으로
+`Assets/Minigames/Prefabs/FrogCatch.prefab` 을 만들고 address `minigame/frog_catch_v1`
+로 마크합니다. BootstrapController 가 frog_catch_v1 실행 시 Addressable 우선 로드
+시도, 실패하면 코드 팩토리로 fallback.
+
+| 토글 (BootstrapController Inspector) | 동작 |
+|---|---|
+| `Force Code Factory For Frog Catch` = false (기본) | Addressable → fallback |
+| `Force Code Factory For Frog Catch` = true | 항상 코드 팩토리 (Iter 2C 동작) |
+
+Console 로그로 어느 경로가 사용됐는지 확인:
+- `[Bundles] FrogCatch loaded from Addressables`
+- `[Bundles] FrogCatch loaded from code factory (fallback)`
+
+> 나머지 5개 미니게임은 여전히 코드 팩토리. Iter 2C'' 에서 동일 패턴으로 변환 예정.
+> 원격 호스팅 (CDN) 도 Iter 2C'' 에서 다룰 예정. 상세: `client/docs/addressables-build.md`
+
 ## DDA 강도 (Iter 2D)
 
 서버는 사용자의 최근 10게임 SR (Success Rate) 을 계산해 ±1 의 강도 변화량을 반환
