@@ -52,47 +52,64 @@ Unity Editor ▶ Play 시 Console 에 다음 로그가 보여야 함:
 
 빌드된 bundle 은 기본적으로 StreamingAssets 로 복사되어 Player 빌드에 포함된다.
 
-## FrogCatch prefab 자동 셋업 (Iter 2C')
+## 미니게임 prefab 자동 셋업 (Iter 2C'')
 
-`Assets/Editor/Bundles/SetupFrogCatchPrefab.cs` 가 Editor 시작 시 자동 실행되어:
+`Assets/Editor/Bundles/SetupAllMinigamePrefabs.cs` 가 Editor 시작 시 자동 실행되어
+6개 미니게임 모두를 prefab + Addressable 로 등록:
 
-1. `Assets/Minigames/Prefabs/` 디렉토리 생성
-2. `FrogCatch.prefab` 이 없으면 새로 생성:
-   - Root + FrogCatchGame
-   - FrogSpawner child (frogPrefab 직렬화 할당)
-   - Frog template child (SetActive=false)
-3. AddressableAssetSettings 의 DefaultGroup 에 entry 등록 → address `minigame/frog_catch_v1`
+| Address | Prefab |
+|---|---|
+| `minigame/frog_catch_v1` | `Assets/Minigames/Prefabs/FrogCatch.prefab` |
+| `minigame/noodle_boil_v1` | `Assets/Minigames/Prefabs/NoodleBoil.prefab` |
+| `minigame/poker_face_v1` | `Assets/Minigames/Prefabs/PokerFace.prefab` |
+| `minigame/dark_souls_v1` | `Assets/Minigames/Prefabs/DarkSouls.prefab` |
+| `minigame/kakao_unread_v1` | `Assets/Minigames/Prefabs/KakaoUnread.prefab` |
+| `minigame/math_genius_v1` | `Assets/Minigames/Prefabs/MathGenius.prefab` |
 
-수동 재실행: `ShortGeta → Bundles → Setup FrogCatch Prefab`
-
-자동 셋업이 실패한 경우 (예: AddressableAssetSettings 가 아직 없을 때):
-- Window → Asset Management → Addressables → Groups → "Create Addressables Settings"
-- 그 후 메뉴로 수동 재실행
+수동 재실행: `ShortGeta → Bundles → Setup All Minigame Prefabs`
 
 ### Bootstrap 동작 분기
 
-`BootstrapController` 의 `PlaySingleAsync(gameId)` 는 frog_catch_v1 에 대해:
-
-1. `forceCodeFactoryForFrogCatch` 토글이 false 이면 → `Addressables.LoadAssetAsync<GameObject>("minigame/frog_catch_v1")` 시도
-2. 실패하거나 토글이 true 이면 → 기존 코드 팩토리 fallback
+`BootstrapController.PlaySingleAsync(gameId)`:
+1. `forceCodeFactoryForAllGames` 토글이 false 이면 → `Addressables.LoadAssetAsync<GameObject>("minigame/{gameId}")` 시도
+2. 실패하거나 토글이 true 이면 → 코드 팩토리 fallback
 
 Console 로그:
-- 성공: `[Bundles] FrogCatch loaded from Addressables`
-- 실패/fallback: `[Bundles] FrogCatch loaded from code factory (fallback)`
+- 성공: `[Bundles] {gameId} loaded from Addressables`
+- 실패/fallback: `[Bundles] {gameId} loaded from code factory (fallback)`
 
-## Remote 호스팅 (Iter 2C'' 후속)
+## Iter 2C'' 진행 상태
 
-현재까지 (Iter 2C') 는 **로컬 (StreamingAssets / FastMode) 만** 다룬다. Iter 2C''
-에서 다음을 추가:
+- ✅ **6개 미니게임 prefab 자동 생성** (`SetupAllMinigamePrefabs.cs`)
+- ✅ **BootstrapController 일반화**: `forceCodeFactoryForAllGames` 토글
+- ✅ **서버 정적 라우트** `/v1/bundles/*` (Go `internal/bundles/handler.go`)
+  - `BUNDLES_DIR` 환경변수 (기본 `./bundles`)
+  - path traversal 방어 (`..` 차단 + `filepath.Abs` prefix 검사)
+  - 캐시 헤더 immutable (1년)
+- ⏳ Remote profile 셋업 + bundle 업로드는 사용자 작업
 
-1. AddressableAssetSettings → Profiles → 새 profile 'Remote'
-2. RemoteBuildPath / RemoteLoadPath 를 `https://api.shortgeta.example/v1/bundles/[BuildTarget]` 형태로 설정
+### 서버 측 디렉토리 준비
+
+```bash
+# kind 클러스터에서 bundles 디렉토리 만들기
+kubectl -n shortgeta-dev exec deploy/shortgeta-server -- mkdir -p /app/bundles
+
+# 서버 응답 확인
+kubectl -n shortgeta-dev port-forward svc/shortgeta-server 18081:80
+curl http://localhost:18081/v1/bundles/test.txt
+# → 404 (디렉토리 비어있음, 라우트 정상)
+```
+
+## Remote 호스팅 — 사용자 작업
+
+위 서버 라우트는 준비 완료. 다음 단계 (사용자):
+
+1. AddressableAssetSettings → Profiles → 새 profile 'Remote' 만들기
+2. RemoteBuildPath / RemoteLoadPath 를 `http://localhost:18081/v1/bundles/[BuildTarget]` 또는 실제 도메인으로 설정
 3. 그룹별로 Build/Load 경로를 Remote 로 변경
-4. Build → New Build → 결과물을 서버 정적 디렉토리에 업로드
-5. **서버 측**: `server/internal/bundles/handler.go` 에 `/v1/bundles/*` 라우트 추가, `static/` 디렉토리 서빙
-6. **서버 DB**: `Game.bundle_url` 에 catalog URL + `bundle_hash` 채우기
-7. **클라이언트**: 시작 시 `Addressables.LoadContentCatalogAsync(catalogUrl)` 로 catalog 갱신
-8. **무결성**: bundle_hash 로 서버 응답과 다운로드 결과 비교
+4. Build → New Build → 결과물을 서버 pod 의 `/app/bundles/` 디렉토리에 복사 (`kubectl cp`)
+5. 서버 DB의 `games.bundle_url` 에 catalog URL + `bundle_hash` 채우기 (Iter 2C''')
+6. 클라이언트가 시작 시 `Addressables.LoadContentCatalogAsync(catalogUrl)` 호출 (Iter 2C''')
 
 ## 트러블슈팅
 
