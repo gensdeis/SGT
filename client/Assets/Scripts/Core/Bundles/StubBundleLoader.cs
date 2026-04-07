@@ -23,5 +23,11 @@ namespace ShortGeta.Core.Bundles
         }
 
         public void Release(object handle) { /* noop */ }
+
+        public UniTask LoadCatalogAsync(string url)
+        {
+            Debug.LogWarning($"[Bundles] StubBundleLoader.LoadCatalogAsync no-op for {url}");
+            return UniTask.CompletedTask;
+        }
     }
 }

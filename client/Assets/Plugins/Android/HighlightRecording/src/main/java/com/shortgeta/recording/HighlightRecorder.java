@@ -43,6 +43,12 @@ public class HighlightRecorder {
     private static final int MAX_FRAMES = 30; // 3s × 10fps
     private static final long FRAME_INTERVAL_MS = 100;
 
+    /**
+     * Iter 2B'''': RecordingPermissionActivity 가 setProjection 을 호출할 수
+     * 있도록 static singleton. Unity 환경에서 인스턴스가 1개 뿐이라는 가정.
+     */
+    public static HighlightRecorder INSTANCE = null;
+
     private final Activity activity;
     private MediaProjectionManager projectionManager;
     private MediaProjection projection;
@@ -64,6 +70,7 @@ public class HighlightRecorder {
         this.activity = activity;
         this.projectionManager =
             (MediaProjectionManager) activity.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+        INSTANCE = this;
 
         // 9:16 강제 (720x1280)
         this.width = 720;
@@ -232,15 +239,35 @@ public class HighlightRecorder {
     }
 
     /**
-     * MediaMuxer + MediaCodec 으로 MP4 인코딩 (스켈레톤).
-     * 본 iter 에서는 시그니처만 노출, 실제 인코딩은 후속.
-     * 동작: ring buffer → MediaCodec H.264 encode → MediaMuxer mp4 write
+     * Iter 2B'''': MediaCodec + MediaMuxer MP4 인코딩 본격 구현.
+     * ring buffer 의 jpeg 시퀀스를 H.264 + MP4 컨테이너로 변환.
+     * 실패 시 jpeg 시퀀스로 fallback.
      */
     public String flushLastClipPathMp4() {
-        // TODO: ImageReader → bitmap → MediaCodec.queueInputBuffer → MediaMuxer.writeSampleData
-        // 본 iter 는 jpeg 시퀀스 사용. 후속 iter 에서 구현.
-        Log.i(TAG, "flushLastClipPathMp4: stub (jpeg sequence used instead)");
-        return flushLastClipPath();
+        synchronized (ringBuffer) {
+            if (ringBuffer.isEmpty()) return null;
+
+            File baseDir = new File(activity.getExternalFilesDir(null), "highlights");
+            if (!baseDir.exists()) baseDir.mkdirs();
+
+            String safeTag = currentTag.replaceAll("[^a-zA-Z0-9_-]", "_");
+            String filename = System.currentTimeMillis() + "_" + safeTag + ".mp4";
+            String outPath = new File(baseDir, filename).getAbsolutePath();
+
+            LinkedList<byte[]> snapshot = new LinkedList<>(ringBuffer);
+            ringBuffer.clear();
+
+            String result = Mp4Encoder.encodeJpegSequence(snapshot, outPath);
+            if (result != null) {
+                lastClipDir = result;
+                Log.i(TAG, "flushLastClipPathMp4 → " + result);
+                return result;
+            }
+
+            Log.w(TAG, "MP4 encode failed, falling back to jpeg sequence");
+            ringBuffer.addAll(snapshot);
+            return flushLastClipPath();
+        }
     }
 
     private byte[] imageToJpeg(Image image) throws Exception {
