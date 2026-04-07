@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using ShortGeta.Core;
 using ShortGeta.Core.Bundles;
 using ShortGeta.Core.Recording;
+// BundleHashVerifier 는 ShortGeta.Core.Bundles 네임스페이스에 있어 위 using 으로 충분
 using ShortGeta.Minigames.DarkSouls;
 using ShortGeta.Minigames.FrogCatch;
 using ShortGeta.Minigames.KakaoUnread;
@@ -81,8 +82,8 @@ namespace ShortGeta.UI.Mobile
                 _bundleManifest.RegisterAll(_games);
                 Debug.Log($"[Bundles] manifest registered {_bundleManifest.Count} entries (non-empty: {_bundleManifest.NonEmptyCount})");
 
-                // Iter 2C''': 첫 번째 비어있지 않은 bundle URL 로 catalog 로드 시도
-                await TryLoadFirstCatalogAsync();
+                // Iter 2C'''': 모든 unique bundle URL 로 catalog 로드 + hash 검증
+                await TryLoadAllCatalogsAsync();
 
                 ShowHome();
             }
@@ -139,11 +140,9 @@ namespace ShortGeta.UI.Mobile
             }
         }
 
-        // 플랫폼별 RecordingService 분기. Editor / Standalone 만 실 구현,
-        // Iter 2C''': 서버 GameView.bundle_url 중 첫 번째 비어있지 않은 URL 로
-        // Addressables.LoadContentCatalogAsync 호출. 단순화: 모든 게임이 같은 catalog
-        // 가정. 향후 (Iter 2C'''' 또는 v2) 게임별 catalog 분리 지원.
-        private async UniTask TryLoadFirstCatalogAsync()
+        // Iter 2C'''': 서버 GameView.bundle_url 의 모든 unique URL 에 대해
+        // hash 검증 → 통과한 것만 LoadContentCatalogAsync. 같은 URL 중복 방지.
+        private async UniTask TryLoadAllCatalogsAsync()
         {
             if (_bundleLoader == null || !_bundleLoader.IsReady)
             {
@@ -152,36 +151,38 @@ namespace ShortGeta.UI.Mobile
             }
             if (_games == null) return;
 
-            string firstUrl = null;
-            string firstHash = null;
+            var seen = new HashSet<string>();
+            int loaded = 0;
+            int failed = 0;
+
             foreach (var g in _games)
             {
-                if (!string.IsNullOrEmpty(g.BundleUrl))
+                if (string.IsNullOrEmpty(g.BundleUrl)) continue;
+
+                string fullUrl = g.BundleUrl;
+                if (fullUrl.StartsWith("/"))
                 {
-                    firstUrl = g.BundleUrl;
-                    firstHash = g.BundleHash;
-                    break;
+                    fullUrl = serverConfig.BaseUrl.TrimEnd('/') + fullUrl;
                 }
-            }
-            if (string.IsNullOrEmpty(firstUrl))
-            {
-                Debug.Log("[Bundles] no remote catalog URL in manifest — using local Addressables");
-                return;
+                if (!seen.Add(fullUrl)) continue; // 중복 skip
+
+                bool hashOk = await BundleHashVerifier.VerifyAsync(fullUrl, g.BundleHash);
+                if (!hashOk)
+                {
+                    Debug.LogWarning($"[Bundles] hash mismatch for {fullUrl} — skipping catalog");
+                    failed++;
+                    continue;
+                }
+
+                Debug.Log($"[Bundles] LoadCatalogAsync url={fullUrl}");
+                await _bundleLoader.LoadCatalogAsync(fullUrl);
+                loaded++;
             }
 
-            // 상대 URL 이면 ServerConfig.BaseUrl 과 결합
-            string fullUrl = firstUrl;
-            if (firstUrl.StartsWith("/"))
+            Debug.Log($"[Bundles] catalogs: loaded={loaded} hash_failed={failed}");
+            if (loaded == 0)
             {
-                fullUrl = serverConfig.BaseUrl.TrimEnd('/') + firstUrl;
-            }
-
-            Debug.Log($"[Bundles] LoadCatalogAsync url={fullUrl}");
-            await _bundleLoader.LoadCatalogAsync(fullUrl);
-
-            if (!string.IsNullOrEmpty(firstHash))
-            {
-                Debug.Log($"[Bundles] hash check skipped (Iter 2C'''') expected={firstHash}");
+                Debug.Log("[Bundles] no remote catalog loaded — using local Addressables");
             }
         }
 

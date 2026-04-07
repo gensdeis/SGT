@@ -38,11 +38,13 @@ import java.util.LinkedList;
 public class Mp4Encoder {
     private static final String TAG = "ShortGetaMp4";
     private static final String MIME = "video/avc";
-    private static final int WIDTH = 720;
-    private static final int HEIGHT = 1280;
-    private static final int FRAME_RATE = 30;
-    private static final int I_FRAME_INTERVAL = 1; // 1초 마다 키프레임
-    private static final int BIT_RATE = 2_000_000;
+    // Iter 2B''''': runtime configurable via AndroidJavaClass.SetStatic from C#.
+    public static int WIDTH = 720;
+    public static int HEIGHT = 1280;
+    public static int FRAME_RATE = 30;
+    public static int I_FRAME_INTERVAL = 1; // 1초 마다 키프레임
+    public static int BIT_RATE = 2_000_000;
+    public static boolean WATERMARK_ENABLED = true;
 
     /**
      * @param framesJpeg ring buffer 의 jpeg byte 배열들 (시간순)
@@ -88,6 +90,8 @@ public class Mp4Encoder {
                 int[] argb = new int[WIDTH * HEIGHT];
                 bmp.getPixels(argb, 0, WIDTH, 0, 0, WIDTH, HEIGHT);
                 bmp.recycle();
+
+                if (WATERMARK_ENABLED) drawWatermark(argb, WIDTH, HEIGHT);
 
                 byte[] yuv = new byte[WIDTH * HEIGHT * 3 / 2];
                 argbToNv12(argb, yuv, WIDTH, HEIGHT);
@@ -195,6 +199,35 @@ public class Mp4Encoder {
                     yuv[uvIndex++] = (byte) clamp(u, 0, 255);
                     yuv[uvIndex++] = (byte) clamp(v, 0, 255);
                 }
+            }
+        }
+    }
+
+    /**
+     * 우하단에 검정 박스 + 흰색 W 마크 (placeholder).
+     * WatermarkOverlay.cs 의 ApplyInPlace 와 동일한 시각 컨셉.
+     */
+    private static void drawWatermark(int[] argb, int width, int height) {
+        int boxW = Math.max(1, width * 16 / 100);
+        int boxH = Math.max(1, height * 45 / 1000);
+        int x0 = width - boxW - Math.max(1, width / 100);
+        int y0 = height - boxH - Math.max(1, height / 100);
+        int black = 0xFF000000;
+        int white = 0xFFFFFFFF;
+        for (int j = y0; j < y0 + boxH && j < height; j++) {
+            int row = j * width;
+            for (int i = x0; i < x0 + boxW && i < width; i++) {
+                argb[row + i] = black;
+            }
+        }
+        // 단순 W 자 placeholder: 박스 중앙에 흰 픽셀 띠 4개
+        int cy = y0 + boxH / 2;
+        if (cy >= 0 && cy < height) {
+            int row = cy * width;
+            int step = Math.max(1, boxW / 5);
+            for (int k = 1; k <= 4; k++) {
+                int xi = x0 + step * k;
+                if (xi >= 0 && xi < width) argb[row + xi] = white;
             }
         }
     }

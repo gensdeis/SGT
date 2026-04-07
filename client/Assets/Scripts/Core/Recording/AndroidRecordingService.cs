@@ -125,6 +125,32 @@ namespace ShortGeta.Core.Recording
 #endif
         }
 
+        // Iter 2B''''': 음성 캡처 옵션 (시그니처만, 실 통합은 후속).
+        public void SetAudioEnabled(bool enabled)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (!_ready) return;
+            try { _recorder.Call("setAudioEnabled", enabled); }
+            catch (System.Exception e) { Debug.LogWarning($"[Recording] setAudioEnabled failed: {e.Message}"); }
+#endif
+        }
+
+        // Iter 2B''''': Mp4Encoder 정적 설정 (bitrate / fps / 워터마크 토글).
+        public static void SetEncoderConfig(int bitRate, int frameRate, bool watermark)
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            try
+            {
+                using var cls = new AndroidJavaClass("com.shortgeta.recording.Mp4Encoder");
+                cls.SetStatic("BIT_RATE", bitRate);
+                cls.SetStatic("FRAME_RATE", frameRate);
+                cls.SetStatic("WATERMARK_ENABLED", watermark);
+                Debug.Log($"[Recording] EncoderConfig bitrate={bitRate} fps={frameRate} wm={watermark}");
+            }
+            catch (System.Exception e) { Debug.LogWarning($"[Recording] SetEncoderConfig failed: {e.Message}"); }
+#endif
+        }
+
         public void ShareLastClip()
         {
             if (!_lastClip.HasValue) return;

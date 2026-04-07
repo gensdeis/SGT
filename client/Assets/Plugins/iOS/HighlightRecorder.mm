@@ -10,6 +10,9 @@
 // ⚠️ 단순화 제약 (iter 2B'):
 //   - 음성 캡처 OFF (RPScreenRecorder.microphoneEnabled = NO)
 //   - 워터마크 미적용
+// TODO Iter 2B''''':
+//   - 워터마크: AVAssetWriter 입력 전에 CIImage / CGContext 로 우하단 박스 합성
+//   - 음성: RPScreenRecorder.microphoneEnabled = YES + 권한 NSRequestRecordPermission
 //   - 권한 거부 시 Available=NO 반환
 //   - AVAssetWriter export 비동기 — flushLastClipPath 는 동기 wait (UI block 가능)
 //   실제 production 에서는 async + callback 패턴 권장.
