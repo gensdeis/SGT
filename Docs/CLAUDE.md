@@ -58,8 +58,11 @@ client/
 │   │   ├── UI/Mobile/         # BootstrapController, Toast 등
 │   │   ├── Network/           # ApiClient, HmacSigner, *Api, JwtStore, ServerConfig, Models
 │   │   └── ShortGeta.Runtime.asmdef
+│   ├── Editor/                # Editor-only (asmdef 분리)
+│   │   └── Bundles/           # SetupFrogCatchPrefab 자동 셋업 (Iter 2C')
 │   ├── Settings/              # URP 프로필
 │   ├── Data/                  # ScriptableObject (ServerConfig-Dev 등)
+│   ├── Minigames/Prefabs/     # Editor 자동 생성 prefab (Iter 2C')
 │   ├── Scenes/                # Bootstrap.unity (사용자가 Editor 에서 생성)
 │   ├── Prefabs/
 │   └── Tests/
