@@ -25,6 +25,9 @@ import (
 	"github.com/gensdeis/SGT/server/internal/config"
 	"github.com/gensdeis/SGT/server/internal/game"
 	"github.com/gensdeis/SGT/server/internal/migrate"
+	"github.com/gensdeis/SGT/server/internal/missions"
+	"github.com/gensdeis/SGT/server/internal/profile"
+	"github.com/gensdeis/SGT/server/internal/share"
 	"github.com/gensdeis/SGT/server/internal/purchase"
 	"github.com/gensdeis/SGT/server/internal/purchase/playstore"
 	"github.com/gensdeis/SGT/server/internal/ranking"
@@ -115,8 +118,15 @@ func main() {
 	analyticsWorker.Start(rootCtx)
 	analyticsHandler := analytics.NewHandler(analyticsWorker)
 
+	// Iter 3: profile / missions / share
+	profileHandler := profile.NewHandler(store)
+	missionsSvc := missions.NewService(store)
+	missionsHandler := missions.NewHandler(missionsSvc)
+	shareSvc := share.NewService(store)
+	shareHandler := share.NewHandler(shareSvc)
+
 	recommender := session.NewRecommender(games, store)
-	sessionSvc := session.NewService(store, recommender, validator, rankingWorker)
+	sessionSvc := session.NewService(store, recommender, validator, rankingWorker, missionsSvc)
 	sessionHandler := session.NewHandler(sessionSvc)
 
 	// Purchase: 환경변수 분기 (Mock vs Real)
@@ -166,6 +176,9 @@ func main() {
 	rankingHandler.Register(v1, authMW)
 	analyticsHandler.Register(v1, authMW)
 	purchaseHandler.Register(v1, authMW)
+	profileHandler.Register(v1, authMW)
+	missionsHandler.Register(v1, authMW)
+	shareHandler.Register(v1, authMW)
 
 	// Iter 2C'': Addressables remote bundle 정적 파일 (인증 없음)
 	bundlesHandler := bundles.NewHandler(cfg.BundlesDir)
