@@ -26,11 +26,15 @@ export ADMIN_JWT_SECRET=$(openssl rand -hex 32)
 
 서버 부팅 시 admin_users 테이블에 idempotent insert.
 
-## 현재 (Iter 4a)
+## 현재 (Iter 4b)
 
-- ✅ 로그인 (`POST /v1/admin/login`)
-- ✅ 유저 검색 (`GET /v1/admin/users?q=`)
-- ⏳ 코인 조정, 게임 CRUD, 랭킹/세션 대시보드, 공지/밴/푸시 → Iter 4b/4c
+- ✅ 로그인
+- ✅ 대시보드 카드 (DAU/플레이/세션/총유저, `/v1/admin/dashboard`)
+- ✅ 유저 검색 + 상세 + 코인 +/- (`/v1/admin/users/:id/coins`)
+- ✅ 게임 카탈로그 리스트 + 편집 (`/v1/admin/games`, PUT `/v1/admin/games/:id`)
+- ✅ 게임별 랭킹 top 100 (`/v1/admin/rankings/:gameId`)
+- ✅ 최근 세션 50 (`/v1/admin/sessions`)
+- ⏳ 공지/밴/푸시 + 인프라 배포 → Iter 4c
 
 ## Iter 4a 한계
 
