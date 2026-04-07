@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using ShortGeta.Core;
 using ShortGeta.Core.Bundles;
 using ShortGeta.Core.Recording;
+using ShortGeta.Core.UI;
 // BundleHashVerifier 는 ShortGeta.Core.Bundles 네임스페이스에 있어 위 using 으로 충분
 using ShortGeta.Minigames.DarkSouls;
 using ShortGeta.Minigames.FrogCatch;
@@ -310,118 +311,193 @@ namespace ShortGeta.UI.Mobile
             canvasGo.AddComponent<GraphicRaycaster>();
         }
 
+        // ─── Iter (UI v1.3): 게임별 이모지 매핑 ───
+        private static readonly System.Collections.Generic.Dictionary<string, string> GameEmojis = new()
+        {
+            { "frog_catch_v1", "🐸" },
+            { "noodle_boil_v1", "🍜" },
+            { "poker_face_v1", "🎭" },
+            { "dark_souls_v1", "⚔" },
+            { "kakao_unread_v1", "💬" },
+            { "math_genius_v1", "🧮" },
+        };
+
         private void ShowHome()
         {
             if (_resultPanel != null) Destroy(_resultPanel);
             if (_homePanel != null) Destroy(_homePanel);
 
-            _homePanel = new GameObject("HomePanel");
-            _homePanel.transform.SetParent(_rootCanvas.transform, false);
-            var rt = _homePanel.AddComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
+            // 루트 — 다크 배경
+            _homePanel = UIBuilder.Panel(_rootCanvas.transform, "HomePanel",
+                Vector2.zero, Vector2.one, DesignTokens.Bg);
 
-            var titleGo = new GameObject("Title");
-            titleGo.transform.SetParent(_homePanel.transform, false);
-            var trt = titleGo.AddComponent<RectTransform>();
-            trt.anchorMin = new Vector2(0, 0.85f);
-            trt.anchorMax = new Vector2(1, 0.95f);
-            trt.offsetMin = Vector2.zero;
-            trt.offsetMax = Vector2.zero;
-            var titleText = titleGo.AddComponent<TextMeshProUGUI>();
-            titleText.text = "숏게타";
-            titleText.fontSize = 80;
-            titleText.alignment = TextAlignmentOptions.Center;
-            titleText.color = Color.white;
+            // 1) 상단바 (top 8%)
+            var topBar = UIBuilder.Panel(_homePanel.transform, "TopBar",
+                new Vector2(0f, 0.92f), new Vector2(1f, 1f), DesignTokens.NavBg);
+            UIBuilder.Label(topBar.transform, "숏게타", 56, DesignTokens.Accent,
+                TextAlignmentOptions.Left,
+                anchorMin: new Vector2(0.05f, 0f), anchorMax: new Vector2(0.5f, 1f))
+                .fontStyle = FontStyles.Bold;
+            int coins = _me?.Coins ?? 0;
+            UIBuilder.Label(topBar.transform, $"🪙 {coins}", 38, DesignTokens.Gold,
+                TextAlignmentOptions.Right,
+                anchorMin: new Vector2(0.5f, 0f), anchorMax: new Vector2(0.95f, 1f));
 
-            var listGo = new GameObject("Games");
-            listGo.transform.SetParent(_homePanel.transform, false);
-            var lrt = listGo.AddComponent<RectTransform>();
-            lrt.anchorMin = new Vector2(0.1f, 0.35f);
-            lrt.anchorMax = new Vector2(0.9f, 0.8f);
-            lrt.offsetMin = Vector2.zero;
-            lrt.offsetMax = Vector2.zero;
-            var listText = listGo.AddComponent<TextMeshProUGUI>();
-            listText.fontSize = 32;
-            listText.alignment = TextAlignmentOptions.TopLeft;
-            listText.color = new Color(0.85f, 0.85f, 0.85f);
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine(runFrogCatchOnly ? "디버그 모드: frog_catch 1판" : $"풀 세션 ({_games?.Length ?? 0}게임)");
-            sb.AppendLine();
+            // 2) 퀵 시작 카드 (78~90%)
+            var quick = UIBuilder.Panel(_homePanel.transform, "QuickStart",
+                new Vector2(0.05f, 0.78f), new Vector2(0.95f, 0.90f), DesignTokens.QuickBg);
+            UIBuilder.Label(quick.transform, "알고리즘 세션", DesignTokens.FontH2, DesignTokens.PrimaryCTA,
+                TextAlignmentOptions.TopLeft,
+                anchorMin: new Vector2(0.05f, 0.4f), anchorMax: new Vector2(0.6f, 0.95f))
+                .fontStyle = FontStyles.Bold;
+            UIBuilder.Label(quick.transform,
+                runFrogCatchOnly ? "디버그: frog_catch 1판" : $"취향 기반 추천 {_games?.Length ?? 0}판",
+                DesignTokens.FontCaption, DesignTokens.PrimaryCTA,
+                TextAlignmentOptions.TopLeft,
+                anchorMin: new Vector2(0.05f, 0.05f), anchorMax: new Vector2(0.6f, 0.4f));
+            UIBuilder.Button(quick.transform, "QuickPlayBtn",
+                DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
+                "▶ 시작", DesignTokens.FontBody,
+                new Vector2(0.62f, 0.2f), new Vector2(0.95f, 0.8f),
+                () => StartSession().Forget());
+
+            // 3) 섹션 헤더
+            var sectionHeader = UIBuilder.Panel(_homePanel.transform, "SectionHeader",
+                new Vector2(0.05f, 0.73f), new Vector2(0.95f, 0.78f), DesignTokens.Bg);
+            UIBuilder.Label(sectionHeader.transform, "내 취향 게임",
+                DesignTokens.FontBody, DesignTokens.Text, TextAlignmentOptions.Left,
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0.7f, 1f))
+                .fontStyle = FontStyles.Bold;
+            UIBuilder.Label(sectionHeader.transform, $"{_games?.Length ?? 0}개",
+                DesignTokens.FontCaption, DesignTokens.TextDim, TextAlignmentOptions.Right,
+                anchorMin: new Vector2(0.7f, 0f), anchorMax: new Vector2(1f, 1f));
+
+            // 4) 게임 카드 ScrollView (12~73%)
+            BuildGameList();
+
+            // 5) 하단 탭바 (0~10%)
+            BuildBottomNav();
+        }
+
+        private void BuildGameList()
+        {
+            // ScrollRect viewport
+            var scroll = UIBuilder.Panel(_homePanel.transform, "GameScroll",
+                new Vector2(0f, 0.10f), new Vector2(1f, 0.73f), DesignTokens.Bg);
+            var sr = scroll.AddComponent<ScrollRect>();
+            sr.horizontal = false;
+            sr.vertical = true;
+            var mask = scroll.AddComponent<RectMask2D>();
+
+            var content = new GameObject("Content");
+            content.transform.SetParent(scroll.transform, false);
+            var crt = content.AddComponent<RectTransform>();
+            crt.anchorMin = new Vector2(0f, 1f);
+            crt.anchorMax = new Vector2(1f, 1f);
+            crt.pivot = new Vector2(0.5f, 1f);
+            crt.offsetMin = new Vector2(20, 0);
+            crt.offsetMax = new Vector2(-20, 0);
+            var vlg = content.AddComponent<VerticalLayoutGroup>();
+            vlg.padding = new RectOffset(10, 10, 10, 10);
+            vlg.spacing = 16;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            var fitter = content.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            sr.content = crt;
+
             if (_games != null)
             {
                 foreach (var g in _games)
                 {
-                    sb.AppendLine($"  • {g.Title} ({g.Id})");
+                    BuildGameCard(content.transform, g);
                 }
-            }
-            listText.text = sb.ToString();
-
-            var btnGo = new GameObject("PlayButton");
-            btnGo.transform.SetParent(_homePanel.transform, false);
-            var brt = btnGo.AddComponent<RectTransform>();
-            brt.anchorMin = new Vector2(0.15f, 0.1f);
-            brt.anchorMax = new Vector2(0.85f, 0.25f);
-            brt.offsetMin = Vector2.zero;
-            brt.offsetMax = Vector2.zero;
-            var btnImg = btnGo.AddComponent<Image>();
-            btnImg.color = new Color(1f, 0.5f, 0.2f);
-            var btn = btnGo.AddComponent<Button>();
-            btn.targetGraphic = btnImg;
-
-            var btnLabel = new GameObject("Label");
-            btnLabel.transform.SetParent(btnGo.transform, false);
-            var lrt2 = btnLabel.AddComponent<RectTransform>();
-            lrt2.anchorMin = Vector2.zero;
-            lrt2.anchorMax = Vector2.one;
-            lrt2.offsetMin = Vector2.zero;
-            lrt2.offsetMax = Vector2.zero;
-            var btnText = btnLabel.AddComponent<TextMeshProUGUI>();
-            btnText.text = "▶ 한판 더";
-            btnText.fontSize = 64;
-            btnText.alignment = TextAlignmentOptions.Center;
-            btnText.color = Color.white;
-
-            btn.onClick.AddListener(() => StartSession().Forget());
-
-            // Iter 3: 미션 버튼 (홈 우상단)
-            CreateHomeMiniButton("MissionBtn", new Vector2(0.65f, 0.27f), new Vector2(0.95f, 0.33f),
-                new Color(0.4f, 0.5f, 0.9f), "📋 미션", () => ShowMissionsAsync().Forget());
-
-            // 코인 표시 (좌상단)
-            if (_me != null)
-            {
-                var coinGo = new GameObject("Coins");
-                coinGo.transform.SetParent(_homePanel.transform, false);
-                var crt = coinGo.AddComponent<RectTransform>();
-                crt.anchorMin = new Vector2(0.05f, 0.27f);
-                crt.anchorMax = new Vector2(0.45f, 0.33f);
-                crt.offsetMin = Vector2.zero;
-                crt.offsetMax = Vector2.zero;
-                var ct = coinGo.AddComponent<TextMeshProUGUI>();
-                ct.text = $"🪙 {_me.Coins}";
-                ct.fontSize = 36;
-                ct.alignment = TextAlignmentOptions.Left;
-                ct.color = new Color(1f, 0.9f, 0.3f);
             }
         }
 
-        private void CreateHomeMiniButton(string name, Vector2 amin, Vector2 amax, Color color, string label, System.Action onClick)
+        private void BuildGameCard(Transform parent, GameView g)
         {
-            var go = new GameObject(name);
-            go.transform.SetParent(_homePanel.transform, false);
-            var rt = go.AddComponent<RectTransform>();
-            rt.anchorMin = amin; rt.anchorMax = amax; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
-            var img = go.AddComponent<Image>(); img.color = color;
-            var btn = go.AddComponent<Button>(); btn.targetGraphic = img;
-            var lg = new GameObject("Label"); lg.transform.SetParent(go.transform, false);
-            var lr = lg.AddComponent<RectTransform>();
-            lr.anchorMin = Vector2.zero; lr.anchorMax = Vector2.one; lr.offsetMin = Vector2.zero; lr.offsetMax = Vector2.zero;
-            var lt = lg.AddComponent<TextMeshProUGUI>();
-            lt.text = label; lt.fontSize = 32; lt.alignment = TextAlignmentOptions.Center; lt.color = Color.white;
-            btn.onClick.AddListener(() => onClick?.Invoke());
+            var card = new GameObject($"Card_{g.Id}");
+            card.transform.SetParent(parent, false);
+            var le = card.AddComponent<LayoutElement>();
+            le.preferredHeight = 180;
+            var img = card.AddComponent<Image>();
+            img.color = DesignTokens.Surface;
+
+            // 좌측 이모지
+            string emoji = GameEmojis.TryGetValue(g.Id, out var e) ? e : "🎮";
+            UIBuilder.Label(card.transform, emoji, 96, DesignTokens.Text,
+                TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0.25f, 1f));
+
+            // 우측 정보
+            UIBuilder.Label(card.transform, g.Title ?? g.Id,
+                DesignTokens.FontBody, DesignTokens.Text, TextAlignmentOptions.TopLeft,
+                anchorMin: new Vector2(0.27f, 0.55f), anchorMax: new Vector2(0.98f, 0.95f))
+                .fontStyle = FontStyles.Bold;
+
+            // 태그 (Horizontal layout)
+            var tagsGo = new GameObject("Tags");
+            tagsGo.transform.SetParent(card.transform, false);
+            var trt = tagsGo.AddComponent<RectTransform>();
+            trt.anchorMin = new Vector2(0.27f, 0.25f);
+            trt.anchorMax = new Vector2(0.98f, 0.55f);
+            trt.offsetMin = Vector2.zero;
+            trt.offsetMax = Vector2.zero;
+            var hl = tagsGo.AddComponent<HorizontalLayoutGroup>();
+            hl.spacing = 8;
+            hl.childAlignment = TextAnchor.MiddleLeft;
+            hl.childForceExpandWidth = false;
+            hl.childForceExpandHeight = false;
+            if (g.Tags != null)
+            {
+                int count = 0;
+                foreach (var t in g.Tags)
+                {
+                    if (count++ >= 3) break;
+                    UIBuilder.Tag(tagsGo.transform, t);
+                }
+            }
+
+            // 하단 메타
+            UIBuilder.Label(card.transform, $"id: {g.Id}",
+                DesignTokens.FontTag, DesignTokens.TextDim, TextAlignmentOptions.BottomLeft,
+                anchorMin: new Vector2(0.27f, 0.05f), anchorMax: new Vector2(0.98f, 0.25f));
+        }
+
+        private void BuildBottomNav()
+        {
+            var nav = UIBuilder.Panel(_homePanel.transform, "BottomNav",
+                new Vector2(0f, 0f), new Vector2(1f, 0.10f), DesignTokens.NavBg);
+            var hl = nav.AddComponent<HorizontalLayoutGroup>();
+            hl.childForceExpandWidth = true;
+            hl.childForceExpandHeight = true;
+            hl.padding = new RectOffset(0, 0, 8, 8);
+
+            BuildNavTab(nav.transform, "🏠", "홈", true, null);
+            BuildNavTab(nav.transform, "🔥", "인기", false, () => Toast.Show("인기 탭은 곧 나옵니다", 2f));
+            BuildNavTab(nav.transform, "💝", "보관함", false, () => Toast.Show("보관함은 곧 나옵니다", 2f));
+            BuildNavTab(nav.transform, "📋", "미션", false, () => ShowMissionsAsync().Forget());
+        }
+
+        private void BuildNavTab(Transform parent, string icon, string label, bool active, System.Action onClick)
+        {
+            var go = new GameObject($"Tab_{label}");
+            go.transform.SetParent(parent, false);
+            go.AddComponent<RectTransform>();
+            var img = go.AddComponent<Image>();
+            img.color = DesignTokens.NavBg;
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            if (onClick != null) btn.onClick.AddListener(() => onClick());
+
+            var color = active ? DesignTokens.Accent : DesignTokens.TextDim;
+            UIBuilder.Label(go.transform, icon, 40, color, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0f, 0.4f), anchorMax: new Vector2(1f, 1f));
+            UIBuilder.Label(go.transform, label, DesignTokens.FontTag, color, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0.4f));
         }
 
         // Iter 3: 미션 리스트 + 첫 claimable 자동 claim
