@@ -181,9 +181,11 @@ POST /v1/analytics/event    플레이 이벤트 수집
 
 ## 하이라이트 녹화 규칙
 
-> **Iter 2B (MVP 완료)**: Editor / Standalone 에서 PNG 시퀀스 + circular buffer 동작.
-> 모바일 native plugin (MediaProjection / ReplayKit) + MP4 인코딩 + 워터마크 +
-> 원탭 공유 는 Iter 2B' 후속.
+> **Iter 2B (MVP 완료)**: Editor / Standalone PNG 시퀀스 + circular buffer.
+> **Iter 2B' (소스 완료)**: Android (Java HighlightRecorder + MediaProjection)
+> + iOS (Objective-C HighlightRecorder + ReplayKit) + 워터마크 (Editor 적용).
+> AAR / Framework 빌드는 사용자가 직접 수행 — `client/docs/recording-native-build.md` 참조.
+> 원탭 공유 + Foreground Service + MP4 (Android) 는 Iter 2B''' 후속.
 
 - 녹화 대상: 클리어/실패 직전 **3초**
 - 포맷: 9:16 MP4, 최대 10MB (현재 PNG 시퀀스, MP4 는 후속)

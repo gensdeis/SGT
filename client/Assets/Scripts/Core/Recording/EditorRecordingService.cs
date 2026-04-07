@@ -119,6 +119,8 @@ namespace ShortGeta.Core.Recording
             try
             {
                 var tex = ScreenCapture.CaptureScreenshotAsTexture();
+                // 워터마크 (Iter 2B') — 우하단 박스 + W 마크 placeholder
+                WatermarkOverlay.ApplyInPlace(tex);
                 _buffer.Push(tex);
             }
             catch (System.Exception e)
