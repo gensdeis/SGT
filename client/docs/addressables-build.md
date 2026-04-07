@@ -78,6 +78,16 @@ Console 로그:
 - 성공: `[Bundles] {gameId} loaded from Addressables`
 - 실패/fallback: `[Bundles] {gameId} loaded from code factory (fallback)`
 
+## Iter 2C'''' 진행 상태
+
+- ✅ **모든 unique catalog URL 로드** — `BootstrapController.TryLoadAllCatalogsAsync`
+  - 게임별 `bundle_url` 을 HashSet 로 dedup 후 각각 `LoadCatalogAsync` 호출
+- ✅ **bundle_hash 실 검증** — `Core/Bundles/BundleHashVerifier.cs`
+  - SHA256 계산 → 서버 hex 와 비교
+  - hash 가 비어있으면 skip (true 반환)
+  - mismatch 시 catalog 로드 skip + warning
+- ⏳ 서버 자동 hash 계산은 후속 (현재는 yaml 수동 입력)
+
 ## Iter 2C''' 진행 상태
 
 - ✅ **서버 yaml 에 bundle_url 필드** (`server/internal/config/games.go` Game struct)
