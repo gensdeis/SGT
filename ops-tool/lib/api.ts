@@ -25,6 +25,16 @@ export async function apiGet<T>(path: string): Promise<T> {
   return r.json();
 }
 
+export async function apiPut<T>(path: string, body: unknown): Promise<T> {
+  const r = await fetch(BASE + path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new ApiError(r.status, await r.text());
+  return r.json();
+}
+
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   const r = await fetch(BASE + path, {
     method: 'POST',

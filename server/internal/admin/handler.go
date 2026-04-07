@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 
 	"github.com/gensdeis/SGT/server/internal/storage"
 )
@@ -26,6 +27,13 @@ func (h *Handler) Register(r fiber.Router) {
 	auth := g.Group("", RequireAdmin(h.issuer))
 	auth.Get("/me", h.me)
 	auth.Get("/users", h.searchUsers)
+	auth.Get("/users/:id", h.getUser)
+	auth.Post("/users/:id/coins", h.adjustCoins)
+	auth.Get("/games", h.listGames)
+	auth.Put("/games/:id", h.upsertGame)
+	auth.Get("/dashboard", h.dashboard)
+	auth.Get("/sessions", h.recentSessions)
+	auth.Get("/rankings/:gameId", h.rankingByGame)
 }
 
 type loginReq struct {
@@ -74,6 +82,91 @@ func (h *Handler) searchUsers(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(fiber.Map{"users": rows})
+}
+
+func (h *Handler) getUser(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid uuid")
+	}
+	p, err := h.store.GetProfile(c.UserContext(), id)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, err.Error())
+	}
+	return c.JSON(p)
+}
+
+type coinReq struct {
+	Delta int32 `json:"delta"`
+}
+
+func (h *Handler) adjustCoins(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid uuid")
+	}
+	var req coinReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid body")
+	}
+	coins, err := h.store.IncCoins(c.UserContext(), id, req.Delta)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	cl, _ := ClaimsFrom(c)
+	slog.Info("admin coin adjust", "admin", cl.Login, "user", id, "delta", req.Delta, "new_coins", coins)
+	return c.JSON(fiber.Map{"coins": coins})
+}
+
+func (h *Handler) listGames(c *fiber.Ctx) error {
+	games, err := h.store.ListGamesAdmin(c.UserContext())
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"games": games})
+}
+
+func (h *Handler) upsertGame(c *fiber.Ctx) error {
+	id := c.Params("id")
+	var g storage.Game
+	if err := c.BodyParser(&g); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid body")
+	}
+	g.ID = id
+	if g.Tags == nil {
+		g.Tags = []string{}
+	}
+	if err := h.store.UpsertGameAdmin(c.UserContext(), g); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	cl, _ := ClaimsFrom(c)
+	slog.Info("admin game upsert", "admin", cl.Login, "game", id)
+	return c.JSON(fiber.Map{"ok": true})
+}
+
+func (h *Handler) dashboard(c *fiber.Ctx) error {
+	d, err := h.store.DashboardStats(c.UserContext())
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(d)
+}
+
+func (h *Handler) recentSessions(c *fiber.Ctx) error {
+	rows, err := h.store.RecentSessions(c.UserContext(), 50)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"sessions": rows})
+}
+
+func (h *Handler) rankingByGame(c *fiber.Ctx) error {
+	gameID := c.Params("gameId")
+	rows, err := h.store.RankingByGameAdmin(c.UserContext(), gameID, 100)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"game_id": gameID, "rankings": rows})
 }
 
 // BootstrapAdmin 은 ADMIN_BOOTSTRAP_LOGIN/PASSWORD 가 있으면 idempotent insert.
