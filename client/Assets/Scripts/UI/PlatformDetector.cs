@@ -26,11 +26,14 @@ namespace ShortGeta.UI
                 case LayoutOverride.ForceMobile: return LayoutMode.Mobile;
                 case LayoutOverride.ForcePC:     return LayoutMode.PC;
             }
-#if UNITY_ANDROID || UNITY_IOS
+#if UNITY_EDITOR
+            // Editor 기본은 Mobile (Android 타겟). PC 보고싶으면 EditorOverride 사용.
+            return LayoutMode.Mobile;
+#elif UNITY_ANDROID || UNITY_IOS
             return LayoutMode.Mobile;
 #else
             if (Application.isMobilePlatform) return LayoutMode.Mobile;
-            if (Screen.height > Screen.width) return LayoutMode.Mobile; // 세로 윈도우 = 모바일 시뮬
+            if (Screen.height > Screen.width) return LayoutMode.Mobile;
             return LayoutMode.PC;
 #endif
         }
