@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: shortgeta-ops-tool
+  labels:
+    app: shortgeta-ops-tool
+spec:
+  type: ClusterIP
+  selector:
+    app: shortgeta-ops-tool
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3000

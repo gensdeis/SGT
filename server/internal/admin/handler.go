@@ -3,6 +3,8 @@ package admin
 import (
 	"context"
 	"log/slog"
+	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -34,6 +36,11 @@ func (h *Handler) Register(r fiber.Router) {
 	auth.Get("/dashboard", h.dashboard)
 	auth.Get("/sessions", h.recentSessions)
 	auth.Get("/rankings/:gameId", h.rankingByGame)
+	auth.Post("/users/:id/ban", h.setBan)
+	auth.Get("/notices", h.listNotices)
+	auth.Post("/notices", h.createNotice)
+	auth.Delete("/notices/:id", h.deleteNotice)
+	auth.Post("/push", h.pushStub)
 }
 
 type loginReq struct {
@@ -167,6 +174,88 @@ func (h *Handler) rankingByGame(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(fiber.Map{"game_id": gameID, "rankings": rows})
+}
+
+type banReq struct {
+	Banned bool `json:"banned"`
+}
+
+func (h *Handler) setBan(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid uuid")
+	}
+	var req banReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid body")
+	}
+	if err := h.store.SetUserBanned(c.UserContext(), id, req.Banned); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	cl, _ := ClaimsFrom(c)
+	slog.Info("admin ban toggle", "admin", cl.Login, "user", id, "banned", req.Banned)
+	return c.JSON(fiber.Map{"ok": true, "banned": req.Banned})
+}
+
+func (h *Handler) listNotices(c *fiber.Ctx) error {
+	rows, err := h.store.ListNotices(c.UserContext(), 50)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"notices": rows})
+}
+
+type noticeReq struct {
+	Title       string `json:"title"`
+	Body        string `json:"body"`
+	ExpiresDays int    `json:"expires_days"` // 0 = no expiry
+}
+
+func (h *Handler) createNotice(c *fiber.Ctx) error {
+	var req noticeReq
+	if err := c.BodyParser(&req); err != nil || req.Title == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "title required")
+	}
+	var expires *time.Time
+	if req.ExpiresDays > 0 {
+		t := time.Now().AddDate(0, 0, req.ExpiresDays)
+		expires = &t
+	}
+	n, err := h.store.CreateNotice(c.UserContext(), req.Title, req.Body, expires)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	cl, _ := ClaimsFrom(c)
+	slog.Info("admin notice created", "admin", cl.Login, "id", n.ID, "title", n.Title)
+	return c.JSON(n)
+}
+
+func (h *Handler) deleteNotice(c *fiber.Ctx) error {
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid id")
+	}
+	if err := h.store.DeleteNotice(c.UserContext(), id); err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(fiber.Map{"ok": true})
+}
+
+type pushReq struct {
+	Title  string `json:"title"`
+	Body   string `json:"body"`
+	UserID string `json:"user_id"` // empty = broadcast
+}
+
+// pushStub 는 Iter 4c 단순화 — slog.Info 만. FCM 통합은 후속.
+func (h *Handler) pushStub(c *fiber.Ctx) error {
+	var req pushReq
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid body")
+	}
+	cl, _ := ClaimsFrom(c)
+	slog.Info("admin push stub", "admin", cl.Login, "title", req.Title, "body", req.Body, "user_id", req.UserID)
+	return c.JSON(fiber.Map{"ok": true, "delivered": 0, "note": "stub — FCM 통합은 후속"})
 }
 
 // BootstrapAdmin 은 ADMIN_BOOTSTRAP_LOGIN/PASSWORD 가 있으면 idempotent insert.
