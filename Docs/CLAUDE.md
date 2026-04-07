@@ -42,6 +42,7 @@ client/
 │   │   │   ├── MinigameLauncher.cs
 │   │   │   ├── MinigameSession.cs
 │   │   │   ├── MinigameRegistry.cs
+│   │   │   ├── IDifficultyAware.cs # DDA 옵션 인터페이스 (Iter 2D)
 │   │   │   ├── ScoreVariable.cs   # XOR 난독화 SafeInt/SafeFloat
 │   │   │   ├── TimeSync.cs
 │   │   │   ├── TagSystem.cs

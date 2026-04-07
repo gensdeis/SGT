@@ -10,7 +10,7 @@ namespace ShortGeta.Minigames.PokerFace
     // 매초 +14 자동 가산 (60s × 14 = 840 → max 800 클램프)
     // 5초마다 가짜 "보상받기" 버튼이 1초간 등장
     // 가짜 버튼 탭 시 -100 (포커페이스 깨짐)
-    public class PokerFaceGame : MonoBehaviour, IMinigame
+    public class PokerFaceGame : MonoBehaviour, IMinigame, IDifficultyAware
     {
         public string GameId => "poker_face_v1";
         public string Title => "포커페이스 유지";
@@ -21,8 +21,15 @@ namespace ShortGeta.Minigames.PokerFace
         private const int MaxScore = 800;
         private const int PerSecondGain = 14;
         private const int TempPenalty = -100;
-        private const float TemptInterval = 5f;
+        private float _temptInterval = 5f; // DDA: -1=7, 0=5, +1=3
         private const float TemptDuration = 1f;
+        private int _difficulty;
+
+        public void SetDifficulty(int intensity)
+        {
+            _difficulty = Mathf.Clamp(intensity, -1, 1);
+            _temptInterval = _difficulty == -1 ? 7f : (_difficulty == 1 ? 3f : 5f);
+        }
 
         private SafeInt _score;
         private bool _running;
@@ -76,11 +83,11 @@ namespace ShortGeta.Minigames.PokerFace
             }
 
             // 유혹 버튼 등장/소멸
-            if (!_temptVisible && now - _lastTemptAt >= TemptInterval)
+            if (!_temptVisible && now - _lastTemptAt >= _temptInterval)
             {
                 ShowTempt();
             }
-            if (_temptVisible && now - _lastTemptAt >= TemptInterval + TemptDuration)
+            if (_temptVisible && now - _lastTemptAt >= _temptInterval + TemptDuration)
             {
                 HideTempt();
             }
