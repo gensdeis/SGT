@@ -19,10 +19,9 @@ games:
     max_score: 1000
     rate_limit_per_min: 10
     tags: ["반응속도", "동물", "병맛"]
-    # Iter 2C''' demo: yaml fallback bundle URL.
-    # 사용자가 Addressables 빌드 결과를 server pod /app/bundles/ 에 복사하면 동작.
-    bundle_url: "/v1/bundles/StandaloneWindows64/catalog.json"
-    bundle_version: "1"
+    # Iter 2C''': bundle_url 은 실 번들 업로드 후 채움. dev 는 빈 값 → catalog 로드 skip.
+    bundle_url: ""
+    bundle_version: ""
     bundle_hash: ""
 
   - id: "noodle_boil_v1"
