@@ -143,22 +143,25 @@ Console 로그로 어느 경로가 사용됐는지 확인:
 > Result UI 상단에 `DDA: +1 어려움` 라벨 표시.
 > 첫 사용자 세션은 결과가 없어 항상 0 반환됨 (정상).
 
-## 하이라이트 녹화 (Iter 2B MVP)
+## 하이라이트 녹화 (Iter 2B MVP + 2B' native bridge)
 
-각 미니게임 종료 시 직전 ~3초 (10fps × 30 프레임) 가 자동 캡처되어 PNG 시퀀스로
-저장됩니다. Result UI 의 **📁 하이라이트 보기** 버튼으로 폴더를 열 수 있습니다.
+각 미니게임 종료 시 직전 ~3초가 자동 캡처되어 저장됩니다. Result UI 의
+**📁 하이라이트 보기** 버튼으로 폴더를 엽니다 (Editor 만).
 
-| 항목 | 값 |
-|---|---|
-| 캡처 fps | 10 |
-| 버퍼 크기 | 30 프레임 (3초) |
-| 저장 위치 | `Application.persistentDataPath/highlights/{timestamp}_{gameId}/` |
-| 형식 | PNG 시퀀스 (`frame_000.png ~ frame_029.png`) |
-| 동작 환경 | Unity Editor / Windows / Mac / Linux Standalone |
-| 모바일 | NativeStub (Iter 2B' 에서 MediaProjection/ReplayKit native plugin 으로 교체) |
+| 환경 | 구현 | 형식 |
+|---|---|---|
+| Unity Editor / Standalone | `EditorRecordingService` + 워터마크 (Iter 2B') | PNG 시퀀스 |
+| Android | `AndroidRecordingService` → `HighlightRecorder.java` (Iter 2B') | jpeg 시퀀스 |
+| iOS | `IosRecordingService` → `HighlightRecorder.mm` (Iter 2B') | MP4 (AVAssetWriter) |
 
-> Editor 에서 "하이라이트 보기" 클릭 시 OS 파일 탐색기로 폴더가 열림.
-> 모바일 빌드에서는 stub 동작 — UI 는 Toast 안내 표시.
+저장 위치:
+- Editor: `Application.persistentDataPath/highlights/{timestamp}_{gameId}/`
+- Android: `getExternalFilesDir(null)/highlights/{ts}_{tag}/`
+- iOS: `tmp/highlights/{ts}_{tag}.mp4`
+
+> ⚠️ Android AAR / iOS Framework 는 사용자가 직접 빌드해야 합니다. 작업 환경에
+> Android Studio / Xcode 가 없어 native 빌드 + 실기기 검증 미수행. 상세 절차:
+> `client/docs/recording-native-build.md`
 
 콘솔에 단계별 로그 출력. PlayerPrefs 클리어:
 `Edit → Clear All PlayerPrefs`
