@@ -14,7 +14,7 @@ namespace ShortGeta.Minigames.FrogCatch
     //   - 최대 점수는 server games.yaml 의 max_score=1000 안쪽
     //
     // 9:16 세로. URP camera 가 정방향 정면을 비추는 것을 가정.
-    public class FrogCatchGame : MonoBehaviour, IMinigame
+    public class FrogCatchGame : MonoBehaviour, IMinigame, IDifficultyAware
     {
         public string GameId => "frog_catch_v1";
         public string Title => "개구리 잡아라";
@@ -27,6 +27,12 @@ namespace ShortGeta.Minigames.FrogCatch
 
         private SafeInt _score;
         private bool _running;
+        private int _difficulty;
+
+        public void SetDifficulty(int intensity)
+        {
+            _difficulty = Mathf.Clamp(intensity, -1, 1);
+        }
 
         private static readonly int ScorePerCatch = 10;
         private static readonly int ScorePerMiss = -2;
@@ -35,8 +41,14 @@ namespace ShortGeta.Minigames.FrogCatch
         {
             _score = SafeInt.From(0);
             _running = true;
-            if (spawner != null) spawner.Begin(OnFrogCaught, OnFrogMissed);
-            Debug.Log($"[FrogCatch] start");
+            if (spawner != null)
+            {
+                // -1 = 1.5x (느림), 0 = 1.0x, +1 = 0.7x (빠름)
+                float mult = _difficulty == -1 ? 1.5f : (_difficulty == 1 ? 0.7f : 1f);
+                spawner.SetSpawnIntervalMultiplier(mult);
+                spawner.Begin(OnFrogCaught, OnFrogMissed);
+            }
+            Debug.Log($"[FrogCatch] start difficulty={_difficulty}");
         }
 
         public void OnGameEnd()

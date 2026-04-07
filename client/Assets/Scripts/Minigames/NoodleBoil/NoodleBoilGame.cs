@@ -14,7 +14,7 @@ namespace ShortGeta.Minigames.NoodleBoil
     //   라운드 종료 후 1초 휴식
     //
     // 점수 한계: 5 * 100 = 500 (server max_score=500 일치)
-    public class NoodleBoilGame : MonoBehaviour, IMinigame
+    public class NoodleBoilGame : MonoBehaviour, IMinigame, IDifficultyAware
     {
         public string GameId => "noodle_boil_v1";
         public string Title => "라면 끓이지 마라";
@@ -26,8 +26,23 @@ namespace ShortGeta.Minigames.NoodleBoil
         private const int RoundCount = 5;
         private const float FillSec = 6f;
         private const float RestSec = 1f;
-        private const float SweetSpotMin = 0.6f;
-        private const float SweetSpotMax = 0.8f;
+
+        // DDA 노브: sweet spot 폭. 어려울수록 좁음.
+        private float _sweetSpotMin = 0.6f;
+        private float _sweetSpotMax = 0.8f;
+        private int _difficulty;
+
+        public void SetDifficulty(int intensity)
+        {
+            _difficulty = Mathf.Clamp(intensity, -1, 1);
+            // -1 = 50%~85% (35% wide), 0 = 60%~80% (20%), +1 = 65%~78% (13%)
+            switch (_difficulty)
+            {
+                case -1: _sweetSpotMin = 0.50f; _sweetSpotMax = 0.85f; break;
+                case 1:  _sweetSpotMin = 0.65f; _sweetSpotMax = 0.78f; break;
+                default: _sweetSpotMin = 0.60f; _sweetSpotMax = 0.80f; break;
+            }
+        }
 
         private SafeInt _score;
         private int _roundIdx;
@@ -70,12 +85,12 @@ namespace ShortGeta.Minigames.NoodleBoil
 
             float p = Progress;
             int gain = 0;
-            if (p >= SweetSpotMin && p <= SweetSpotMax)
+            if (p >= _sweetSpotMin && p <= _sweetSpotMax)
             {
                 // sweet spot 정중앙(0.7) 이 100점, 양 끝(0.6/0.8) 이 70점
-                float center = (SweetSpotMin + SweetSpotMax) / 2f;
+                float center = (_sweetSpotMin + _sweetSpotMax) / 2f;
                 float dist = Mathf.Abs(p - center);
-                float maxDist = (SweetSpotMax - SweetSpotMin) / 2f;
+                float maxDist = (_sweetSpotMax - _sweetSpotMin) / 2f;
                 float t = 1f - (dist / maxDist) * 0.3f;
                 gain = Mathf.RoundToInt(100f * t);
             }
@@ -186,8 +201,8 @@ namespace ShortGeta.Minigames.NoodleBoil
             var ssGo = new GameObject("SweetSpot");
             ssGo.transform.SetParent(bgGo.transform, false);
             var srt = ssGo.AddComponent<RectTransform>();
-            srt.anchorMin = new Vector2(SweetSpotMin, 0);
-            srt.anchorMax = new Vector2(SweetSpotMax, 1);
+            srt.anchorMin = new Vector2(_sweetSpotMin, 0);
+            srt.anchorMax = new Vector2(_sweetSpotMax, 1);
             srt.offsetMin = Vector2.zero;
             srt.offsetMax = Vector2.zero;
             var ssImg = ssGo.AddComponent<Image>();

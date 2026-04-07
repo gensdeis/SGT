@@ -105,6 +105,25 @@ Addressable 로 마크해야 데모 동작:
 > "non-empty: 0" 은 정상 — 서버 `bundle_url` 이 모두 빈 문자열. Iter 2C' 에서
 > 미니게임 prefab 을 실제 bundle 로 만들고 서버에 URL 등록 시 0 → 6 으로 변함.
 
+## DDA 강도 (Iter 2D)
+
+서버는 사용자의 최근 10게임 SR (Success Rate) 을 계산해 ±1 의 강도 변화량을 반환
+하며, 클라이언트는 게임 instantiate 시 `IDifficultyAware.SetDifficulty(intensity)`
+로 각 게임의 단일 노브를 조정합니다.
+
+| Game | Knob | -1 (쉬움) | 0 (기본) | +1 (어려움) |
+|---|---|---|---|---|
+| frog_catch_v1 | spawn interval mult | 1.5x | 1.0x | 0.7x |
+| noodle_boil_v1 | sweet spot 폭 | 50~85% | 60~80% | 65~78% |
+| poker_face_v1 | tempt 등장 주기 | 7s | 5s | 3s |
+| dark_souls_v1 | 성공 확률 | 1/7 | 1/10 | 1/15 |
+| kakao_unread_v1 | 알림 주기 | 4s | 3s | 2s |
+| math_genius_v1 | 오답 offset | ±3 | ±5 | ±8 |
+
+> DDA 는 사용자에게 노출하지 않습니다 (PROJECT_PLAN.md §"DDA"). 단 디버그용으로
+> Result UI 상단에 `DDA: +1 어려움` 라벨 표시.
+> 첫 사용자 세션은 결과가 없어 항상 0 반환됨 (정상).
+
 ## 하이라이트 녹화 (Iter 2B MVP)
 
 각 미니게임 종료 시 직전 ~3초 (10fps × 30 프레임) 가 자동 캡처되어 PNG 시퀀스로
