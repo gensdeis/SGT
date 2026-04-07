@@ -9,6 +9,7 @@ const items = [
   { href: '/games', label: '게임' },
   { href: '/rankings', label: '랭킹' },
   { href: '/sessions', label: '세션' },
+  { href: '/notices', label: '공지' },
 ];
 
 export default function Nav() {
