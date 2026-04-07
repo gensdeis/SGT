@@ -26,7 +26,33 @@ export ADMIN_JWT_SECRET=$(openssl rand -hex 32)
 
 서버 부팅 시 admin_users 테이블에 idempotent insert.
 
-## 현재 (Iter 4b)
+## 현재 (Iter 4c)
+
+- ✅ 4a/4b 전체 +
+- ✅ 공지 CRUD (`/notices` 등록/삭제, 만료일)
+- ✅ 유저 밴 토글
+- ✅ 푸시 stub (FCM 통합 후속)
+- ✅ k8s manifest + ArgoCD application + image-updater
+- ✅ Traefik IngressRoute (basic auth + IP whitelist)
+- ✅ GitHub Actions ops-tool-ci (build + GHCR push)
+
+## 배포 (kind)
+
+1. main push → GitHub Actions 가 ghcr.io/gensdeis/shortgeta-ops-tool:<sha> push
+2. argocd-image-updater 가 자동 polling → ArgoCD sync → rollout
+3. 외부 접근:
+   ```
+   kubectl -n shortgeta-dev port-forward svc/shortgeta-ops-tool 3000:80
+   # 또는 ops.shortgeta.local 호스트 매핑
+   ```
+4. **basic auth secret 생성 필수**:
+   ```
+   htpasswd -nb admin <password> > /tmp/users
+   kubectl -n shortgeta-dev create secret generic ops-tool-basic-auth --from-file=users=/tmp/users
+   # 또는 sealed-secret 으로 commit
+   ```
+
+## 이전 진행 (Iter 4b)
 
 - ✅ 로그인
 - ✅ 대시보드 카드 (DAU/플레이/세션/총유저, `/v1/admin/dashboard`)
