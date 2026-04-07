@@ -107,6 +107,63 @@ namespace ShortGeta.Network
         [JsonProperty("payload")] public object Payload;
     }
 
+    // ───── Iter 3 ─────
+
+    [Serializable]
+    public class ProfileResponse
+    {
+        [JsonProperty("user_id")] public string UserId;
+        [JsonProperty("nickname")] public string Nickname;
+        [JsonProperty("avatar_id")] public int AvatarId;
+        [JsonProperty("coins")] public int Coins;
+    }
+
+    [Serializable]
+    public class ProfileUpdateRequest
+    {
+        [JsonProperty("nickname")] public string Nickname;
+        [JsonProperty("avatar_id")] public int AvatarId;
+    }
+
+    [Serializable]
+    public class MissionView
+    {
+        [JsonProperty("mission_id")] public string MissionId;
+        [JsonProperty("title")] public string Title;
+        [JsonProperty("progress")] public int Progress;
+        [JsonProperty("target")] public int Target;
+        [JsonProperty("reward")] public int Reward;
+        [JsonProperty("completed")] public bool Completed;
+        [JsonProperty("claimed")] public bool Claimed;
+    }
+
+    [Serializable]
+    public class MissionsTodayResponse
+    {
+        [JsonProperty("missions")] public MissionView[] Missions;
+    }
+
+    [Serializable]
+    public class MissionClaimRequest
+    {
+        [JsonProperty("mission_id")] public string MissionId;
+    }
+
+    [Serializable]
+    public class ClaimResult
+    {
+        [JsonProperty("ok")] public bool Ok;
+        [JsonProperty("reward")] public int Reward;
+        [JsonProperty("coins")] public int Coins;
+    }
+
+    [Serializable]
+    public class ShareClaimRequest
+    {
+        [JsonProperty("platform")] public string Platform;
+        [JsonProperty("highlight_tag")] public string HighlightTag;
+    }
+
     [Serializable]
     public class PurchaseVerifyRequest
     {

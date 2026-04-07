@@ -10,16 +10,23 @@ import (
 	"github.com/google/uuid"
 )
 
+// MissionHook 은 SessionResult 제출 시 미션 진행도를 갱신하는 콜백.
+// missions.Service 가 구현. 본 패키지는 import 회피용 인터페이스만 둠.
+type MissionHook interface {
+	OnSessionResult(ctx context.Context, userID uuid.UUID, cleared bool, playTimeSec float64)
+}
+
 // Service 는 세션 시작/종료 흐름을 캡슐화한다.
 type Service struct {
 	store        *storage.Store
 	recommender  *Recommender
 	validator    *anticheat.Validator
 	rankingQueue *ranking.Worker
+	missions     MissionHook
 }
 
-func NewService(store *storage.Store, rec *Recommender, val *anticheat.Validator, rq *ranking.Worker) *Service {
-	return &Service{store: store, recommender: rec, validator: val, rankingQueue: rq}
+func NewService(store *storage.Store, rec *Recommender, val *anticheat.Validator, rq *ranking.Worker, mh MissionHook) *Service {
+	return &Service{store: store, recommender: rec, validator: val, rankingQueue: rq, missions: mh}
 }
 
 // StartResult 는 Start 응답.
@@ -107,6 +114,9 @@ func (s *Service) End(ctx context.Context, userID, sessionID uuid.UUID, scores [
 			GameID: sc.GameID,
 			Score:  int32(sc.Score),
 		})
+		if s.missions != nil {
+			s.missions.OnSessionResult(ctx, userID, sc.Cleared, sc.PlayTime)
+		}
 		res.Accepted = append(res.Accepted, sc.GameID)
 	}
 
