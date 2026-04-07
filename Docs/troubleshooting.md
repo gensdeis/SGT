@@ -441,4 +441,66 @@ kubectl -n shortgeta-dev get pods -l app=shortgeta-server
 
 ---
 
+## 2026-04-08 — Editor 에서 PC UI 가 떠서 진행 안됨
+
+**증상**
+Editor Game View 가 가로 비율일 때 PcHomeController placeholder 화면("PC UI — 곧 나옵니다") 만 보이고 시작 버튼 없음.
+
+**원인**
+`PlatformDetector` 가 `Screen.height > Screen.width` 면 Mobile, 아니면 PC 로 판단. Editor Game View 가로 비율이면 PC.
+
+**해결**
+Editor 매크로 분기 추가:
+```csharp
+#if UNITY_EDITOR
+return LayoutMode.Mobile; // Editor 기본은 Mobile (Android 타겟)
+#elif UNITY_ANDROID || UNITY_IOS
+return LayoutMode.Mobile;
+#else
+...
+#endif
+```
+
+PC 보고싶으면 `PlatformDetector.EditorOverride = LayoutOverride.ForcePC;` 로 강제.
+
+---
+
+## 2026-04-08 — Addressables: Expecting binary catalog but got json
+
+**증상**
+```
+System.Exception: Expecting to load catalogs in binary format
+  but the catalog provided is in .json format.
+  To load it enable Addressable Asset Settings > Catalog > Enable Json Catalog.
+```
+
+**원인**
+Addressables 2.x 가 기본 binary catalog 인데 서버가 보내는 catalog 가 .json 포맷.
+
+**해결** (사용자 작업, 둘 중 하나)
+- (a) Window → Asset Management → Addressables → Settings → **Catalog → Enable Json Catalog** ✅
+- (b) 서버 catalog 를 binary 로 재빌드 (Addressables Build 시 Json 옵션 끄기)
+
+---
+
+## 2026-04-08 — Addressables: InvalidKeyException demo/hello
+
+**증상**
+```
+UnityEngine.AddressableAssets.InvalidKeyException:
+  No Location found for Key=demo/hello
+```
+
+**원인**
+`Assets/Demo/HelloAddressable.txt` 가 Addressable 마크 안 된 상태. (또는 demo 디렉토리 없음)
+
+**영향**
+없음. fallback try/catch 에서 warning 만 찍고 진행.
+
+**해결** (선택)
+- Project → `Assets/Demo/HelloAddressable.txt` → Inspector → Addressable ✅ → address `demo/hello`
+- 또는 BootstrapController 에서 demo 자산 로드 부분 제거
+
+---
+
 > ⬇ 새 항목은 여기 아래에 추가
