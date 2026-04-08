@@ -541,4 +541,25 @@ Addressables 2.10.0 의 알려진 내부 빌드 이슈. 일부 internal API 가
 
 ---
 
+## 2026-04-08 — TMP Dynamic SDF 한글 글리프에 □ 박스 덧씌워짐
+
+**증상**
+한글 텍스트는 보이는데 각 글자 주위에 □ 사각형이 같이 렌더됨.
+
+**원인**
+Font Asset Creator 에서 이전에 Generate 할 때 **Padding = 0** 으로 생성.
+Dynamic 모드 전환 후에도 이 Padding 값이 그대로라 atlas 에서 글리프 가장자리가 서로 침범해 사각형 artifact.
+
+**해결**
+1. `Assets/Fonts/malgun SDF.asset` 클릭
+2. Inspector → Generation Settings → **Padding**: `0` → **`5`**
+3. Inspector 상단 **Update Atlas Texture** 버튼 클릭 (중요 — 안 누르면 반영 안됨)
+4. ▶ Play
+
+**재발 방지**
+- Font Asset 생성 시 Padding 은 최소 5 이상
+- Dynamic 모드 SDF 는 글리프 재생성 시 `Update Atlas Texture` 필수
+
+---
+
 > ⬇ 새 항목은 여기 아래에 추가
