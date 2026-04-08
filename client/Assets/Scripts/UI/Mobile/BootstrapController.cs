@@ -855,10 +855,10 @@ namespace ShortGeta.UI.Mobile
             UIBuilder.Label(thumb.transform, emoji, 160, DesignTokens.Text,
                 TextAlignmentOptions.Center);
 
-            // 우상단 하트 (보관함 토글 — 실 API 연동)
+            // 우하단 하트 (보관함 토글 — 실 API 연동)
             bool favorited = _gameStats.TryGetValue(g.Id, out var stat0) && stat0.Favorited;
             var heart = UIBuilder.Panel(thumb.transform, "Heart",
-                new Vector2(0.85f, 0.05f), new Vector2(0.97f, 0.20f),
+                new Vector2(0.85f, 0.02f), new Vector2(0.97f, 0.18f),
                 DesignTokens.Alpha(DesignTokens.Bg, 0f));
             var heartBtn = heart.AddComponent<Button>();
             heartBtn.targetGraphic = heart.GetComponent<Image>();
