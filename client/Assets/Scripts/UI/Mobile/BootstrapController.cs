@@ -379,17 +379,19 @@ namespace ShortGeta.UI.Mobile
                 .fontStyle = FontStyles.Bold;
             BuildProfileAvatar(topBar.transform);
 
-            // 2) 검색바 (87~92%)
-            var search = UIBuilder.Panel(_homePanel.transform, "SearchBar",
-                new Vector2(0.05f, 0.87f), new Vector2(0.95f, 0.92f), DesignTokens.Surface);
+            // 2) 검색바 (87~92%) — 라운드
+            var search = UIBuilder.RoundedPanel(_homePanel.transform, "SearchBar",
+                new Vector2(0.05f, 0.87f), new Vector2(0.95f, 0.92f),
+                DesignTokens.Surface, 24);
             UIBuilder.Label(search.transform, "🔍  게임 검색",
                 DesignTokens.FontBody, DesignTokens.TextDim,
                 TextAlignmentOptions.Left,
                 anchorMin: new Vector2(0.05f, 0f), anchorMax: new Vector2(0.95f, 1f));
 
-            // 3) 퀵 시작 카드 (74~85%)
-            var quick = UIBuilder.Panel(_homePanel.transform, "QuickStart",
-                new Vector2(0.05f, 0.74f), new Vector2(0.95f, 0.85f), DesignTokens.QuickBg);
+            // 3) 퀵 시작 카드 (74~85%) — 라운드
+            var quick = UIBuilder.RoundedPanel(_homePanel.transform, "QuickStart",
+                new Vector2(0.05f, 0.74f), new Vector2(0.95f, 0.85f),
+                DesignTokens.QuickBg, 20);
             UIBuilder.Label(quick.transform, "알고리즘 세션", DesignTokens.FontH2, DesignTokens.PrimaryCTA,
                 TextAlignmentOptions.TopLeft,
                 anchorMin: new Vector2(0.05f, 0.4f), anchorMax: new Vector2(0.6f, 0.95f))
@@ -403,7 +405,8 @@ namespace ShortGeta.UI.Mobile
                 DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
                 "▶ 시작", DesignTokens.FontBody,
                 new Vector2(0.62f, 0.2f), new Vector2(0.95f, 0.8f),
-                () => StartSession().Forget());
+                () => StartSession().Forget(),
+                radius: 24);
 
             // 4) 섹션 헤더
             var sectionHeader = UIBuilder.Panel(_homePanel.transform, "SectionHeader",
@@ -454,8 +457,8 @@ namespace ShortGeta.UI.Mobile
         private void BuildProfileAvatar(Transform parent)
         {
             // 우상단 원형 아바타 (닉네임 첫글자) + 코인 mini
-            var go = UIBuilder.Panel(parent, "Profile",
-                new Vector2(0.78f, 0.1f), new Vector2(0.95f, 0.9f),
+            var go = UIBuilder.CirclePanel(parent, "Profile",
+                new Vector2(0.82f, 0.15f), new Vector2(0.94f, 0.85f),
                 DesignTokens.AccentDark);
             string initial = "?";
             if (_me != null && !string.IsNullOrEmpty(_me.Nickname))
@@ -511,20 +514,37 @@ namespace ShortGeta.UI.Mobile
             }
         }
 
+        // 게임별 썸네일 Image 참조 캐시 — 후속에서 SetCardThumbnail(gameId, sprite) 로 교체 가능
+        private readonly System.Collections.Generic.Dictionary<string, Image> _cardThumbs = new();
+
+        // 외부에서 썸네일 sprite 를 동적으로 주입할 때 사용.
+        public void SetCardThumbnail(string gameId, Sprite sprite)
+        {
+            if (_cardThumbs.TryGetValue(gameId, out var img) && img != null)
+            {
+                img.sprite = sprite;
+                img.type = Image.Type.Simple;
+                img.preserveAspect = true;
+                // 이모지 라벨 숨김
+                var label = img.transform.Find("Label");
+                if (label != null) label.gameObject.SetActive(false);
+            }
+        }
+
         private void BuildGameCard(Transform parent, GameView g)
         {
-            var card = new GameObject($"Card_{g.Id}");
-            card.transform.SetParent(parent, false);
+            // 카드 전체 라운드
+            var card = UIBuilder.RoundedPanel(parent, $"Card_{g.Id}",
+                Vector2.zero, Vector2.one, DesignTokens.Surface, 20);
             var le = card.AddComponent<LayoutElement>();
             le.preferredHeight = 480;
-            var bg = card.AddComponent<Image>();
-            bg.color = DesignTokens.Surface;
 
-            // ─── 1. 썸네일 영역 (상단 70%, 게임별 색상) ───
+            // ─── 1. 썸네일 영역 (상단 68%, 게임별 색상, 라운드) ───
             var thumbColorHex = GameThumbBgHex.TryGetValue(g.Id, out var hex) ? hex : "#1b1e28";
-            var thumb = UIBuilder.Panel(card.transform, "Thumb",
-                new Vector2(0f, 0.32f), new Vector2(1f, 1f),
-                DesignTokens.Hex(thumbColorHex));
+            var thumb = UIBuilder.RoundedPanel(card.transform, "Thumb",
+                new Vector2(0.02f, 0.34f), new Vector2(0.98f, 0.97f),
+                DesignTokens.Hex(thumbColorHex), 16);
+            _cardThumbs[g.Id] = thumb.GetComponent<Image>();
 
             string emoji = GameEmojis.TryGetValue(g.Id, out var e) ? e : "🎮";
             UIBuilder.Label(thumb.transform, emoji, 160, DesignTokens.Text,

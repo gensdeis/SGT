@@ -8,8 +8,7 @@ namespace ShortGeta.Core.UI
     // 런타임 UI 생성 헬퍼. prefab 없이 코드로 패널/버튼/라벨을 만든다.
     // BootstrapController 같은 곳에서 ShowHome() 등이 사용.
     //
-    // 주의: rounded sprite 가 없어서 모든 패널은 사각형. Stage 2 에서
-    // 9-slice sprite 또는 procedural 로 라운딩 추가 예정.
+    // 라운드 처리는 RoundedSpriteFactory 의 procedural 9-slice sprite 사용.
     public static class UIBuilder
     {
         public static GameObject Panel(Transform parent, string name,
@@ -24,6 +23,29 @@ namespace ShortGeta.Core.UI
             rt.offsetMax = Vector2.zero;
             var img = go.AddComponent<Image>();
             img.color = color;
+            return go;
+        }
+
+        // 라운드 사각 패널. radius 픽셀 단위.
+        public static GameObject RoundedPanel(Transform parent, string name,
+            Vector2 anchorMin, Vector2 anchorMax, Color color, int radius)
+        {
+            var go = Panel(parent, name, anchorMin, anchorMax, color);
+            var img = go.GetComponent<Image>();
+            img.sprite = RoundedSpriteFactory.GetRounded(radius);
+            img.type = Image.Type.Sliced;
+            img.pixelsPerUnitMultiplier = 1f;
+            return go;
+        }
+
+        // 원형 패널 (프로필 아바타 등).
+        public static GameObject CirclePanel(Transform parent, string name,
+            Vector2 anchorMin, Vector2 anchorMax, Color color)
+        {
+            var go = Panel(parent, name, anchorMin, anchorMax, color);
+            var img = go.GetComponent<Image>();
+            img.sprite = RoundedSpriteFactory.GetCircle();
+            img.type = Image.Type.Simple;
             return go;
         }
 
@@ -53,9 +75,12 @@ namespace ShortGeta.Core.UI
         }
 
         public static Button Button(Transform parent, string name, Color bg, Color fg,
-            string label, int fontSize, Vector2 anchorMin, Vector2 anchorMax, Action onClick)
+            string label, int fontSize, Vector2 anchorMin, Vector2 anchorMax, Action onClick,
+            int radius = 0)
         {
-            var go = Panel(parent, name, anchorMin, anchorMax, bg);
+            GameObject go = radius > 0
+                ? RoundedPanel(parent, name, anchorMin, anchorMax, bg, radius)
+                : Panel(parent, name, anchorMin, anchorMax, bg);
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = go.GetComponent<Image>();
             var lt = Label(go.transform, label, fontSize, fg, TextAlignmentOptions.Center);
@@ -64,17 +89,21 @@ namespace ShortGeta.Core.UI
             return btn;
         }
 
+        // 라운드 태그 pill.
         public static GameObject Tag(Transform parent, string text)
         {
             var go = new GameObject("Tag");
             go.transform.SetParent(parent, false);
             var le = go.AddComponent<LayoutElement>();
-            le.preferredHeight = 36;
+            le.preferredHeight = 40;
             le.preferredWidth = -1;
             var img = go.AddComponent<Image>();
             img.color = DesignTokens.Surface2;
+            img.sprite = RoundedSpriteFactory.GetRounded(12);
+            img.type = Image.Type.Sliced;
+            img.pixelsPerUnitMultiplier = 1f;
             var hl = go.AddComponent<HorizontalLayoutGroup>();
-            hl.padding = new RectOffset(12, 12, 4, 4);
+            hl.padding = new RectOffset(14, 14, 4, 4);
             hl.childAlignment = TextAnchor.MiddleCenter;
             hl.childForceExpandWidth = false;
             hl.childForceExpandHeight = false;
