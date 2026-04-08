@@ -388,42 +388,55 @@ namespace ShortGeta.UI.Mobile
                 TextAlignmentOptions.Left,
                 anchorMin: new Vector2(0.05f, 0f), anchorMax: new Vector2(0.95f, 1f));
 
-            // 3) 퀵 시작 카드 (74~85%) — 라운드
-            var quick = UIBuilder.RoundedPanel(_homePanel.transform, "QuickStart",
-                new Vector2(0.05f, 0.74f), new Vector2(0.95f, 0.85f),
-                DesignTokens.QuickBg, 20);
-            UIBuilder.Label(quick.transform, "알고리즘 세션", DesignTokens.FontH2, DesignTokens.PrimaryCTA,
-                TextAlignmentOptions.TopLeft,
-                anchorMin: new Vector2(0.05f, 0.4f), anchorMax: new Vector2(0.6f, 0.95f))
-                .fontStyle = FontStyles.Bold;
-            UIBuilder.Label(quick.transform,
-                runFrogCatchOnly ? "디버그: frog_catch 1판" : $"취향 기반 추천 {_games?.Length ?? 0}판",
-                DesignTokens.FontCaption, DesignTokens.PrimaryCTA,
-                TextAlignmentOptions.TopLeft,
-                anchorMin: new Vector2(0.05f, 0.05f), anchorMax: new Vector2(0.6f, 0.4f));
-            UIBuilder.Button(quick.transform, "QuickPlayBtn",
-                DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
-                "▶ 시작", DesignTokens.FontBody,
-                new Vector2(0.62f, 0.2f), new Vector2(0.95f, 0.8f),
-                () => StartSession().Forget(),
-                radius: 24);
+            // 3) 콘텐츠 컨테이너 (10~86%) — 탭별 교체
+            _tabContentContainer = UIBuilder.Panel(_homePanel.transform, "TabContent",
+                new Vector2(0f, 0.10f), new Vector2(1f, 0.86f), DesignTokens.Bg);
 
-            // 4) 섹션 헤더
-            var sectionHeader = UIBuilder.Panel(_homePanel.transform, "SectionHeader",
-                new Vector2(0.05f, 0.69f), new Vector2(0.95f, 0.74f), DesignTokens.Bg);
-            UIBuilder.Label(sectionHeader.transform, "내 취향 게임",
-                DesignTokens.FontBody, DesignTokens.Text, TextAlignmentOptions.Left,
-                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0.7f, 1f))
-                .fontStyle = FontStyles.Bold;
-            UIBuilder.Label(sectionHeader.transform, $"{_games?.Length ?? 0}개",
-                DesignTokens.FontCaption, DesignTokens.TextDim, TextAlignmentOptions.Right,
-                anchorMin: new Vector2(0.7f, 0f), anchorMax: new Vector2(1f, 1f));
-
-            // 5) 게임 카드 ScrollView (10~69%)
-            BuildGameList();
-
-            // 5) 하단 탭바 (0~10%)
+            // 4) 하단 탭바 (0~10%)
             BuildBottomNav();
+
+            // 초기 탭 = 홈
+            SwitchTab(0);
+        }
+
+        // ─── 탭 관리 ───
+        private GameObject _tabContentContainer;
+        private int _activeTab = 0;
+        private readonly System.Collections.Generic.List<(GameObject icon, GameObject label)> _navTabVisuals = new();
+
+        private void SwitchTab(int idx)
+        {
+            _activeTab = idx;
+            // 콘텐츠 초기화
+            if (_tabContentContainer != null)
+            {
+                foreach (Transform c in _tabContentContainer.transform) Destroy(c.gameObject);
+                _cardThumbs.Clear();
+            }
+            // nav 하이라이트 갱신
+            for (int i = 0; i < _navTabVisuals.Count; i++)
+            {
+                var (iconGo, labelGo) = _navTabVisuals[i];
+                var color = (i == idx) ? DesignTokens.Accent : DesignTokens.TextDim;
+                if (iconGo != null)
+                {
+                    var t = iconGo.GetComponent<TMPro.TextMeshProUGUI>();
+                    if (t != null) t.color = color;
+                }
+                if (labelGo != null)
+                {
+                    var t = labelGo.GetComponent<TMPro.TextMeshProUGUI>();
+                    if (t != null) t.color = color;
+                }
+            }
+
+            switch (idx)
+            {
+                case 0: BuildHomeTab(); break;
+                case 1: BuildPopularTab(); break;
+                case 2: BuildLibraryTab(); break;
+                case 3: BuildSettingsTab(); break;
+            }
         }
 
         private static string FormatCount(long n)
@@ -476,15 +489,16 @@ namespace ShortGeta.UI.Mobile
                 anchorMin: new Vector2(0.55f, 0f), anchorMax: new Vector2(0.77f, 1f));
         }
 
-        private void BuildGameList()
+        // 탭 내부에 VerticalLayoutGroup + ContentSizeFitter 가 붙은 스크롤 컨테이너 생성.
+        // 반환값은 자식을 추가할 content Transform.
+        private Transform BuildScrollContainer(Transform parent)
         {
-            // ScrollRect viewport
-            var scroll = UIBuilder.Panel(_homePanel.transform, "GameScroll",
-                new Vector2(0f, 0.10f), new Vector2(1f, 0.69f), DesignTokens.Bg);
+            var scroll = UIBuilder.Panel(parent, "Scroll",
+                Vector2.zero, Vector2.one, DesignTokens.Bg);
             var sr = scroll.AddComponent<ScrollRect>();
             sr.horizontal = false;
             sr.vertical = true;
-            var mask = scroll.AddComponent<RectMask2D>();
+            scroll.AddComponent<RectMask2D>();
 
             var content = new GameObject("Content");
             content.transform.SetParent(scroll.transform, false);
@@ -504,12 +518,281 @@ namespace ShortGeta.UI.Mobile
             var fitter = content.AddComponent<ContentSizeFitter>();
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             sr.content = crt;
+            return content.transform;
+        }
 
+        // 섹션 헤더 (좌: 제목, 우: 부가 정보)
+        private void BuildSectionHeader(Transform parent, string title, string trailing)
+        {
+            var go = new GameObject("SectionHeader");
+            go.transform.SetParent(parent, false);
+            var le = go.AddComponent<LayoutElement>();
+            le.preferredHeight = 64;
+            UIBuilder.Label(go.transform, title, DesignTokens.FontBody, DesignTokens.Text,
+                TextAlignmentOptions.Left,
+                anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0.7f, 1f))
+                .fontStyle = FontStyles.Bold;
+            if (!string.IsNullOrEmpty(trailing))
+            {
+                UIBuilder.Label(go.transform, trailing, DesignTokens.FontCaption, DesignTokens.TextDim,
+                    TextAlignmentOptions.Right,
+                    anchorMin: new Vector2(0.7f, 0f), anchorMax: new Vector2(1f, 1f));
+            }
+        }
+
+        // ─── 홈 탭 ───
+        // NEW 배지를 달 게임 id (목업과 동일 — poker_face_v1)
+        private static readonly System.Collections.Generic.HashSet<string> NewGameIds = new()
+        {
+            "poker_face_v1"
+        };
+
+        private void BuildHomeTab()
+        {
+            var content = BuildScrollContainer(_tabContentContainer.transform);
+
+            // 퀵 시작 카드
+            BuildQuickStartCard(content);
+
+            // "내 취향 게임" 섹션
+            BuildSectionHeader(content, "내 취향 게임", $"{_games?.Length ?? 0}개");
             if (_games != null)
             {
                 foreach (var g in _games)
                 {
-                    BuildGameCard(content.transform, g);
+                    if (NewGameIds.Contains(g.Id)) continue; // NEW 는 아래 섹션에
+                    BuildGameCard(content, g, rank: 0, showNew: false);
+                }
+            }
+
+            // "새로 나왔어요" 섹션
+            BuildSectionHeader(content, "새로 나왔어요", null);
+            if (_games != null)
+            {
+                foreach (var g in _games)
+                {
+                    if (!NewGameIds.Contains(g.Id)) continue;
+                    BuildGameCard(content, g, rank: 0, showNew: true);
+                }
+            }
+        }
+
+        private void BuildQuickStartCard(Transform parent)
+        {
+            var go = new GameObject("QuickStartWrap");
+            go.transform.SetParent(parent, false);
+            var le = go.AddComponent<LayoutElement>();
+            le.preferredHeight = 240;
+
+            var quick = UIBuilder.RoundedPanel(go.transform, "QuickStart",
+                Vector2.zero, Vector2.one, DesignTokens.QuickBg, 20);
+            UIBuilder.Label(quick.transform, "알고리즘 세션 시작",
+                DesignTokens.FontH2, DesignTokens.PrimaryCTA, TextAlignmentOptions.TopLeft,
+                anchorMin: new Vector2(0.05f, 0.5f), anchorMax: new Vector2(0.6f, 0.95f))
+                .fontStyle = FontStyles.Bold;
+            UIBuilder.Label(quick.transform,
+                runFrogCatchOnly ? "디버그: frog_catch 1판" : "반응속도 · 동물 취향 맞춤",
+                DesignTokens.FontCaption, DesignTokens.PrimaryCTA, TextAlignmentOptions.TopLeft,
+                anchorMin: new Vector2(0.05f, 0.15f), anchorMax: new Vector2(0.6f, 0.5f));
+            UIBuilder.Button(quick.transform, "QuickPlayBtn",
+                DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
+                "▶ 바로 시작", DesignTokens.FontBody,
+                new Vector2(0.62f, 0.25f), new Vector2(0.95f, 0.75f),
+                () => StartSession().Forget(),
+                radius: 28);
+        }
+
+        // ─── 인기 탭 ───
+        private int _popularFilter = 0; // 0=지금 핫한, 1=역대 명작
+
+        private void BuildPopularTab()
+        {
+            var content = BuildScrollContainer(_tabContentContainer.transform);
+
+            // 필터 chip row
+            var filterRow = new GameObject("FilterRow");
+            filterRow.transform.SetParent(content, false);
+            var le = filterRow.AddComponent<LayoutElement>();
+            le.preferredHeight = 80;
+            var hl = filterRow.AddComponent<HorizontalLayoutGroup>();
+            hl.spacing = 12;
+            hl.childAlignment = TextAnchor.MiddleLeft;
+            hl.childForceExpandWidth = false;
+            hl.childForceExpandHeight = false;
+
+            BuildFilterChip(filterRow.transform, "지금 핫한", _popularFilter == 0, () => { _popularFilter = 0; SwitchTab(1); });
+            BuildFilterChip(filterRow.transform, "역대 명작", _popularFilter == 1, () => { _popularFilter = 1; SwitchTab(1); });
+
+            // 랭킹 카드 리스트 (play_count 기준 정렬)
+            if (_games != null)
+            {
+                var sorted = new System.Collections.Generic.List<GameView>(_games);
+                sorted.Sort((a, b) =>
+                {
+                    long ap = _gameStats.TryGetValue(a.Id, out var sa) ? sa.PlayCount : 0;
+                    long bp = _gameStats.TryGetValue(b.Id, out var sb) ? sb.PlayCount : 0;
+                    return bp.CompareTo(ap);
+                });
+                int rank = 1;
+                foreach (var g in sorted)
+                {
+                    BuildGameCard(content, g, rank: rank++, showNew: false);
+                }
+            }
+        }
+
+        private void BuildFilterChip(Transform parent, string label, bool active, System.Action onClick)
+        {
+            var go = new GameObject($"Chip_{label}");
+            go.transform.SetParent(parent, false);
+            var le = go.AddComponent<LayoutElement>();
+            le.preferredWidth = 200;
+            le.preferredHeight = 60;
+            var img = go.AddComponent<Image>();
+            img.color = active ? DesignTokens.AccentDark : DesignTokens.Surface;
+            img.sprite = RoundedSpriteFactory.GetRounded(28);
+            img.type = Image.Type.Sliced;
+            img.pixelsPerUnitMultiplier = 1f;
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = img;
+            btn.onClick.AddListener(() => onClick?.Invoke());
+
+            var lt = UIBuilder.Label(go.transform, label, DesignTokens.FontCaption,
+                active ? DesignTokens.PrimaryCTA : DesignTokens.TextDim,
+                TextAlignmentOptions.Center);
+            lt.fontStyle = FontStyles.Bold;
+        }
+
+        // ─── 보관함 탭 ───
+        private void BuildLibraryTab()
+        {
+            var content = BuildScrollContainer(_tabContentContainer.transform);
+
+            var favorites = new System.Collections.Generic.List<GameView>();
+            if (_games != null)
+            {
+                foreach (var g in _games)
+                {
+                    if (_gameStats.TryGetValue(g.Id, out var s) && s.Favorited)
+                        favorites.Add(g);
+                }
+            }
+
+            foreach (var g in favorites)
+            {
+                BuildGameCard(content, g, rank: 0, showNew: false);
+            }
+
+            // placeholder 안내
+            var hint = new GameObject("LibHint");
+            hint.transform.SetParent(content, false);
+            var le = hint.AddComponent<LayoutElement>();
+            le.preferredHeight = 100;
+            UIBuilder.Label(hint.transform,
+                favorites.Count == 0 ? "♡ 하트 누르면 여기 저장돼요" : "♡ 하트 누르면 여기 저장돼요",
+                DesignTokens.FontCaption, DesignTokens.TextDim,
+                TextAlignmentOptions.Center);
+        }
+
+        // ─── 설정 탭 ───
+        private void BuildSettingsTab()
+        {
+            var content = BuildScrollContainer(_tabContentContainer.transform);
+
+            // 프로모션 카드 (광고 없이 즐기기)
+            var promo = new GameObject("PromoWrap");
+            promo.transform.SetParent(content, false);
+            var pLe = promo.AddComponent<LayoutElement>();
+            pLe.preferredHeight = 260;
+            var pBg = UIBuilder.RoundedPanel(promo.transform, "Promo",
+                Vector2.zero, Vector2.one, DesignTokens.QuickBg, 20);
+            UIBuilder.Label(pBg.transform, "광고 없이 즐기기",
+                DesignTokens.FontH2, DesignTokens.PrimaryCTA, TextAlignmentOptions.TopLeft,
+                anchorMin: new Vector2(0.05f, 0.55f), anchorMax: new Vector2(0.95f, 0.92f))
+                .fontStyle = FontStyles.Bold;
+            UIBuilder.Label(pBg.transform, "모든 광고를 영구 제거하세요",
+                DesignTokens.FontCaption, DesignTokens.PrimaryCTA, TextAlignmentOptions.TopLeft,
+                anchorMin: new Vector2(0.05f, 0.35f), anchorMax: new Vector2(0.95f, 0.55f));
+            UIBuilder.Button(pBg.transform, "PromoBtn",
+                DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
+                "$2.99 한 번만", DesignTokens.FontCaption,
+                new Vector2(0.05f, 0.08f), new Vector2(0.45f, 0.3f),
+                () => Toast.Show("구매 플로우는 후속 iter", 2f),
+                radius: 24);
+
+            // 설정 리스트 그룹 1: 계정 / 랭킹
+            BuildSettingsGroup(content, new (string icon, string title, string trailing, System.Action onClick)[]
+            {
+                ("👤", "계정 정보", "›", () => Toast.Show("계정 정보는 곧 나옵니다", 2f)),
+                ("🏆", "내 랭킹 현황", "글로벌 #247", () => Toast.Show("랭킹 보기는 곧 나옵니다", 2f)),
+            });
+
+            // 그룹 2: 알림 / 그래픽 / 언어
+            BuildSettingsGroup(content, new (string, string, string, System.Action)[]
+            {
+                ("🔔", "알림 설정", "›", () => Toast.Show("알림 설정은 곧 나옵니다", 2f)),
+                ("🎨", "그래픽 설정", "›", () => Toast.Show("그래픽 설정은 곧 나옵니다", 2f)),
+                ("🌐", "언어", "한국어", () => Toast.Show("언어 선택은 곧 나옵니다", 2f)),
+            });
+
+            // 그룹 3: 미션 (Iter 3 기능) / 버그제보 / 버전
+            BuildSettingsGroup(content, new (string, string, string, System.Action)[]
+            {
+                ("📋", "오늘의 미션", "›", () => ShowMissionsAsync().Forget()),
+                ("🐛", "버그 제보", "›", () => Toast.Show("버그 제보는 곧 나옵니다", 2f)),
+                ("ℹ", "버전 정보", "v1.0.0", () => Toast.Show("숏게타 v1.0.0 dev", 3f)),
+            });
+        }
+
+        private void BuildSettingsGroup(Transform parent, (string icon, string title, string trailing, System.Action onClick)[] items)
+        {
+            var groupGo = new GameObject("SettingsGroup");
+            groupGo.transform.SetParent(parent, false);
+            var le = groupGo.AddComponent<LayoutElement>();
+            le.preferredHeight = items.Length * 100;
+
+            var bg = UIBuilder.RoundedPanel(groupGo.transform, "GroupBg",
+                Vector2.zero, Vector2.one, DesignTokens.Surface, 20);
+            var vlg = bg.AddComponent<VerticalLayoutGroup>();
+            vlg.padding = new RectOffset(24, 24, 8, 8);
+            vlg.spacing = 0;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.childControlHeight = true;
+            vlg.childControlWidth = true;
+
+            for (int i = 0; i < items.Length; i++)
+            {
+                var item = items[i];
+                var row = new GameObject($"Row_{i}");
+                row.transform.SetParent(bg.transform, false);
+                var rLe = row.AddComponent<LayoutElement>();
+                rLe.preferredHeight = 88;
+                var rowImg = row.AddComponent<Image>();
+                rowImg.color = DesignTokens.Alpha(Color.white, 0f);
+                var rowBtn = row.AddComponent<Button>();
+                rowBtn.targetGraphic = rowImg;
+                rowBtn.onClick.AddListener(() => item.onClick?.Invoke());
+
+                UIBuilder.Label(row.transform, item.icon, 40, DesignTokens.Text,
+                    TextAlignmentOptions.Left,
+                    anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0.15f, 1f));
+                UIBuilder.Label(row.transform, item.title, DesignTokens.FontBody, DesignTokens.Text,
+                    TextAlignmentOptions.Left,
+                    anchorMin: new Vector2(0.17f, 0f), anchorMax: new Vector2(0.7f, 1f));
+                UIBuilder.Label(row.transform, item.trailing, DesignTokens.FontCaption, DesignTokens.TextDim,
+                    TextAlignmentOptions.Right,
+                    anchorMin: new Vector2(0.7f, 0f), anchorMax: new Vector2(1f, 1f));
+
+                // 구분선 (마지막 아이템 제외)
+                if (i < items.Length - 1)
+                {
+                    var divider = new GameObject("Divider");
+                    divider.transform.SetParent(bg.transform, false);
+                    var dLe = divider.AddComponent<LayoutElement>();
+                    dLe.preferredHeight = 2;
+                    var dImg = divider.AddComponent<Image>();
+                    dImg.color = DesignTokens.Border;
                 }
             }
         }
@@ -531,13 +814,35 @@ namespace ShortGeta.UI.Mobile
             }
         }
 
-        private void BuildGameCard(Transform parent, GameView g)
+        private void BuildGameCard(Transform parent, GameView g, int rank = 0, bool showNew = false)
         {
             // 카드 전체 라운드
             var card = UIBuilder.RoundedPanel(parent, $"Card_{g.Id}",
                 Vector2.zero, Vector2.one, DesignTokens.Surface, 20);
             var le = card.AddComponent<LayoutElement>();
             le.preferredHeight = 480;
+
+            // 좌상단 랭킹 배지 (인기 탭)
+            if (rank > 0)
+            {
+                var badge = UIBuilder.RoundedPanel(card.transform, "RankBadge",
+                    new Vector2(0.03f, 0.88f), new Vector2(0.20f, 0.98f),
+                    DesignTokens.Bg, 12);
+                UIBuilder.Label(badge.transform, $"{rank}위",
+                    DesignTokens.FontCaption, DesignTokens.Text,
+                    TextAlignmentOptions.Center).fontStyle = FontStyles.Bold;
+            }
+
+            // 우상단 NEW 배지 (홈 탭)
+            if (showNew)
+            {
+                var newBadge = UIBuilder.RoundedPanel(card.transform, "NewBadge",
+                    new Vector2(0.80f, 0.88f), new Vector2(0.97f, 0.98f),
+                    DesignTokens.AccentDark, 12);
+                UIBuilder.Label(newBadge.transform, "NEW",
+                    DesignTokens.FontCaption, DesignTokens.PrimaryCTA,
+                    TextAlignmentOptions.Center).fontStyle = FontStyles.Bold;
+            }
 
             // ─── 1. 썸네일 영역 (상단 68%, 게임별 색상, 라운드) ───
             var thumbColorHex = GameThumbBgHex.TryGetValue(g.Id, out var hex) ? hex : "#1b1e28";
@@ -631,13 +936,14 @@ namespace ShortGeta.UI.Mobile
             hl.childForceExpandHeight = true;
             hl.padding = new RectOffset(0, 0, 8, 8);
 
-            BuildNavTab(nav.transform, "🏠", "홈", true, null);
-            BuildNavTab(nav.transform, "🔥", "인기", false, () => Toast.Show("인기 탭은 곧 나옵니다", 2f));
-            BuildNavTab(nav.transform, "💝", "보관함", false, () => Toast.Show("보관함은 곧 나옵니다", 2f));
-            BuildNavTab(nav.transform, "📋", "미션", false, () => ShowMissionsAsync().Forget());
+            _navTabVisuals.Clear();
+            BuildNavTab(nav.transform, "🏠", "홈",    0);
+            BuildNavTab(nav.transform, "🔥", "인기",   1);
+            BuildNavTab(nav.transform, "💝", "보관함", 2);
+            BuildNavTab(nav.transform, "⚙", "설정",   3);
         }
 
-        private void BuildNavTab(Transform parent, string icon, string label, bool active, System.Action onClick)
+        private void BuildNavTab(Transform parent, string icon, string label, int tabIdx)
         {
             var go = new GameObject($"Tab_{label}");
             go.transform.SetParent(parent, false);
@@ -646,13 +952,14 @@ namespace ShortGeta.UI.Mobile
             img.color = DesignTokens.NavBg;
             var btn = go.AddComponent<Button>();
             btn.targetGraphic = img;
-            if (onClick != null) btn.onClick.AddListener(() => onClick());
+            btn.onClick.AddListener(() => SwitchTab(tabIdx));
 
-            var color = active ? DesignTokens.Accent : DesignTokens.TextDim;
-            UIBuilder.Label(go.transform, icon, 40, color, TextAlignmentOptions.Center,
+            var color = (tabIdx == _activeTab) ? DesignTokens.Accent : DesignTokens.TextDim;
+            var iconLabel = UIBuilder.Label(go.transform, icon, 40, color, TextAlignmentOptions.Center,
                 anchorMin: new Vector2(0f, 0.4f), anchorMax: new Vector2(1f, 1f));
-            UIBuilder.Label(go.transform, label, DesignTokens.FontTag, color, TextAlignmentOptions.Center,
+            var textLabel = UIBuilder.Label(go.transform, label, DesignTokens.FontTag, color, TextAlignmentOptions.Center,
                 anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(1f, 0.4f));
+            _navTabVisuals.Add((iconLabel.gameObject, textLabel.gameObject));
         }
 
         // Iter 3: 미션 리스트 + 첫 claimable 자동 claim
