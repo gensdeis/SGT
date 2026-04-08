@@ -364,9 +364,11 @@ namespace ShortGeta.UI.Mobile
             // 1) 상단바 (top 7%) — 로고 + 프로필 아바타
             var topBar = UIBuilder.Panel(_homePanel.transform, "TopBar",
                 new Vector2(0f, 0.93f), new Vector2(1f, 1f), DesignTokens.Bg);
+            // 백 버튼 (iOS 용 UI, Android 도 겸용). 홈 탭이면 숨김.
+            _backButton = BuildBackButton(topBar.transform);
             UIBuilder.Label(topBar.transform, "숏게타", 56, DesignTokens.Text,
                 TextAlignmentOptions.Left,
-                anchorMin: new Vector2(0.05f, 0f), anchorMax: new Vector2(0.7f, 1f))
+                anchorMin: new Vector2(0.17f, 0f), anchorMax: new Vector2(0.7f, 1f))
                 .fontStyle = FontStyles.Bold;
             BuildProfileAvatar(topBar.transform);
 
@@ -394,10 +396,14 @@ namespace ShortGeta.UI.Mobile
         private GameObject _tabContentContainer;
         private int _activeTab = 0;
         private readonly System.Collections.Generic.List<(GameObject icon, GameObject label)> _navTabVisuals = new();
+        private GameObject _backButton;
+        private GameObject _quitPopup;
 
         private void SwitchTab(int idx)
         {
             _activeTab = idx;
+            // 백 버튼: 홈 탭 외에서만 표시
+            if (_backButton != null) _backButton.SetActive(idx != 0);
             // 콘텐츠 초기화
             if (_tabContentContainer != null)
             {
@@ -484,6 +490,108 @@ namespace ShortGeta.UI.Mobile
             UIBuilder.Label(parent, $"🪙 {coins}", 32, DesignTokens.Gold,
                 TextAlignmentOptions.Right,
                 anchorMin: new Vector2(0.55f, 0f), anchorMax: new Vector2(0.77f, 1f));
+        }
+
+        // ─── 백 네비게이션 (ESC / Android back / iOS UI 버튼) ───
+        private GameObject BuildBackButton(Transform parent)
+        {
+            var go = UIBuilder.CirclePanel(parent, "BackBtn",
+                new Vector2(0.04f, 0.15f), new Vector2(0.15f, 0.85f),
+                DesignTokens.Surface);
+            UIBuilder.Label(go.transform, "←", 42, DesignTokens.Text,
+                TextAlignmentOptions.Center).fontStyle = FontStyles.Bold;
+            var btn = go.AddComponent<Button>();
+            btn.targetGraphic = go.GetComponent<Image>();
+            btn.onClick.AddListener(HandleBack);
+            go.SetActive(false); // 초기엔 홈 탭이라 숨김
+            return go;
+        }
+
+        private void Update()
+        {
+            // ESC (키보드/에디터) 또는 Android 뒤로가기 버튼
+            if (UnityEngine.Input.GetKeyDown(KeyCode.Escape))
+            {
+                HandleBack();
+            }
+        }
+
+        private void HandleBack()
+        {
+            // 1) 팝업 열려있으면 팝업만 닫기
+            if (_quitPopup != null)
+            {
+                Destroy(_quitPopup);
+                _quitPopup = null;
+                return;
+            }
+            // 2) 결과 화면이면 홈으로
+            if (_resultPanel != null)
+            {
+                Destroy(_resultPanel);
+                _resultPanel = null;
+                ShowHome();
+                return;
+            }
+            // 3) 홈 외 탭이면 홈 탭으로
+            if (_activeTab != 0)
+            {
+                SwitchTab(0);
+                return;
+            }
+            // 4) 홈 탭에서 한 번 더 → 종료 확인 팝업
+            ShowQuitPopup();
+        }
+
+        private void ShowQuitPopup()
+        {
+            if (_quitPopup != null) return;
+            // 반투명 오버레이
+            _quitPopup = UIBuilder.Panel(_rootCanvas.transform, "QuitPopup",
+                Vector2.zero, Vector2.one,
+                new Color(0f, 0f, 0f, 0.75f));
+            // 오버레이 클릭 차단 (Button 없이 Image 만으로도 raycast 막힘)
+
+            // 중앙 박스
+            var box = UIBuilder.RoundedPanel(_quitPopup.transform, "Box",
+                new Vector2(0.1f, 0.38f), new Vector2(0.9f, 0.62f),
+                DesignTokens.Surface, 24);
+
+            UIBuilder.Label(box.transform, "숏게타를 종료할까요?",
+                DesignTokens.FontH2, DesignTokens.Text, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.05f, 0.55f), anchorMax: new Vector2(0.95f, 0.9f))
+                .fontStyle = FontStyles.Bold;
+
+            UIBuilder.Label(box.transform, "진행 중인 세션이 있으면 저장되지 않아요",
+                DesignTokens.FontCaption, DesignTokens.TextDim, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.05f, 0.35f), anchorMax: new Vector2(0.95f, 0.55f));
+
+            // 취소
+            UIBuilder.Button(box.transform, "CancelBtn",
+                DesignTokens.Surface2, DesignTokens.Text,
+                "취소", DesignTokens.FontBody,
+                new Vector2(0.08f, 0.08f), new Vector2(0.48f, 0.3f),
+                () =>
+                {
+                    Destroy(_quitPopup);
+                    _quitPopup = null;
+                },
+                radius: 20);
+
+            // 종료
+            UIBuilder.Button(box.transform, "QuitBtn",
+                DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
+                "종료", DesignTokens.FontBody,
+                new Vector2(0.52f, 0.08f), new Vector2(0.92f, 0.3f),
+                () =>
+                {
+#if UNITY_EDITOR
+                    UnityEditor.EditorApplication.isPlaying = false;
+#else
+                    Application.Quit();
+#endif
+                },
+                radius: 20);
         }
 
         // 탭 내부에 VerticalLayoutGroup + ContentSizeFitter 가 붙은 스크롤 컨테이너 생성.
