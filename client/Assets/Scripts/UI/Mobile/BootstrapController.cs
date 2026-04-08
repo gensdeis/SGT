@@ -1169,14 +1169,14 @@ namespace ShortGeta.UI.Mobile
             UIBuilder.Label(thumb.transform, emoji, 160, DesignTokens.Text,
                 TextAlignmentOptions.Center);
 
-            // 우하단 하트 (보관함 토글 — 실 API 연동)
+            // 우하단 하트 — 레퍼런스 기준 안쪽으로 들이고 크기 축소
             bool favorited = _gameStats.TryGetValue(g.Id, out var stat0) && stat0.Favorited;
             var heart = UIBuilder.Panel(thumb.transform, "Heart",
-                new Vector2(0.90f, 0.02f), new Vector2(1.00f, 0.18f),
+                new Vector2(0.86f, 0.05f), new Vector2(0.96f, 0.18f),
                 DesignTokens.Alpha(DesignTokens.Bg, 0f));
             var heartBtn = heart.AddComponent<Button>();
             heartBtn.targetGraphic = heart.GetComponent<Image>();
-            var heartLabel = UIBuilder.Label(heart.transform, "♥", 56,
+            var heartLabel = UIBuilder.Label(heart.transform, "♥", 48,
                 favorited ? HeartRed : HeartWhite, TextAlignmentOptions.Center);
             heartBtn.onClick.AddListener(() => ToggleFavoriteAsync(g.Id, heartLabel).Forget());
 
