@@ -614,11 +614,25 @@ namespace ShortGeta.UI.Mobile
         private void ShowPauseMenu()
         {
             if (_pauseMenu != null) return;
-            // 게임 일시정지
+            // 게임 일시정지 — timeScale 0 + runtime GO 비활성화 (Input 폴링 차단)
             Time.timeScale = 0f;
+            if (_currentRuntimeGo != null) _currentRuntimeGo.SetActive(false);
 
-            _pauseMenu = UIBuilder.Panel(_rootCanvas.transform, "PauseMenu",
-                Vector2.zero, Vector2.one, new Color(0f, 0f, 0f, 0.75f));
+            // 최상위 보장을 위해 별도 Canvas 사용 (sortingOrder 9999)
+            _pauseMenu = new GameObject("PauseMenuCanvas");
+            _pauseMenu.transform.SetParent(_rootCanvas.transform.parent, false);
+            var canvas = _pauseMenu.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 9999;
+            _pauseMenu.AddComponent<UnityEngine.UI.CanvasScaler>().uiScaleMode
+                = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            var scaler = _pauseMenu.GetComponent<UnityEngine.UI.CanvasScaler>();
+            scaler.referenceResolution = new Vector2(720, 1280);
+            scaler.matchWidthOrHeight = 0.5f;
+            _pauseMenu.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+
+            UIBuilder.FillPanel(_pauseMenu.transform, "Overlay",
+                new Color(0f, 0f, 0f, 0.75f));
 
             var box = UIBuilder.RoundedPanel(_pauseMenu.transform, "Box",
                 new Vector2(0.1f, 0.28f), new Vector2(0.9f, 0.72f),
@@ -662,6 +676,7 @@ namespace ShortGeta.UI.Mobile
                 _pauseMenu = null;
             }
             Time.timeScale = 1f;
+            if (_currentRuntimeGo != null) _currentRuntimeGo.SetActive(true);
         }
 
         private void AbortSession()
