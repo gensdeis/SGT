@@ -516,15 +516,27 @@ namespace ShortGeta.UI.Mobile
 
         private void BuildProfileAvatar(Transform parent)
         {
-            // 우상단 원형 아바타 (닉네임 첫글자) + 코인 mini
-            var go = UIBuilder.CirclePanel(parent, "Profile",
-                new Vector2(0.82f, 0.15f), new Vector2(0.94f, 0.85f),
-                DesignTokens.AccentDark);
+            // 우상단 원형 아바타 — 고정 픽셀 크기로 정원 보장 (타원 왜곡 방지)
+            const float avatarSize = 90f;
+            var go = new GameObject("Profile");
+            go.transform.SetParent(parent, false);
+            var rt = go.AddComponent<RectTransform>();
+            // anchor 는 한 점 (우측 중앙) — anchor box 가 0 이라 sizeDelta 가 실 픽셀
+            rt.anchorMin = new Vector2(0.90f, 0.5f);
+            rt.anchorMax = new Vector2(0.90f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(avatarSize, avatarSize);
+            var img = go.AddComponent<Image>();
+            img.color = DesignTokens.AccentDark;
+            img.sprite = RoundedSpriteFactory.GetCircle();
+            img.type = Image.Type.Simple;
+            img.preserveAspect = true;
+
             string initial = "?";
             if (_me != null && !string.IsNullOrEmpty(_me.Nickname))
                 initial = _me.Nickname.Substring(0, 1);
             else if (_me != null)
-                initial = "냥";
+                initial = "냉";
             UIBuilder.Label(go.transform, initial, 36, DesignTokens.PrimaryCTA,
                 TextAlignmentOptions.Center)
                 .fontStyle = FontStyles.Bold;
@@ -539,13 +551,25 @@ namespace ShortGeta.UI.Mobile
         // ─── 백 네비게이션 (ESC / Android back / iOS UI 버튼) ───
         private GameObject BuildBackButton(Transform parent)
         {
-            var go = UIBuilder.CirclePanel(parent, "BackBtn",
-                new Vector2(0.04f, 0.15f), new Vector2(0.15f, 0.85f),
-                DesignTokens.Surface);
+            // 좌상단 원형 백버튼 — 고정 픽셀 크기 정원
+            const float size = 72f;
+            var go = new GameObject("BackBtn");
+            go.transform.SetParent(parent, false);
+            var rt = go.AddComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.08f, 0.5f);
+            rt.anchorMax = new Vector2(0.08f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(size, size);
+            var img = go.AddComponent<Image>();
+            img.color = DesignTokens.Surface;
+            img.sprite = RoundedSpriteFactory.GetCircle();
+            img.type = Image.Type.Simple;
+            img.preserveAspect = true;
+
             UIBuilder.Label(go.transform, "←", 42, DesignTokens.Text,
                 TextAlignmentOptions.Center).fontStyle = FontStyles.Bold;
             var btn = go.AddComponent<Button>();
-            btn.targetGraphic = go.GetComponent<Image>();
+            btn.targetGraphic = img;
             btn.onClick.AddListener(HandleBack);
             go.SetActive(false); // 초기엔 홈 탭이라 숨김
             return go;
