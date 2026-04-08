@@ -340,6 +340,10 @@ namespace ShortGeta.UI.Mobile
 
         // Iter UI v1.3: fake play count 는 /v1/me/game-stats 실 API 로 대체됨.
 
+        // 하트 색상 상수
+        private static readonly Color HeartWhite = new Color(1f, 1f, 1f, 0.9f);
+        private static readonly Color HeartRed = new Color(1f, 0.28f, 0.37f, 1f); // #ff4760
+
         private void ShowHome()
         {
             if (_resultPanel != null) Destroy(_resultPanel);
@@ -450,6 +454,8 @@ namespace ShortGeta.UI.Mobile
 
         private async UniTaskVoid ToggleFavoriteAsync(string gameId, TMPro.TextMeshProUGUI heartLabel)
         {
+            // 즉시 punch 애니메이션 — 서버 응답 기다리지 않고 반응감 확보
+            PunchHeartAsync(heartLabel).Forget();
             try
             {
                 bool currently = _gameStats.TryGetValue(gameId, out var s) && s.Favorited;
@@ -460,7 +466,8 @@ namespace ShortGeta.UI.Mobile
                     existing.Favorited = res.Favorited;
                 else
                     _gameStats[gameId] = new GameStat { GameId = gameId, Favorited = res.Favorited };
-                heartLabel.text = res.Favorited ? "♥" : "♡";
+                heartLabel.text = "♥";
+                heartLabel.color = res.Favorited ? HeartRed : HeartWhite;
 
                 // 보관함 탭에서 unfavorite 하면 즉시 목록 갱신
                 if (_activeTab == 2 && !res.Favorited)
@@ -472,6 +479,39 @@ namespace ShortGeta.UI.Mobile
             {
                 Toast.Show("보관함 실패: " + e.Message, 3f);
             }
+        }
+
+        // 하트 클릭 시 punch 효과 (1.0 → 1.5 → 1.0).
+        private static async UniTaskVoid PunchHeartAsync(TMPro.TextMeshProUGUI heartLabel)
+        {
+            if (heartLabel == null) return;
+            var rt = heartLabel.rectTransform;
+            const float upDur = 0.10f;
+            const float downDur = 0.18f;
+            const float peak = 1.5f;
+            float t = 0f;
+            while (t < upDur)
+            {
+                if (heartLabel == null) return;
+                t += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t / upDur);
+                // easeOutQuad
+                k = 1f - (1f - k) * (1f - k);
+                rt.localScale = Vector3.one * Mathf.Lerp(1f, peak, k);
+                await UniTask.Yield();
+            }
+            t = 0f;
+            while (t < downDur)
+            {
+                if (heartLabel == null) return;
+                t += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t / downDur);
+                // easeInOutCubic
+                k = k < 0.5f ? 4f * k * k * k : 1f - Mathf.Pow(-2f * k + 2f, 3f) / 2f;
+                rt.localScale = Vector3.one * Mathf.Lerp(peak, 1f, k);
+                await UniTask.Yield();
+            }
+            if (heartLabel != null) rt.localScale = Vector3.one;
         }
 
         private void BuildProfileAvatar(Transform parent)
@@ -1054,8 +1094,8 @@ namespace ShortGeta.UI.Mobile
                 DesignTokens.Alpha(DesignTokens.Bg, 0f));
             var heartBtn = heart.AddComponent<Button>();
             heartBtn.targetGraphic = heart.GetComponent<Image>();
-            var heartLabel = UIBuilder.Label(heart.transform, favorited ? "♥" : "♡", 56,
-                DesignTokens.Hex("#f472b6"), TextAlignmentOptions.Center);
+            var heartLabel = UIBuilder.Label(heart.transform, "♥", 56,
+                favorited ? HeartRed : HeartWhite, TextAlignmentOptions.Center);
             heartBtn.onClick.AddListener(() => ToggleFavoriteAsync(g.Id, heartLabel).Forget());
 
             // 좌상단 랭킹 배지 (인기 탭) — 카드 최상위
