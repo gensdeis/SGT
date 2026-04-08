@@ -460,6 +460,12 @@ namespace ShortGeta.UI.Mobile
                 else
                     _gameStats[gameId] = new GameStat { GameId = gameId, Favorited = res.Favorited };
                 heartLabel.text = res.Favorited ? "♥" : "♡";
+
+                // 보관함 탭에서 unfavorite 하면 즉시 목록 갱신
+                if (_activeTab == 2 && !res.Favorited)
+                {
+                    SwitchTab(2);
+                }
             }
             catch (System.Exception e)
             {
