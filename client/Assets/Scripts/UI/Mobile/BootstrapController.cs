@@ -398,6 +398,10 @@ namespace ShortGeta.UI.Mobile
         private readonly System.Collections.Generic.List<(GameObject icon, GameObject label)> _navTabVisuals = new();
         private GameObject _backButton;
         private GameObject _quitPopup;
+        private GameObject _pauseMenu;
+        private bool _sessionActive;
+        private GameObject _currentRuntimeGo;
+        private UniTaskCompletionSource<MinigameResult> _currentMinigameTcs;
 
         private void SwitchTab(int idx)
         {
@@ -518,14 +522,26 @@ namespace ShortGeta.UI.Mobile
 
         private void HandleBack()
         {
-            // 1) 팝업 열려있으면 팝업만 닫기
+            // 1) 종료 팝업 열려있으면 닫기
             if (_quitPopup != null)
             {
                 Destroy(_quitPopup);
                 _quitPopup = null;
                 return;
             }
-            // 2) 결과 화면이면 홈으로
+            // 2) 일시정지 메뉴 열려있으면 재개
+            if (_pauseMenu != null)
+            {
+                ResumeGame();
+                return;
+            }
+            // 3) 세션 진행 중이면 일시정지 메뉴
+            if (_sessionActive)
+            {
+                ShowPauseMenu();
+                return;
+            }
+            // 4) 결과 화면이면 홈으로
             if (_resultPanel != null)
             {
                 Destroy(_resultPanel);
@@ -533,13 +549,13 @@ namespace ShortGeta.UI.Mobile
                 ShowHome();
                 return;
             }
-            // 3) 홈 외 탭이면 홈 탭으로
+            // 5) 홈 외 탭이면 홈 탭으로
             if (_activeTab != 0)
             {
                 SwitchTab(0);
                 return;
             }
-            // 4) 홈 탭에서 한 번 더 → 종료 확인 팝업
+            // 6) 홈 탭에서 한 번 더 → 종료 확인 팝업
             ShowQuitPopup();
         }
 
@@ -592,6 +608,82 @@ namespace ShortGeta.UI.Mobile
 #endif
                 },
                 radius: 20);
+        }
+
+        // ─── 일시정지 메뉴 (세션 진행 중) ───
+        private void ShowPauseMenu()
+        {
+            if (_pauseMenu != null) return;
+            // 게임 일시정지
+            Time.timeScale = 0f;
+
+            _pauseMenu = UIBuilder.Panel(_rootCanvas.transform, "PauseMenu",
+                Vector2.zero, Vector2.one, new Color(0f, 0f, 0f, 0.75f));
+
+            var box = UIBuilder.RoundedPanel(_pauseMenu.transform, "Box",
+                new Vector2(0.1f, 0.28f), new Vector2(0.9f, 0.72f),
+                DesignTokens.Surface, 24);
+
+            UIBuilder.Label(box.transform, "일시정지",
+                DesignTokens.FontH2, DesignTokens.Text, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.05f, 0.82f), anchorMax: new Vector2(0.95f, 0.95f))
+                .fontStyle = FontStyles.Bold;
+
+            // 게임 재개 (최상단, PrimaryCTA)
+            UIBuilder.Button(box.transform, "ResumeBtn",
+                DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
+                "▶ 게임 재개", DesignTokens.FontBody,
+                new Vector2(0.08f, 0.55f), new Vector2(0.92f, 0.75f),
+                ResumeGame,
+                radius: 20);
+
+            // 설정
+            UIBuilder.Button(box.transform, "SettingsBtn",
+                DesignTokens.Surface2, DesignTokens.Text,
+                "⚙ 설정", DesignTokens.FontBody,
+                new Vector2(0.08f, 0.32f), new Vector2(0.92f, 0.52f),
+                () => Toast.Show("세션 중 설정은 곧 나옵니다", 2f),
+                radius: 20);
+
+            // 그만하기 (하단)
+            UIBuilder.Button(box.transform, "AbortBtn",
+                DesignTokens.Surface2, DesignTokens.Hex("#f472b6"),
+                "그만하기", DesignTokens.FontBody,
+                new Vector2(0.08f, 0.09f), new Vector2(0.92f, 0.29f),
+                AbortSession,
+                radius: 20);
+        }
+
+        private void ResumeGame()
+        {
+            if (_pauseMenu != null)
+            {
+                Destroy(_pauseMenu);
+                _pauseMenu = null;
+            }
+            Time.timeScale = 1f;
+        }
+
+        private void AbortSession()
+        {
+            Time.timeScale = 1f;
+            if (_pauseMenu != null)
+            {
+                Destroy(_pauseMenu);
+                _pauseMenu = null;
+            }
+            // 현재 minigame 을 취소하면 StartSession 의 OperationCanceledException catch 가 ShowHome 호출
+            _sessionActive = false;
+            if (_currentMinigameTcs != null)
+            {
+                _currentMinigameTcs.TrySetException(new System.OperationCanceledException("user abort"));
+            }
+            if (_currentRuntimeGo != null)
+            {
+                Destroy(_currentRuntimeGo);
+                _currentRuntimeGo = null;
+            }
+            _recording?.StopRecording();
         }
 
         // 탭 내부에 VerticalLayoutGroup + ContentSizeFitter 가 붙은 스크롤 컨테이너 생성.
@@ -1117,6 +1209,7 @@ namespace ShortGeta.UI.Mobile
             {
                 _homePanel.SetActive(false);
                 _sessionHighlights.Clear();
+                _sessionActive = true;
                 Debug.Log("[Bootstrap] starting session...");
                 var session = await _sessionApi.StartAsync();
                 _currentDdaIntensity = session.DdaIntensity;
@@ -1157,12 +1250,22 @@ namespace ShortGeta.UI.Mobile
                 var endResp = await _sessionApi.EndAsync(session.SessionId, subs.ToArray());
                 Debug.Log($"[Bootstrap] end accepted={string.Join(",", endResp.Accepted)} rejected={string.Join(",", endResp.Rejected)}");
 
+                _sessionActive = false;
                 ShowResult(results, endResp);
+            }
+            catch (System.OperationCanceledException)
+            {
+                Debug.Log("[Bootstrap] session aborted by user");
+                _sessionActive = false;
+                Time.timeScale = 1f;
+                ShowHome();
             }
             catch (System.Exception e)
             {
                 Debug.LogError($"[Bootstrap] session failed: {e}");
                 Toast.Show("세션 실패: " + e.Message, 4f);
+                _sessionActive = false;
+                Time.timeScale = 1f;
                 ShowHome();
             }
         }
@@ -1170,6 +1273,7 @@ namespace ShortGeta.UI.Mobile
         private async UniTask<MinigameResult> PlaySingleAsync(string gameId)
         {
             var go = new GameObject($"Runtime.{gameId}");
+            _currentRuntimeGo = go;
 
             // FrogCatch 만 Addressable 우선 시도 (Iter 2C')
             IMinigame game = null;
@@ -1192,6 +1296,7 @@ namespace ShortGeta.UI.Mobile
 
             var launcher = go.AddComponent<MinigameLauncher>();
             var tcs = new UniTaskCompletionSource<MinigameResult>();
+            _currentMinigameTcs = tcs;
             launcher.OnFinished += r => tcs.TrySetResult(r);
 
             // 카운트다운
@@ -1217,6 +1322,8 @@ namespace ShortGeta.UI.Mobile
             }
 
             Destroy(go);
+            _currentRuntimeGo = null;
+            _currentMinigameTcs = null;
             return result;
         }
 
