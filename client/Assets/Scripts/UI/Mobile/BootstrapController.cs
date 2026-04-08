@@ -829,36 +829,111 @@ namespace ShortGeta.UI.Mobile
             }
         }
 
+        // image.png 스펙 적용:
+        // CardContainer (Rounded 24, #0B4635) + HorizontalLayoutGroup
+        //   LeftContent (VerticalLayoutGroup) → TitleText + SubtitleText
+        //   StartButton (Pill, #B2EBF2) → "▶ 바로 시작"
         private void BuildQuickStartCard(Transform parent)
         {
-            var go = new GameObject("QuickStartWrap");
-            go.transform.SetParent(parent, false);
-            var le = go.AddComponent<LayoutElement>();
-            le.preferredHeight = 180;
+            var wrap = new GameObject("QuickStartWrap");
+            wrap.transform.SetParent(parent, false);
+            var wrapLe = wrap.AddComponent<LayoutElement>();
+            wrapLe.preferredHeight = 180;
 
-            var quick = UIBuilder.RoundedPanel(go.transform, "QuickStart",
-                Vector2.zero, Vector2.one, DesignTokens.QuickBg, 20);
+            // 카드 — 9-slice rounded Image + HLG
+            var card = UIBuilder.RoundedPanel(wrap.transform, "AlgorithmSessionCard",
+                Vector2.zero, Vector2.one,
+                DesignTokens.Hex("#0B4635"), 24);
+            var hlg = card.AddComponent<HorizontalLayoutGroup>();
+            hlg.padding = new RectOffset(32, 24, 24, 24);
+            hlg.spacing = 20;
+            hlg.childAlignment = TextAnchor.MiddleLeft;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = true;
 
-            // 타이틀 — 한 줄, 세로 중앙 정렬, 크기 축소로 한 줄 수용
-            var title = UIBuilder.Label(quick.transform, "알고리즘 세션 시작",
-                36, DesignTokens.PrimaryCTA, TextAlignmentOptions.MidlineLeft,
-                anchorMin: new Vector2(0.06f, 0f), anchorMax: new Vector2(0.58f, 1f));
+            // ── LeftContent (vertical title + subtitle) ──
+            var left = new GameObject("LeftContent");
+            left.transform.SetParent(card.transform, false);
+            left.AddComponent<RectTransform>();
+            var leftLe = left.AddComponent<LayoutElement>();
+            leftLe.flexibleWidth = 1;
+            leftLe.flexibleHeight = 1;
+            leftLe.minHeight = 80;
+            var vlg = left.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = 6;
+            vlg.childAlignment = TextAnchor.MiddleLeft;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+
+            // Title
+            var titleGo = new GameObject("TitleText");
+            titleGo.transform.SetParent(left.transform, false);
+            var titleLe = titleGo.AddComponent<LayoutElement>();
+            titleLe.preferredHeight = 50;
+            var title = titleGo.AddComponent<TextMeshProUGUI>();
+            title.text = "알고리즘 세션 시작";
+            title.fontSize = 36;
+            title.color = DesignTokens.Hex("#E7FFF6");
             title.fontStyle = FontStyles.Bold;
+            title.alignment = TextAlignmentOptions.Left;
+            title.textWrappingMode = TextWrappingModes.NoWrap;
             title.enableAutoSizing = true;
             title.fontSizeMin = 24;
             title.fontSizeMax = 40;
-            title.textWrappingMode = TextWrappingModes.NoWrap;
 
-            // 바로 시작 — 세로 중앙, pill (라운드 최대)
-            var btnHeight = 0.56f;
-            var btnCenter = 0.5f;
-            UIBuilder.Button(quick.transform, "QuickPlayBtn",
-                DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
-                "▶ 바로 시작", 30,
-                new Vector2(0.62f, btnCenter - btnHeight / 2f),
-                new Vector2(0.94f, btnCenter + btnHeight / 2f),
-                () => StartSession().Forget(),
-                radius: 64); // 높이의 약 절반 이상 — pill 모양
+            // Subtitle
+            var subGo = new GameObject("SubtitleText");
+            subGo.transform.SetParent(left.transform, false);
+            var subLe = subGo.AddComponent<LayoutElement>();
+            subLe.preferredHeight = 32;
+            var sub = subGo.AddComponent<TextMeshProUGUI>();
+            sub.text = runFrogCatchOnly ? "디버그: frog_catch 1판" : "반응속도 · 동물 취향 맞춤";
+            sub.fontSize = 22;
+            sub.color = DesignTokens.Hex("#82C8AD");
+            sub.alignment = TextAlignmentOptions.Left;
+            sub.textWrappingMode = TextWrappingModes.NoWrap;
+
+            // ── StartButton (pill) ──
+            var btnGo = new GameObject("StartButton");
+            btnGo.transform.SetParent(card.transform, false);
+            var btnLe = btnGo.AddComponent<LayoutElement>();
+            btnLe.preferredWidth = 220;
+            btnLe.preferredHeight = 80;
+            btnLe.flexibleWidth = 0;
+            var btnImg = btnGo.AddComponent<Image>();
+            btnImg.color = DesignTokens.Hex("#B2EBF2");
+            btnImg.sprite = RoundedSpriteFactory.GetRounded(40);
+            btnImg.type = Image.Type.Sliced;
+            btnImg.pixelsPerUnitMultiplier = 1f;
+
+            var btn = btnGo.AddComponent<Button>();
+            btn.targetGraphic = btnImg;
+            btn.onClick.AddListener(() => StartSession().Forget());
+            var cb = btn.colors;
+            cb.normalColor      = DesignTokens.Hex("#B2EBF2");
+            cb.highlightedColor = DesignTokens.Hex("#9FE1CB");
+            cb.pressedColor     = DesignTokens.Hex("#7ACBAA");
+            cb.selectedColor    = DesignTokens.Hex("#B2EBF2");
+            btn.colors = cb;
+
+            // Button Label
+            var btnLblGo = new GameObject("ButtonLabel");
+            btnLblGo.transform.SetParent(btnGo.transform, false);
+            var btnLblRt = btnLblGo.AddComponent<RectTransform>();
+            btnLblRt.anchorMin = Vector2.zero;
+            btnLblRt.anchorMax = Vector2.one;
+            btnLblRt.offsetMin = Vector2.zero;
+            btnLblRt.offsetMax = Vector2.zero;
+            var btnLbl = btnLblGo.AddComponent<TextMeshProUGUI>();
+            btnLbl.text = "▶ 바로 시작";
+            btnLbl.fontSize = 28;
+            btnLbl.color = DesignTokens.Hex("#04342C");
+            btnLbl.fontStyle = FontStyles.Bold;
+            btnLbl.alignment = TextAlignmentOptions.Center;
         }
 
         // ─── 인기 탭 ───
