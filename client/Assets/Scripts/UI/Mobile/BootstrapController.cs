@@ -851,7 +851,7 @@ namespace ShortGeta.UI.Mobile
             hlg.childControlWidth = true;
             hlg.childControlHeight = true;
             hlg.childForceExpandWidth = false;
-            hlg.childForceExpandHeight = true;
+            hlg.childForceExpandHeight = false; // 버튼 세로 stretch 방지 (pill 모양 유지)
 
             // ── LeftContent (vertical title + subtitle) ──
             var left = new GameObject("LeftContent");
@@ -1172,7 +1172,7 @@ namespace ShortGeta.UI.Mobile
             // 우하단 하트 — 썸네일 우측에 가까이 (경계에 붙지는 않음)
             bool favorited = _gameStats.TryGetValue(g.Id, out var stat0) && stat0.Favorited;
             var heart = UIBuilder.Panel(thumb.transform, "Heart",
-                new Vector2(0.88f, 0.04f), new Vector2(0.985f, 0.18f),
+                new Vector2(0.918f, 0.06f), new Vector2(1.023f, 0.20f),
                 DesignTokens.Alpha(DesignTokens.Bg, 0f));
             var heartBtn = heart.AddComponent<Button>();
             heartBtn.targetGraphic = heart.GetComponent<Image>();
