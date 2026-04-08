@@ -834,24 +834,31 @@ namespace ShortGeta.UI.Mobile
             var go = new GameObject("QuickStartWrap");
             go.transform.SetParent(parent, false);
             var le = go.AddComponent<LayoutElement>();
-            le.preferredHeight = 240;
+            le.preferredHeight = 180;
 
             var quick = UIBuilder.RoundedPanel(go.transform, "QuickStart",
                 Vector2.zero, Vector2.one, DesignTokens.QuickBg, 20);
-            UIBuilder.Label(quick.transform, "알고리즘 세션 시작",
-                DesignTokens.FontH2, DesignTokens.PrimaryCTA, TextAlignmentOptions.TopLeft,
-                anchorMin: new Vector2(0.05f, 0.5f), anchorMax: new Vector2(0.6f, 0.95f))
-                .fontStyle = FontStyles.Bold;
-            UIBuilder.Label(quick.transform,
-                runFrogCatchOnly ? "디버그: frog_catch 1판" : "반응속도 · 동물 취향 맞춤",
-                DesignTokens.FontCaption, DesignTokens.PrimaryCTA, TextAlignmentOptions.TopLeft,
-                anchorMin: new Vector2(0.05f, 0.15f), anchorMax: new Vector2(0.6f, 0.5f));
+
+            // 타이틀 — 한 줄, 세로 중앙 정렬, 크기 축소로 한 줄 수용
+            var title = UIBuilder.Label(quick.transform, "알고리즘 세션 시작",
+                36, DesignTokens.PrimaryCTA, TextAlignmentOptions.MidlineLeft,
+                anchorMin: new Vector2(0.06f, 0f), anchorMax: new Vector2(0.58f, 1f));
+            title.fontStyle = FontStyles.Bold;
+            title.enableAutoSizing = true;
+            title.fontSizeMin = 24;
+            title.fontSizeMax = 40;
+            title.textWrappingMode = TextWrappingModes.NoWrap;
+
+            // 바로 시작 — 세로 중앙, pill (라운드 최대)
+            var btnHeight = 0.56f;
+            var btnCenter = 0.5f;
             UIBuilder.Button(quick.transform, "QuickPlayBtn",
                 DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
-                "▶ 바로 시작", DesignTokens.FontBody,
-                new Vector2(0.62f, 0.25f), new Vector2(0.95f, 0.75f),
+                "▶ 바로 시작", 30,
+                new Vector2(0.62f, btnCenter - btnHeight / 2f),
+                new Vector2(0.94f, btnCenter + btnHeight / 2f),
                 () => StartSession().Forget(),
-                radius: 28);
+                radius: 64); // 높이의 약 절반 이상 — pill 모양
         }
 
         // ─── 인기 탭 ───
