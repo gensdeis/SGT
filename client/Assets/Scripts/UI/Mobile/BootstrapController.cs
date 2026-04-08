@@ -1169,10 +1169,10 @@ namespace ShortGeta.UI.Mobile
             UIBuilder.Label(thumb.transform, emoji, 160, DesignTokens.Text,
                 TextAlignmentOptions.Center);
 
-            // 우하단 하트 — 레퍼런스 기준 안쪽으로 들이고 크기 축소
+            // 우하단 하트 — 썸네일 우측에 가까이 (경계에 붙지는 않음)
             bool favorited = _gameStats.TryGetValue(g.Id, out var stat0) && stat0.Favorited;
             var heart = UIBuilder.Panel(thumb.transform, "Heart",
-                new Vector2(0.86f, 0.05f), new Vector2(0.96f, 0.18f),
+                new Vector2(0.88f, 0.04f), new Vector2(0.985f, 0.18f),
                 DesignTokens.Alpha(DesignTokens.Bg, 0f));
             var heartBtn = heart.AddComponent<Button>();
             heartBtn.targetGraphic = heart.GetComponent<Image>();
