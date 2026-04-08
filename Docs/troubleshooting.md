@@ -562,4 +562,30 @@ Dynamic 모드 전환 후에도 이 Padding 값이 그대로라 atlas 에서 글
 
 ---
 
+## 2026-04-09 — user_favorites FK violation
+
+**증상**
+```
+POST /v1/me/favorites/frog_catch_v1 → 500
+insert or update on table "user_favorites"
+  violates foreign key constraint "user_favorites_game_id_fkey"
+```
+
+**원인**
+`games` 테이블이 DB 에서 비어있음. 게임 정의는 `config/games.yaml` 에만 있고, 부팅 시 DB 로 sync 하는 코드가 없었다. 따라서 `user_favorites.game_id` FK 가 실패.
+
+**해결**
+`cmd/api/main.go` 에서 store 초기화 직후 yaml games 를 DB 로 upsert:
+```go
+for _, g := range games.All() {
+    store.UpsertGame(rootCtx, storage.UpsertGameParams{...})
+}
+```
+
+**재발 방지**
+- 새 FK 가 games.id 를 참조하는 테이블을 만들 땐 항상 games 테이블이 seeded 되어 있는지 확인
+- yaml → DB sync 는 idempotent upsert 이므로 매 부팅마다 안전하게 실행
+
+---
+
 > ⬇ 새 항목은 여기 아래에 추가
