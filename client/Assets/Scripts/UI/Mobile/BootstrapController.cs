@@ -338,16 +338,7 @@ namespace ShortGeta.UI.Mobile
             { "math_genius_v1",  "#0d2a3a" }, // 다크 시안 (수학)
         };
 
-        // 가짜 플레이 수 (서버 API 전까지 placeholder)
-        private static readonly System.Collections.Generic.Dictionary<string, string> FakePlayCount = new()
-        {
-            { "frog_catch_v1",   "3.2만" },
-            { "noodle_boil_v1",  "2.8만" },
-            { "poker_face_v1",   "1.9만" },
-            { "dark_souls_v1",   "2.1만" },
-            { "kakao_unread_v1", "1.7만" },
-            { "math_genius_v1",  "1.4만" },
-        };
+        // Iter UI v1.3: fake play count 는 /v1/me/game-stats 실 API 로 대체됨.
 
         private void ShowHome()
         {
@@ -907,12 +898,9 @@ namespace ShortGeta.UI.Mobile
                 }
             }
 
-            // 플레이 수 (실 데이터 우선, 없으면 fake fallback)
-            string plays;
-            if (_gameStats.TryGetValue(g.Id, out var stat) && stat.PlayCount > 0)
-                plays = FormatCount(stat.PlayCount);
-            else
-                plays = FakePlayCount.TryGetValue(g.Id, out var p) ? p : "—";
+            // 플레이 수 (실 서버 데이터)
+            long playCount = _gameStats.TryGetValue(g.Id, out var stat) ? stat.PlayCount : 0;
+            string plays = FormatCount(playCount);
             var playLabel = new GameObject("Plays");
             playLabel.transform.SetParent(metaRow.transform, false);
             var plt = playLabel.AddComponent<TextMeshProUGUI>();
