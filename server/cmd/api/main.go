@@ -86,6 +86,23 @@ func main() {
 
 	store := storage.New(pool)
 
+	// Iter UI v1.3: yaml → DB sync (games 테이블 비어있으면 FK 에러)
+	for _, g := range games.All() {
+		if err := store.UpsertGame(rootCtx, storage.UpsertGameParams{
+			ID:            g.ID,
+			Title:         g.Title,
+			CreatorID:     g.CreatorID,
+			TimeLimitSec:  int32(g.TimeLimitSec),
+			Tags:          g.Tags,
+			BundleURL:     g.BundleURL,
+			BundleVersion: g.BundleVersion,
+			BundleHash:    g.BundleHash,
+		}); err != nil {
+			slog.Warn("games yaml→DB upsert failed", "id", g.ID, "error", err)
+		}
+	}
+	slog.Info("games synced to DB", "count", len(games.All()))
+
 	// === 4. Redis ===
 	redisOpts, err := redis.ParseURL(cfg.RedisURL)
 	if err != nil {
