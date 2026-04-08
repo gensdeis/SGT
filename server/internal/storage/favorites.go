@@ -43,7 +43,7 @@ func (s *Store) RemoveFavorite(ctx context.Context, userID uuid.UUID, gameID str
 // GameStat 은 한 게임의 사용자 관점 통계.
 type GameStat struct {
 	GameID     string `json:"game_id"`
-	PlayCount  int64  `json:"play_count"`  // 전체 unique 플레이어 수
+	PlayCount  int64  `json:"play_count"`  // 전체 플레이 횟수 (session_results row 수)
 	MyBest     int32  `json:"my_best"`     // 내 최고 점수 (없으면 0)
 	Favorited  bool   `json:"favorited"`   // 내 보관함 여부
 }
@@ -53,7 +53,7 @@ func (s *Store) GameStatsForUser(ctx context.Context, userID uuid.UUID) ([]GameS
 	rows, err := s.pool.Query(ctx, `
 		SELECT
 			g.id,
-			COALESCE((SELECT COUNT(DISTINCT user_id) FROM session_results WHERE game_id = g.id), 0) AS play_count,
+			COALESCE((SELECT COUNT(*) FROM session_results WHERE game_id = g.id), 0) AS play_count,
 			COALESCE((SELECT best_score FROM score_aggregates WHERE game_id = g.id AND user_id = $1), 0) AS my_best,
 			EXISTS(SELECT 1 FROM user_favorites WHERE user_id = $1 AND game_id = g.id) AS favorited
 		FROM games g
