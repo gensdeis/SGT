@@ -822,27 +822,7 @@ namespace ShortGeta.UI.Mobile
             var le = card.AddComponent<LayoutElement>();
             le.preferredHeight = 480;
 
-            // 좌상단 랭킹 배지 (인기 탭)
-            if (rank > 0)
-            {
-                var badge = UIBuilder.RoundedPanel(card.transform, "RankBadge",
-                    new Vector2(0.03f, 0.88f), new Vector2(0.20f, 0.98f),
-                    DesignTokens.Bg, 12);
-                UIBuilder.Label(badge.transform, $"{rank}위",
-                    DesignTokens.FontCaption, DesignTokens.Text,
-                    TextAlignmentOptions.Center).fontStyle = FontStyles.Bold;
-            }
-
-            // 우상단 NEW 배지 (홈 탭)
-            if (showNew)
-            {
-                var newBadge = UIBuilder.RoundedPanel(card.transform, "NewBadge",
-                    new Vector2(0.80f, 0.88f), new Vector2(0.97f, 0.98f),
-                    DesignTokens.AccentDark, 12);
-                UIBuilder.Label(newBadge.transform, "NEW",
-                    DesignTokens.FontCaption, DesignTokens.PrimaryCTA,
-                    TextAlignmentOptions.Center).fontStyle = FontStyles.Bold;
-            }
+            // 배지는 썸네일 생성 후에 추가 (밑에서 SetAsLastSibling 으로 최상위)
 
             // ─── 1. 썸네일 영역 (상단 68%, 게임별 색상, 라운드) ───
             var thumbColorHex = GameThumbBgHex.TryGetValue(g.Id, out var hex) ? hex : "#1b1e28";
@@ -858,13 +838,37 @@ namespace ShortGeta.UI.Mobile
             // 우하단 하트 (보관함 토글 — 실 API 연동)
             bool favorited = _gameStats.TryGetValue(g.Id, out var stat0) && stat0.Favorited;
             var heart = UIBuilder.Panel(thumb.transform, "Heart",
-                new Vector2(0.85f, 0.02f), new Vector2(0.97f, 0.18f),
+                new Vector2(0.90f, 0.02f), new Vector2(1.00f, 0.18f),
                 DesignTokens.Alpha(DesignTokens.Bg, 0f));
             var heartBtn = heart.AddComponent<Button>();
             heartBtn.targetGraphic = heart.GetComponent<Image>();
             var heartLabel = UIBuilder.Label(heart.transform, favorited ? "♥" : "♡", 56,
                 DesignTokens.Hex("#f472b6"), TextAlignmentOptions.Center);
             heartBtn.onClick.AddListener(() => ToggleFavoriteAsync(g.Id, heartLabel).Forget());
+
+            // 좌상단 랭킹 배지 (인기 탭) — 카드 최상위
+            if (rank > 0)
+            {
+                var badge = UIBuilder.RoundedPanel(card.transform, "RankBadge",
+                    new Vector2(0.03f, 0.88f), new Vector2(0.20f, 0.98f),
+                    DesignTokens.Bg, 12);
+                UIBuilder.Label(badge.transform, $"{rank}위",
+                    DesignTokens.FontCaption, DesignTokens.Text,
+                    TextAlignmentOptions.Center).fontStyle = FontStyles.Bold;
+                badge.transform.SetAsLastSibling();
+            }
+
+            // 우상단 NEW 배지 (홈 탭) — 카드 최상위
+            if (showNew)
+            {
+                var newBadge = UIBuilder.RoundedPanel(card.transform, "NewBadge",
+                    new Vector2(0.80f, 0.88f), new Vector2(0.97f, 0.98f),
+                    DesignTokens.AccentDark, 12);
+                UIBuilder.Label(newBadge.transform, "NEW",
+                    DesignTokens.FontCaption, DesignTokens.PrimaryCTA,
+                    TextAlignmentOptions.Center).fontStyle = FontStyles.Bold;
+                newBadge.transform.SetAsLastSibling();
+            }
 
             // ─── 2. 정보 영역 (하단 32%) ───
             // 제목
