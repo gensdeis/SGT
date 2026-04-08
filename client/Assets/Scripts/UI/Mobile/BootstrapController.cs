@@ -370,9 +370,12 @@ namespace ShortGeta.UI.Mobile
                 new Vector2(0f, 0.93f), new Vector2(1f, 1f), DesignTokens.Bg);
             // 백 버튼 (iOS 용 UI, Android 도 겸용). 홈 탭이면 숨김.
             _backButton = BuildBackButton(topBar.transform);
-            UIBuilder.Label(topBar.transform, "숏게타", 56, DesignTokens.Text,
+            // "숏[게]타" — 가운데 글자 '게' 를 프로필 아바타 bg 와 동일한 AccentDark 로
+            string accentHex = ColorUtility.ToHtmlStringRGB(DesignTokens.AccentDark);
+            UIBuilder.Label(topBar.transform,
+                $"숏<color=#{accentHex}>게</color>타", 56, DesignTokens.Text,
                 TextAlignmentOptions.Left,
-                anchorMin: new Vector2(0.17f, 0f), anchorMax: new Vector2(0.7f, 1f))
+                anchorMin: new Vector2(0.03f, 0f), anchorMax: new Vector2(0.7f, 1f))
                 .fontStyle = FontStyles.Bold;
             BuildProfileAvatar(topBar.transform);
 
