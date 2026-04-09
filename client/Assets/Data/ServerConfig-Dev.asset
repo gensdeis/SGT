@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21c8a24a2ab2371418bde414f63db47c, type: 3}
   m_Name: ServerConfig-Dev
   m_EditorClassIdentifier: ShortGeta.Runtime::ShortGeta.Network.ServerConfig
-  baseUrl: http://localhost:18081
+  baseUrl: https://blitheful-renato-unhomogeneously.ngrok-free.dev
   buildGuid: local-dev-build-guid
   hmacBaseKey: local-dev-hmac-base-key
   requestTimeoutSec: 5

@@ -286,7 +286,10 @@ namespace ShortGeta.UI.Mobile
             sf?.SetValue(spawner, frogComp);
 
             var game = parent.AddComponent<FrogCatchGame>();
-            game.__TestSetSpawner(spawner);
+            // spawner 필드 리플렉션 주입 (Editor-only __TestSetSpawner 대체, 빌드 호환)
+            var spawnerField = typeof(FrogCatchGame).GetField("spawner",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            spawnerField?.SetValue(game, spawner);
             return game;
         }
 
