@@ -89,6 +89,8 @@ namespace ShortGeta.Network
             {
                 req.SetRequestHeader("Authorization", "Bearer " + t);
             }
+            // ngrok 무료 플랜 경고 페이지 우회 (dev 전용 — 운영 서버엔 무해)
+            req.SetRequestHeader("ngrok-skip-browser-warning", "1");
         }
 
         private TResp Handle<TResp>(UnityWebRequest req)
