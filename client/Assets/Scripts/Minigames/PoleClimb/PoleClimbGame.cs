@@ -12,7 +12,7 @@ namespace ShortGeta.Minigames.PoleClimb
         public string Title => "장대 오르기";
         public string CreatorId => "shotgeta_official";
         public float TimeLimit => 30f;
-        public string[] Tags => new[] { GameTags.Timing, GameTags.Everyday };
+        public string[] Tags => new[] { GameTags.Timing, GameTags.Daily };
 
         private const int MaxScore = 500;
         private SafeInt _score;

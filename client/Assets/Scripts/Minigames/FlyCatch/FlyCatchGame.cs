@@ -12,7 +12,7 @@ namespace ShortGeta.Minigames.FlyCatch
         public string Title => "파리 잡기";
         public string CreatorId => "shotgeta_official";
         public float TimeLimit => 20f;
-        public string[] Tags => new[] { GameTags.Reaction, GameTags.Animal };
+        public string[] Tags => new[] { GameTags.Reflex, GameTags.Animal };
 
         private const int MaxScore = 800;
         private const int CatchGain = 20;

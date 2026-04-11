@@ -150,6 +150,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: ShortGeta.Runtime::ShortGeta.UI.Mobile.BootstrapController
   serverConfig: {fileID: 11400000, guid: 061c542973e16ae448906a7bd7c241a1, type: 2}
   runFrogCatchOnly: 0
+  forceCodeFactoryForAllGames: 0
 --- !u!4 &239703656
 Transform:
   m_ObjectHideFlags: 0

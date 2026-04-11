@@ -12,7 +12,7 @@ namespace ShortGeta.Minigames.SoccerSide
         public string Title => "1:1 축구";
         public string CreatorId => "shotgeta_official";
         public float TimeLimit => 60f;
-        public string[] Tags => new[] { GameTags.Timing, GameTags.Everyday };
+        public string[] Tags => new[] { GameTags.Timing, GameTags.Daily };
 
         private const int MaxScore = 500;
         private const int GoalScore = 100;
