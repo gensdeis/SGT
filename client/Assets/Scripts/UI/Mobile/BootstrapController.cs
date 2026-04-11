@@ -13,6 +13,13 @@ using ShortGeta.Minigames.KakaoUnread;
 using ShortGeta.Minigames.MathGenius;
 using ShortGeta.Minigames.NoodleBoil;
 using ShortGeta.Minigames.PokerFace;
+using ClassroomClick = ShortGeta.Minigames.ClassroomClick;
+using TrackRun = ShortGeta.Minigames.TrackRun;
+using PoleClimb = ShortGeta.Minigames.PoleClimb;
+using FlyCatch = ShortGeta.Minigames.FlyCatch;
+using SoccerTopdown = ShortGeta.Minigames.SoccerTopdown;
+using SoccerSide = ShortGeta.Minigames.SoccerSide;
+using DarkExplore = ShortGeta.Minigames.DarkExplore;
 using ShortGeta.Network;
 using TMPro;
 using UnityEngine;
@@ -144,6 +151,14 @@ namespace ShortGeta.UI.Mobile
             _registry.Register("dark_souls_v1", parent => parent.AddComponent<DarkSoulsGame>());
             _registry.Register("kakao_unread_v1", parent => parent.AddComponent<KakaoUnreadGame>());
             _registry.Register("math_genius_v1", parent => parent.AddComponent<MathGeniusGame>());
+            // 신규 7종
+            _registry.Register("classroom_click_v1", parent => parent.AddComponent<ClassroomClick.ClassroomClickGame>());
+            _registry.Register("track_run_v1", parent => parent.AddComponent<TrackRun.TrackRunGame>());
+            _registry.Register("pole_climb_v1", parent => parent.AddComponent<PoleClimb.PoleClimbGame>());
+            _registry.Register("fly_catch_v1", parent => parent.AddComponent<FlyCatch.FlyCatchGame>());
+            _registry.Register("soccer_topdown_v1", parent => parent.AddComponent<SoccerTopdown.SoccerTopdownGame>());
+            _registry.Register("soccer_side_v1", parent => parent.AddComponent<SoccerSide.SoccerSideGame>());
+            _registry.Register("dark_explore_v1", parent => parent.AddComponent<DarkExplore.DarkExploreGame>());
         }
 
         // Addressables 기반 IBundleLoader 초기화. 실패 시 Stub 으로 fallback.
@@ -329,6 +344,13 @@ namespace ShortGeta.UI.Mobile
             { "dark_souls_v1", "⚔" },
             { "kakao_unread_v1", "💬" },
             { "math_genius_v1", "🧮" },
+            { "classroom_click_v1", "🖱" },
+            { "track_run_v1", "🏃" },
+            { "pole_climb_v1", "🏫" },
+            { "fly_catch_v1", "🪰" },
+            { "soccer_topdown_v1", "⚽" },
+            { "soccer_side_v1", "⚽" },
+            { "dark_explore_v1", "🔦" },
         };
 
         private static readonly System.Collections.Generic.Dictionary<string, string> GameThumbBgHex = new()
@@ -339,6 +361,13 @@ namespace ShortGeta.UI.Mobile
             { "dark_souls_v1",   "#2a0d0d" }, // 다크 레드 (소울)
             { "kakao_unread_v1", "#3a3a0d" }, // 다크 옐로우 (카톡)
             { "math_genius_v1",  "#0d2a3a" }, // 다크 시안 (수학)
+            { "classroom_click_v1", "#1a1e28" }, // 다크 교실
+            { "track_run_v1",    "#0d2a0d" }, // 다크 잔디
+            { "pole_climb_v1",   "#2a3040" }, // 다크 스카이
+            { "fly_catch_v1",    "#3a3020" }, // 다크 모래
+            { "soccer_topdown_v1", "#0d300d" }, // 다크 잔디
+            { "soccer_side_v1",  "#203040" }, // 다크 하늘
+            { "dark_explore_v1", "#0a0a10" }, // 거의 검정
         };
 
         // Iter UI v1.3: fake play count 는 /v1/me/game-stats 실 API 로 대체됨.
