@@ -157,9 +157,9 @@ namespace ShortGeta.Minigames.PokerFace
             brt.offsetMin = Vector2.zero;
             brt.offsetMax = Vector2.zero;
             var img = _temptButton.AddComponent<Image>();
-            img.color = new Color(1f, 0.75f, 0.0f); // 금색
-            img.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetRounded(28);
-            img.type = Image.Type.Sliced;
+            var claimSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadByGameId("poker_face_v1", "btn_claim_reward");
+            if (claimSprite != null) { img.sprite = claimSprite; img.color = Color.white; img.preserveAspect = true; }
+            else { img.color = new Color(1f, 0.75f, 0.0f); img.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetRounded(28); img.type = Image.Type.Sliced; }
             var btn = _temptButton.AddComponent<Button>();
             btn.targetGraphic = img;
             btn.onClick.AddListener(OnTemptTapped);

@@ -1236,8 +1236,26 @@ namespace ShortGeta.UI.Mobile
             _cardThumbs[g.Id] = thumb.GetComponent<Image>();
 
             string emoji = GameEmojis.TryGetValue(g.Id, out var e) ? e : "🎮";
-            UIBuilder.Label(thumb.transform, emoji, 160, DesignTokens.Text,
+            var emojiLabel = UIBuilder.Label(thumb.transform, emoji, 160, DesignTokens.Text,
                 TextAlignmentOptions.Center);
+
+            // 스프라이트 썸네일이 있으면 이모지 대체
+            var thumbSprite = GameSpriteLoader.LoadThumbnail(g.Id);
+            if (thumbSprite != null)
+            {
+                var sprGo = new GameObject("ThumbSprite");
+                sprGo.transform.SetParent(thumb.transform, false);
+                var srt = sprGo.AddComponent<RectTransform>();
+                srt.anchorMin = new Vector2(0.15f, 0.1f);
+                srt.anchorMax = new Vector2(0.85f, 0.9f);
+                srt.offsetMin = Vector2.zero;
+                srt.offsetMax = Vector2.zero;
+                var simg = sprGo.AddComponent<Image>();
+                simg.sprite = thumbSprite;
+                simg.preserveAspect = true;
+                simg.raycastTarget = false;
+                emojiLabel.gameObject.SetActive(false); // 이모지 숨김
+            }
 
             // 우하단 하트 — 썸네일 우측에 가까이 (경계에 붙지는 않음)
             bool favorited = _gameStats.TryGetValue(g.Id, out var stat0) && stat0.Favorited;

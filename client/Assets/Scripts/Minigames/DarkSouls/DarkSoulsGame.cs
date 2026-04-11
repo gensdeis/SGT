@@ -105,14 +105,16 @@ namespace ShortGeta.Minigames.DarkSouls
             scaler.matchWidthOrHeight = 1f;
             _root.AddComponent<GraphicRaycaster>();
 
-            // 어둡고 묵직한 배경
+            // 어둡고 묵직한 배경 (스프라이트 우선)
             var bgGo = new GameObject("Bg");
             bgGo.transform.SetParent(_root.transform, false);
             var bgRt = bgGo.AddComponent<RectTransform>();
             bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
             bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
             var bgImg = bgGo.AddComponent<Image>();
-            bgImg.color = new Color(0.06f, 0.04f, 0.04f); // 거의 검정 + 약간 빨강
+            var bgSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg("dark_souls_v1");
+            if (bgSprite != null) { bgImg.sprite = bgSprite; bgImg.color = Color.white; bgImg.preserveAspect = false; }
+            else bgImg.color = new Color(0.06f, 0.04f, 0.04f);
 
             // 제목 + 점수 (상단)
             var labelGo = new GameObject("Label");

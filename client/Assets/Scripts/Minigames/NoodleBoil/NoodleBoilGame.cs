@@ -159,13 +159,16 @@ namespace ShortGeta.Minigames.NoodleBoil
             scaler.matchWidthOrHeight = 1f;
             _root.AddComponent<GraphicRaycaster>();
 
-            // 따뜻한 주방 배경
+            // 따뜻한 주방 배경 (스프라이트 우선)
             var sceneBg = new GameObject("Bg");
             sceneBg.transform.SetParent(_root.transform, false);
             var sceneBgRt = sceneBg.AddComponent<RectTransform>();
             sceneBgRt.anchorMin = Vector2.zero; sceneBgRt.anchorMax = Vector2.one;
             sceneBgRt.offsetMin = Vector2.zero; sceneBgRt.offsetMax = Vector2.zero;
-            sceneBg.AddComponent<Image>().color = new Color(0.12f, 0.08f, 0.06f); // 다크 브라운 (주방)
+            var sceneBgImg = sceneBg.AddComponent<Image>();
+            var kitchenSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg("noodle_boil_v1");
+            if (kitchenSprite != null) { sceneBgImg.sprite = kitchenSprite; sceneBgImg.color = Color.white; }
+            else sceneBgImg.color = new Color(0.12f, 0.08f, 0.06f);
 
             // Label — 라운드 + 안내
             var labelGo = new GameObject("Label");
