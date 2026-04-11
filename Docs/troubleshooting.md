@@ -588,4 +588,56 @@ for _, g := range games.All() {
 
 ---
 
+## 2026-04-11 — GameTags 상수 미존재 (CS0117, Safe Mode)
+
+**증상**
+```
+'GameTags' does not contain a definition for 'Reaction'
+'GameTags' does not contain a definition for 'Everyday'
+'GameTags' does not contain a definition for 'Concentration'
+```
+Unity Safe Mode 진입.
+
+**원인**
+신규 7종 게임에서 `GameTags.Reaction`, `GameTags.Everyday`, `GameTags.Concentration` 사용했으나
+실제 TagSystem.cs 에는 `Reflex`, `Daily`, `Focus` 로 정의됨.
+
+**해결**
+```
+GameTags.Reaction → GameTags.Reflex (반응속도)
+GameTags.Everyday → GameTags.Daily (일상)
+GameTags.Concentration → GameTags.Focus (집중력)
+```
+
+**재발 방지**
+- 새 게임 추가 시 `Core/TagSystem.cs` 의 상수 확인 후 사용
+
+---
+
+## 2026-04-11 — 서버 13종 게임 미반영 (6종만 보임)
+
+**증상**
+games.yaml 에 13종 추가했는데 서버 로그에 `games loaded count=6`.
+
+**원인**
+ArgoCD image-updater 가 새 이미지 태그를 아직 poll 안 함.
+배포된 이미지(`cb3eff4d`)가 yaml 변경 전 버전.
+
+**해결**
+```bash
+# dev 브랜치 최신 커밋 sha 확인
+git rev-parse origin/dev | head -c 8
+# → 4460fc6a
+
+# 수동 이미지 패치
+kubectl -n shortgeta-dev set image deploy/shortgeta-server \
+  api=ghcr.io/gensdeis/shortgeta-server:4460fc6a
+```
+
+**재발 방지**
+- ArgoCD image-updater poll 주기 확인 (기본 2분)
+- 급할 땐 `kubectl set image` 수동 패치
+
+---
+
 > ⬇ 새 항목은 여기 아래에 추가
