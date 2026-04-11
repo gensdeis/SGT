@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>숏게타 — 미니게임 상세 기획서</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@300;400;600;800&family=Fraunces:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0c0e13;--surface:#14161d;--surface2:#1b1e28;--border:#2a2e3a;--text:#e2e4ea;--text-dim:#8b8fa3;--accent:#5eead4;--accent2:#a78bfa;--accent3:#f472b6;--accent4:#fbbf24;--accent5:#38bdf8;--accent6:#fb923c;--g1:#5eead4;--g2:#fbbf24;--g3:#fb923c;--g4:#f472b6;--g5:#a78bfa;--g6:#38bdf8;--g7:#4ade80;--g8:#ef4444;--g9:#06b6d4;--g10:#e879f9;--g11:#84cc16;--g12:#f97316;--g13:#14b8a6}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);line-height:1.75;font-weight:300;overflow-x:hidden}
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:4rem 2rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 20% 50%,rgba(94,234,212,.07) 0%,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(167,139,250,.06) 0%,transparent 50%),radial-gradient(ellipse at 60% 80%,rgba(244,114,182,.05) 0%,transparent 50%);animation:driftBg 20s ease-in-out infinite alternate}
+@keyframes driftBg{0%{transform:rotate(0) scale(1)}100%{transform:rotate(5deg) scale(1.05)}}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1.25rem;border:1px solid var(--border);border-radius:100px;font-size:.78rem;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;backdrop-filter:blur(8px);background:rgba(20,22,29,.6);margin-bottom:2rem;font-family:'JetBrains Mono',monospace;position:relative;z-index:1}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(94,234,212,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(94,234,212,0)}}
+.hero h1{font-family:'Fraunces',serif;font-size:clamp(2.5rem,7vw,5.5rem);letter-spacing:-.03em;line-height:1.05;margin-bottom:1.5rem;position:relative;z-index:1}
+.hero h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:1.1rem;color:var(--text-dim);max-width:650px;margin-bottom:3rem;position:relative;z-index:1}
+.hero-stats{display:flex;flex-wrap:wrap;gap:2rem 3rem;justify-content:center;position:relative;z-index:1;margin-bottom:4rem}
+.hero-stat .num{font-family:'JetBrains Mono',monospace;font-size:2.4rem;font-weight:600;color:var(--accent)}
+.hero-stat .label{font-size:.8rem;color:var(--text-dim);letter-spacing:.06em;text-transform:uppercase}
+.scroll-hint{position:absolute;bottom:2rem;display:flex;flex-direction:column;align-items:center;gap:.5rem;font-size:.72rem;color:var(--text-dim);letter-spacing:.15em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;animation:bobDown 2s ease-in-out infinite;z-index:1}
+.scroll-hint svg{width:20px;height:20px;stroke:var(--text-dim)}
+@keyframes bobDown{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+.container{max-width:1100px;margin:0 auto;padding:0 2rem}
+section{padding:5rem 0}
+.section-label{display:inline-flex;align-items:center;gap:.5rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;margin-bottom:1rem}
+.section-label::before{content:'';width:24px;height:1px;background:var(--accent)}
+h2{font-family:'Fraunces',serif;font-size:clamp(1.8rem,4vw,2.6rem);letter-spacing:-.02em;margin-bottom:1rem}
+.lead{font-size:1rem;color:var(--text-dim);max-width:720px;margin-bottom:3rem}
+.divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-bottom:2rem}
+.spec-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:1.5rem}
+.spec-card h4{font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;margin-bottom:.75rem}
+.spec-card p,.spec-card li{font-size:.92rem;color:var(--text)}
+.spec-card ul{padding-left:1rem}.spec-card li{margin-bottom:.25rem}
+.game-section{border:1px solid var(--border);border-radius:20px;overflow:hidden;margin-bottom:2rem;background:var(--surface);transition:border-color .3s}
+.game-section:hover{border-color:rgba(94,234,212,.25)}
+.game-header{padding:2rem 2.5rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:1.5rem;flex-wrap:wrap}
+.game-num{font-family:'JetBrains Mono',monospace;font-size:3rem;font-weight:600;line-height:1;opacity:.18;flex-shrink:0;margin-top:4px}
+.game-meta{flex:1;min-width:200px}
+.game-title{font-family:'Fraunces',serif;font-size:1.7rem;margin-bottom:.4rem}
+.game-concept{color:var(--text-dim);font-size:.95rem}
+.badge{display:inline-flex;align-items:center;padding:.25rem .75rem;border-radius:100px;font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:600;letter-spacing:.05em;margin-right:.4rem;margin-top:.5rem}
+.badge-genre{background:rgba(94,234,212,.1);color:var(--accent)}
+.badge-view{background:rgba(167,139,250,.1);color:var(--accent2)}
+.badge-input{background:rgba(251,191,36,.1);color:var(--accent4)}
+.badge-status{background:rgba(78,222,128,.1);color:#4ade80}
+.badge-ref{background:rgba(56,189,248,.1);color:var(--accent5)}
+.game-body{padding:2rem 2.5rem}
+.highlight-box{background:linear-gradient(135deg,rgba(94,234,212,.05),rgba(167,139,250,.03));border:1px solid rgba(94,234,212,.12);border-radius:12px;padding:1.25rem 1.75rem;margin-top:1.5rem;font-size:.9rem}
+.highlight-box strong{color:var(--accent)}
+.prompt-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.75rem;margin-top:1rem;font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--accent5);line-height:1.6}
+.prompt-box .prompt-label{color:var(--text-dim);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem;display:block}
+.resource-list{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem}
+.resource-tag{background:rgba(251,191,36,.08);color:var(--accent4);padding:.2rem .6rem;border-radius:6px;font-size:.78rem;font-family:'JetBrains Mono',monospace}
+.data-table-wrap{overflow-x:auto;margin:2rem 0;border-radius:14px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--surface2)}
+th{padding:.85rem 1.25rem;text-align:left;font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+td{padding:.85rem 1.25rem;font-size:.88rem;border-top:1px solid var(--border)}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;margin:2rem 0}
+.chart-wrap canvas{max-height:400px}
+.chart-title{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1.25rem}
+nav.toc{position:fixed;right:1.75rem;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:.55rem;z-index:100}
+@media(max-width:1300px){nav.toc{display:none}}
+.toc a{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s;position:relative;display:block}
+.toc a:hover,.toc a.active{background:var(--accent);box-shadow:0 0 8px rgba(94,234,212,.4)}
+.toc a::after{content:attr(data-label);position:absolute;right:18px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:.68rem;color:var(--text-dim);opacity:0;transition:opacity .3s;pointer-events:none;font-family:'JetBrains Mono',monospace}
+.toc a:hover::after{opacity:1}
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+footer{padding:4rem 0;border-top:1px solid var(--border);text-align:center;color:var(--text-dim);font-size:.82rem}
+footer p{margin-bottom:.4rem}
+.ranking-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:1rem}
+.ranking-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center}
+.ranking-item h5{font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem;font-family:'JetBrains Mono',monospace}
+.ranking-item .val{font-size:1.3rem;font-weight:600;color:var(--accent)}
+@media(max-width:768px){.game-header{gap:1rem}.game-num{font-size:2rem}.card-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="toc" id="toc">
+<a href="#hero" data-label="표지"></a>
+<a href="#current" data-label="구현 게임"></a>
+<a href="#g1" data-label="개구리 잡기"></a>
+<a href="#g2" data-label="라면"></a>
+<a href="#g3" data-label="포커페이스"></a>
+<a href="#g4" data-label="다크소울"></a>
+<a href="#g5" data-label="카톡 읽씹"></a>
+<a href="#g6" data-label="수학 천재"></a>
+<a href="#ref" data-label="레퍼런스"></a>
+<a href="#r1" data-label="교실 클릭"></a>
+<a href="#r2" data-label="육상"></a>
+<a href="#r3" data-label="장대"></a>
+<a href="#r4" data-label="파리 잡기"></a>
+<a href="#r5" data-label="탑뷰 축구"></a>
+<a href="#r6" data-label="1:1 축구"></a>
+<a href="#r7" data-label="어둠 탐험"></a>
+<a href="#overview" data-label="요약"></a>
+<a href="#chart" data-label="분석"></a>
+</nav>
+
+<header class="hero" id="hero">
+<div class="hero-badge"><span class="dot"></span> ShortGameTown &middot; Game Design Spec &middot; v1.0</div>
+<h1><span>미니게임 상세 기획서</span></h1>
+<p class="hero-sub">숏게타(ShortGameTown) 플랫폼의 미니게임 13종 &mdash; 구현 완료 6종 + 레퍼런스 7종의 컨셉, 랭킹 시스템, 인게임 UI, 조작 설계, 필요 리소스, AI 프롬프트를 포함한 상세 기획 문서.</p>
+<div class="hero-stats">
+<div class="hero-stat"><div class="num">6</div><div class="label">구현 완료</div></div>
+<div class="hero-stat"><div class="num">7</div><div class="label">레퍼런스</div></div>
+<div class="hero-stat"><div class="num">9:16</div><div class="label">세로 화면</div></div>
+<div class="hero-stat"><div class="num">20~60s</div><div class="label">플레이 타임</div></div>
+</div>
+<div class="scroll-hint">SCROLL<svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></div>
+</header>
+
+<!-- ====== PART 1: 구현 완료 6종 ====== -->
+<div class="divider"></div>
+<section id="current" class="fade-in">
+<div class="container">
+<div class="section-label">PART 1 &mdash; 구현 완료 게임</div>
+<h2>현재 플레이 가능한 6종</h2>
+<p class="lead">Unity 6 + C# 으로 구현 완료. IMinigame + IDifficultyAware 인터페이스 기반, SafeInt 점수, DDA 난이도(-1/0/+1) 지원.</p>
+</div>
+</section>
+
+<!-- G1: 개구리 잡아라 -->
+<div class="divider"></div>
+<section id="g1" class="fade-in">
+<div class="container">
+<div class="section-label">01 &mdash; frog_catch_v1</div>
+<div class="game-section">
+<div class="game-header">
+<div class="game-num" style="color:var(--g1)">01</div>
+<div class="game-meta">
+<div class="game-title">🐸 개구리 잡아라</div>
+<div class="game-concept">화면에 랜덤 등장하는 개구리를 빠르게 터치! 두더지 잡기(Whac-A-Mole) DNA의 반응속도 게임.</div>
+<div style="margin-top:.6rem">
+<span class="badge badge-genre">반응속도</span>
+<span class="badge badge-view">세로 9:16</span>
+<span class="badge badge-input">원터치</span>
+<span class="badge badge-status">구현 완료</span>
+</div>
+</div>
+</div>
+<div class="game-body">
+<div class="card-grid">
+<div class="spec-card">
+<h4>🎯 게임 컨셉 &amp; 재미 요소</h4>
+<ul>
+<li><strong>핵심 공식:</strong> 랜덤 등장 + 빠른 반응 = 도파민 분비 (Whac-A-Mole 검증 공식)</li>
+<li>터치 성공 즉시 피드백 (+10) + 실패 패널티 (-2) &rarr; 리스크 긴장감</li>
+<li>"한 번만 더" 심리: 30초라는 짧은 시간이 재도전 욕구 극대화</li>
+<li>DDA: 쉬움(-1)은 1.5배 느린 등장, 어려움(+1)은 0.7배 빠른 등장</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>🏆 랭킹 산정 요소</h4>
+<div class="ranking-grid">
+<div class="ranking-item"><h5>총 점수</h5><div class="val">max 1,000</div></div>
+<div class="ranking-item"><h5>연속 포획</h5><div class="val">콤보 수</div></div>
+<div class="ranking-item"><h5>정확도</h5><div class="val">hit / miss %</div></div>
+</div>
+</div>
+<div class="spec-card">
+<h4>📱 인게임 UI 컨셉</h4>
+<ul>
+<li>상단 좌측: 시간 바 (30초 감소)</li>
+<li>상단 우측: 현재 점수</li>
+<li>중앙: 9:16 잔디/연못 배경, 개구리 랜덤 위치 출현</li>
+<li>터치 시: 물튀김 파티클 + 점수 플로팅 (+10 / -2)</li>
+<li>종료: 결과 오버레이 + 최고 기록 비교</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>👆 조작 방식</h4>
+<p><strong>원터치:</strong> 등장한 개구리를 탭. 빈 공간 탭 시 미스 (-2). 개구리는 1~2초 간 머물다 사라짐. 동시 2마리 이상 등장 가능 (DDA+1).</p>
+</div>
+</div>
+
+<div class="spec-card" style="margin-top:1rem">
+<h4>📦 필요 리소스</h4>
+<div class="resource-list">
+<span class="resource-tag">개구리 idle 스프라이트</span>
+<span class="resource-tag">개구리 caught 스프라이트</span>
+<span class="resource-tag">잔디/연못 배경 (9:16)</span>
+<span class="resource-tag">터치 이펙트 (물튀김)</span>
+<span class="resource-tag">포획 효과음 (뽁!)</span>
+<span class="resource-tag">미스 효과음</span>
+<span class="resource-tag">BGM (경쾌한 루프)</span>
+</div>
+</div>
+
+<div class="prompt-box">
+<span class="prompt-label">🤖 AI 이미지 생성 프롬프트</span>
+<strong>캐릭터:</strong> "A cute cartoon frog character sprite sheet for mobile game, chibi style, green with big eyes, sitting on a lily pad, idle pose and caught/surprised pose, transparent background, 512x512, flat vector colors, mobile game asset, 2D"<br><br>
+<strong>배경:</strong> "A peaceful pond with green grass and lily pads, top-down view, 9:16 portrait aspect ratio, cute cartoon style, soft green tones, for mobile casual game background, 1080x1920"<br><br>
+<strong>이펙트:</strong> "Water splash particle effect sprite sheet, 4 frames, cartoon style, blue water droplets, transparent background, 256x256 each frame"
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- G2: 라면 끓이지 마라 -->
+<div class="divider"></div>
+<section id="g2" class="fade-in">
+<div class="container">
+<div class="section-label">02 &mdash; noodle_boil_v1</div>
+<div class="game-section">
+<div class="game-header">
+<div class="game-num" style="color:var(--g2)">02</div>
+<div class="game-meta">
+<div class="game-title">🍜 라면 끓이지 마라</div>
+<div class="game-concept">라면 물 게이지가 올라간다! 60~80% sweet spot 에서 정확히 터치하는 타이밍 게임. 5라운드.</div>
+<div style="margin-top:.6rem">
+<span class="badge badge-genre">타이밍</span>
+<span class="badge badge-view">세로 9:16</span>
+<span class="badge badge-input">원터치</span>
+<span class="badge badge-status">구현 완료</span>
+</div>
+</div>
+</div>
+<div class="game-body">
+<div class="card-grid">
+<div class="spec-card">
+<h4>🎯 게임 컨셉 &amp; 재미 요소</h4>
+<ul>
+<li>라면 끓이는 과정 = 한국인의 일상 밈. 즉각적인 공감대</li>
+<li>sweet spot 타이밍: 60~80% 구간 정중앙 터치 시 최고점</li>
+<li>80% 초과 = 라면 넘침 = 0점 &rarr; 극적 긴장감</li>
+<li>5라운드 = 누적 긴장 + 1라운드 실패해도 복구 기회</li>
+<li>DDA: 쉬움은 50~85%, 어려움은 65~78% (좁은 구간)</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>🏆 랭킹 산정 요소</h4>
+<div class="ranking-grid">
+<div class="ranking-item"><h5>총 점수</h5><div class="val">max 500</div></div>
+<div class="ranking-item"><h5>일관성</h5><div class="val">라운드별 편차</div></div>
+<div class="ranking-item"><h5>정확도</h5><div class="val">평균 sweet %</div></div>
+</div>
+</div>
+<div class="spec-card">
+<h4>📱 인게임 UI</h4>
+<ul>
+<li>중앙: 라면 냄비 일러스트 + 물 올라오는 애니메이션</li>
+<li>우측: 세로 게이지 바 (sweet spot 영역 녹색 표시)</li>
+<li>상단: 라운드 카운터 (2 / 5), 누적 점수</li>
+<li>터치 시: PERFECT / GOOD / FAIL 텍스트 팝업</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>👆 조작</h4>
+<p>게이지가 0%&rarr;100% 로 ~6초간 상승. sweet spot 구간에서 <strong>화면 아무 곳이나 탭</strong>. 한 라운드에 한 번만 탭 가능. 안 탭하면 100% 도달 &rarr; 넘침 = 0점.</p>
+</div>
+</div>
+
+<div class="spec-card" style="margin-top:1rem">
+<h4>📦 필요 리소스</h4>
+<div class="resource-list">
+<span class="resource-tag">라면 냄비 스프라이트</span>
+<span class="resource-tag">물 끓는 애니메이션 (4~8프레임)</span>
+<span class="resource-tag">증기 이펙트</span>
+<span class="resource-tag">부글부글 효과음</span>
+<span class="resource-tag">주방 배경 (9:16)</span>
+<span class="resource-tag">PERFECT/FAIL 팝업 텍스트</span>
+<span class="resource-tag">BGM (코믹한 긴장감)</span>
+</div>
+</div>
+
+<div class="prompt-box">
+<span class="prompt-label">🤖 AI 프롬프트</span>
+<strong>냄비:</strong> "A boiling ramen pot sprite, top-down view, steam rising, cute cartoon style, red pot with ramen noodles inside, transparent background, 512x512, for mobile cooking mini-game"<br><br>
+<strong>배경:</strong> "A cozy Korean kitchen background, warm tones, wooden counter, 9:16 portrait, cartoon illustration style, soft lighting, for mobile casual game, 1080x1920"
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- G3: 포커페이스 유지 -->
+<div class="divider"></div>
+<section id="g3" class="fade-in">
+<div class="container">
+<div class="section-label">03 &mdash; poker_face_v1</div>
+<div class="game-section">
+<div class="game-header">
+<div class="game-num" style="color:var(--g3)">03</div>
+<div class="game-meta">
+<div class="game-title">🎭 포커페이스 유지</div>
+<div class="game-concept">60초 동안 화면을 터치하지 마! 5초마다 등장하는 화려한 "보상받기!" 가짜 버튼의 유혹에 견뎌라.</div>
+<div style="margin-top:.6rem">
+<span class="badge badge-genre">역심리</span>
+<span class="badge badge-view">세로 9:16</span>
+<span class="badge badge-input">터치 금지</span>
+<span class="badge badge-status">구현 완료</span>
+</div>
+</div>
+</div>
+<div class="game-body">
+<div class="card-grid">
+<div class="spec-card">
+<h4>🎯 컨셉 &amp; 재미 요소</h4>
+<ul>
+<li><strong>Forbidden action 심리:</strong> "하지 마!" = 오히려 하고 싶은 인간 본능</li>
+<li>인터넷 밈/광고 사기 버튼 패러디 &rarr; MZ 공감</li>
+<li>참을수록 점수가 쌓이는 시각적 쾌감 (매초 +14)</li>
+<li>유혹 버튼 클릭 = -100 의 폭탄 패널티</li>
+<li>DDA: 쉬움은 7초 간격, 어려움은 3초 간격</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>🏆 랭킹 산정</h4>
+<div class="ranking-grid">
+<div class="ranking-item"><h5>총 점수</h5><div class="val">max 800</div></div>
+<div class="ranking-item"><h5>유혹 클릭</h5><div class="val">0회 = 완벽</div></div>
+<div class="ranking-item"><h5>완주율</h5><div class="val">60초 풀 버티기</div></div>
+</div>
+</div>
+<div class="spec-card">
+<h4>📱 인게임 UI</h4>
+<ul>
+<li>중앙: 큰 점수 카운터 (자동 증가 애니메이션)</li>
+<li>5초마다: 화려한 금색 "보상받기!" 버튼 등장 (1초간)</li>
+<li>배경: 밈 이미지 슬라이드 (기대감 유발)</li>
+<li>상단: 남은 시간 바</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>👆 조작</h4>
+<p><strong>아무것도 하지 않기.</strong> 화면 어디든 터치하면 감점. 유혹 버튼을 누르면 -100. 60초 동안 손을 뗀 채 견디면 만점.</p>
+</div>
+</div>
+
+<div class="spec-card" style="margin-top:1rem">
+<h4>📦 리소스</h4>
+<div class="resource-list">
+<span class="resource-tag">화려한 가짜 보상 버튼</span>
+<span class="resource-tag">밈 이미지 5~10장</span>
+<span class="resource-tag">유혹 효과음 (팝!)</span>
+<span class="resource-tag">점수 올라가는 효과음</span>
+<span class="resource-tag">실패 효과음</span>
+<span class="resource-tag">어두운 배경</span>
+</div>
+</div>
+
+<div class="prompt-box">
+<span class="prompt-label">🤖 AI 프롬프트</span>
+<strong>버튼:</strong> "A flashy golden reward button UI element for mobile game, says 'CLAIM NOW!', with sparkles, glow effects, and rainbow border, cartoon style, transparent background, 600x200"<br><br>
+<strong>배경:</strong> "A dark mysterious background with subtle sparkles and light rays, tempting atmosphere, 9:16 portrait, for mobile mini-game, 1080x1920"
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- G4: Dark Souls 도전 -->
+<div class="divider"></div>
+<section id="g4" class="fade-in">
+<div class="container">
+<div class="section-label">04 &mdash; dark_souls_v1</div>
+<div class="game-section">
+<div class="game-header">
+<div class="game-num" style="color:var(--g4)">04</div>
+<div class="game-meta">
+<div class="game-title">⚔ Dark Souls 도전</div>
+<div class="game-concept">공격 버튼을 눌러 보스를 타격하라! 1/10 확률의 도박 — 실패하면 "YOU DIED".</div>
+<div style="margin-top:.6rem">
+<span class="badge badge-genre">운빨</span>
+<span class="badge badge-view">세로 9:16</span>
+<span class="badge badge-input">원버튼</span>
+<span class="badge badge-status">구현 완료</span>
+</div>
+</div>
+</div>
+<div class="game-body">
+<div class="card-grid">
+<div class="spec-card">
+<h4>🎯 컨셉 &amp; 재미</h4>
+<ul>
+<li>Dark Souls "YOU DIED" 밈의 파괴적 유머</li>
+<li>1/10 성공률 = 슬롯머신 심리 (간헐적 보상)</li>
+<li>실패 시 0.7초 딜레이 = 시간 낭비 페널티</li>
+<li>"이번엔 되겠지..." 무한 재시도 욕구</li>
+<li>DDA: 쉬움 1/7, 기본 1/10, 어려움 1/15</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>🏆 랭킹</h4>
+<div class="ranking-grid">
+<div class="ranking-item"><h5>총 점수</h5><div class="val">max 300</div></div>
+<div class="ranking-item"><h5>연속 성공</h5><div class="val">연타 횟수</div></div>
+<div class="ranking-item"><h5>성공률</h5><div class="val">성공 / 시도</div></div>
+</div>
+</div>
+<div class="spec-card">
+<h4>📱 인게임 UI</h4>
+<ul>
+<li>중앙: 어둠 속 보스 실루엣 (빨간 눈)</li>
+<li>하단: 큰 "⚔ 공격" 버튼</li>
+<li>실패: "YOU DIED" 전체 화면 오버레이 (빨간 글씨)</li>
+<li>성공: 보스 피격 이펙트 + 점수 +30</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>👆 조작</h4>
+<p>"공격" 버튼 탭. 성공(+30) or 실패(YOU DIED + 0.7초 입력 락). 30초 내 최대 타격 수 = 최종 점수.</p>
+</div>
+</div>
+
+<div class="spec-card" style="margin-top:1rem">
+<h4>📦 리소스</h4>
+<div class="resource-list">
+<span class="resource-tag">보스 실루엣 (빨간 눈)</span>
+<span class="resource-tag">YOU DIED 텍스트</span>
+<span class="resource-tag">칼/검 공격 이펙트</span>
+<span class="resource-tag">피격 파티클</span>
+<span class="resource-tag">어두운 던전 BGM</span>
+<span class="resource-tag">실패 효과음</span>
+<span class="resource-tag">성공 효과음</span>
+</div>
+</div>
+
+<div class="prompt-box">
+<span class="prompt-label">🤖 AI 프롬프트</span>
+<strong>보스:</strong> "A dark fantasy boss monster silhouette, glowing red eyes, menacing pose, pixel art style, dark souls inspired, transparent background, 512x512, for mobile game"<br><br>
+<strong>YOU DIED:</strong> "Red gothic text 'YOU DIED' on transparent background, dark souls font style, dramatic lighting, 800x200, game over screen element"
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- G5: 카톡 읽씹하기 -->
+<div class="divider"></div>
+<section id="g5" class="fade-in">
+<div class="container">
+<div class="section-label">05 &mdash; kakao_unread_v1</div>
+<div class="game-section">
+<div class="game-header">
+<div class="game-num" style="color:var(--g5)">05</div>
+<div class="game-meta">
+<div class="game-title">💬 카톡 읽씹하기</div>
+<div class="game-concept">20초 동안 가짜 카카오톡 알림을 무시하라! 3초마다 등장하는 알림 버블 — 절대 탭 금지.</div>
+<div style="margin-top:.6rem">
+<span class="badge badge-genre">역심리</span>
+<span class="badge badge-view">세로 9:16</span>
+<span class="badge badge-input">터치 금지</span>
+<span class="badge badge-status">구현 완료</span>
+</div>
+</div>
+</div>
+<div class="game-body">
+<div class="card-grid">
+<div class="spec-card">
+<h4>🎯 컨셉 &amp; 재미</h4>
+<ul>
+<li>한국인 특화 밈: "읽씹" 문화의 게임화</li>
+<li>실제 카톡 UI 와 비슷한 시각 &rarr; 즉각 이해</li>
+<li>포커페이스 보다 빠른 템포 (20초 / 3초 간격)</li>
+<li>매초 +30 자동 적립, 알림 탭 시 -50</li>
+<li>DDA: 쉬움 4초 간격, 어려움 2초 간격</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>🏆 랭킹</h4>
+<div class="ranking-grid">
+<div class="ranking-item"><h5>총 점수</h5><div class="val">max 600</div></div>
+<div class="ranking-item"><h5>무시 성공률</h5><div class="val">ignore / total</div></div>
+<div class="ranking-item"><h5>연속 무시</h5><div class="val">콤보 수</div></div>
+</div>
+</div>
+<div class="spec-card">
+<h4>📱 인게임 UI</h4>
+<ul>
+<li>배경: 카톡 스타일 채팅창 (노란 버블)</li>
+<li>3초마다: "ㅋㅋ 이거 봐" 등 알림 버블 팝업</li>
+<li>상단: 점수 + "안 읽음" 카운터 (빨간 배지)</li>
+<li>탭 시: 읽음 처리 + 감점 이펙트</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>👆 조작</h4>
+<p>터치 금지. 알림 버블을 탭하면 -50. 20초 동안 무시하면 600점 만점.</p>
+</div>
+</div>
+
+<div class="spec-card" style="margin-top:1rem">
+<h4>📦 리소스</h4>
+<div class="resource-list">
+<span class="resource-tag">카톡 스타일 채팅 버블</span>
+<span class="resource-tag">알림 효과음 (카톡 소리)</span>
+<span class="resource-tag">프로필 아이콘 5~8개</span>
+<span class="resource-tag">채팅 메시지 텍스트 풀</span>
+<span class="resource-tag">빨간 배지 (안읽음)</span>
+<span class="resource-tag">채팅창 배경</span>
+</div>
+</div>
+
+<div class="prompt-box">
+<span class="prompt-label">🤖 AI 프롬프트</span>
+<strong>알림:</strong> "A cute cartoon chat notification bubble, yellow rounded rectangle with Korean text inside, messaging app style, flat design, with red unread badge, transparent bg, 400x150"<br><br>
+<strong>프로필:</strong> "Set of 6 cute cartoon avatar icons, diverse characters, circular frame, flat illustration style, colorful, 128x128 each, for messaging app game"
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- G6: 수학 천재 도전 -->
+<div class="divider"></div>
+<section id="g6" class="fade-in">
+<div class="container">
+<div class="section-label">06 &mdash; math_genius_v1</div>
+<div class="game-section">
+<div class="game-header">
+<div class="game-num" style="color:var(--g6)">06</div>
+<div class="game-meta">
+<div class="game-title">🧮 수학 천재 도전</div>
+<div class="game-concept">30초 안에 1자리수 더하기/빼기 4지선다를 빠르게 풀어라! 속도와 정확도의 균형.</div>
+<div style="margin-top:.6rem">
+<span class="badge badge-genre">두뇌 회전</span>
+<span class="badge badge-view">세로 9:16</span>
+<span class="badge badge-input">4지선다</span>
+<span class="badge badge-status">구현 완료</span>
+</div>
+</div>
+</div>
+<div class="game-body">
+<div class="card-grid">
+<div class="spec-card">
+<h4>🎯 컨셉 &amp; 재미</h4>
+<ul>
+<li>두뇌 회전 + 시간 압박 = 고도 집중 상태 (Flow)</li>
+<li>정답 +50 / 오답 -10 &rarr; 리스크 관리 요소</li>
+<li>쉬운 문제인데 속도가 빨라지면 실수 &rarr; 자기 자신과의 싸움</li>
+<li>DDA: 쉬움은 오답 범위 &plusmn;3 (구분 쉬움), 어려움은 &plusmn;8 (혼동)</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>🏆 랭킹</h4>
+<div class="ranking-grid">
+<div class="ranking-item"><h5>총 점수</h5><div class="val">max 1,500</div></div>
+<div class="ranking-item"><h5>정답률</h5><div class="val">correct %</div></div>
+<div class="ranking-item"><h5>연속 정답</h5><div class="val">콤보 수</div></div>
+<div class="ranking-item"><h5>문제 풀이 속도</h5><div class="val">avg sec/q</div></div>
+</div>
+</div>
+<div class="spec-card">
+<h4>📱 인게임 UI</h4>
+<ul>
+<li>상단: 문제 영역 "3 + 7 = ?" (큰 폰트)</li>
+<li>하단: 4개 원형 보기 버튼 (2x2 그리드)</li>
+<li>정답: 초록 플래시 / 오답: 빨강 플래시 (즉시 피드백)</li>
+<li>최상단: 시간 바 + 현재 점수</li>
+</ul>
+</div>
+<div class="spec-card">
+<h4>👆 조작</h4>
+<p>4개 보기 중 정답 탭. 정답 즉시 다음 문제 생성. 오답 탭해도 즉시 다음 (오답 딜레이 없음). 시간 내 최대한 많이 풀기.</p>
+</div>
+</div>
+
+<div class="spec-card" style="margin-top:1rem">
+<h4>📦 리소스</h4>
+<div class="resource-list">
+<span class="resource-tag">칠판/노트 배경</span>
+<span class="resource-tag">숫자 폰트 (교육용)</span>
+<span class="resource-tag">정답 효과음 (딩!)</span>
+<span class="resource-tag">오답 효과음 (부웅)</span>
+<span class="resource-tag">연필 스크래치 효과</span>
+<span class="resource-tag">BGM (밝고 빠른 루프)</span>
+</div>
+</div>
+
+<div class="prompt-box">
+<span class="prompt-label">🤖 AI 프롬프트</span>
+<strong>배경:</strong> "A blackboard texture background for math quiz game, chalk writing style, green chalkboard with wooden frame, 1080x1920 portrait, for mobile education game"<br><br>
+<strong>버튼:</strong> "Four circular answer buttons for quiz game, pastel colors (blue, green, orange, pink), flat design, clean number typography, 256x256 each, transparent background"
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ====== PART 2: 레퍼런스 7종 ====== -->
+<div class="divider"></div>
+<section id="ref" class="fade-in">
+<div class="container">
+<div class="section-label">PART 2 &mdash; 레퍼런스 게임</div>
+<h2>놀이특성화초등학교 레퍼런스 7종</h2>
+<p class="lead">game_design_doc.html (Cocos2D 역기획서) 에서 추출한 7종의 미니게임. 숏게타 플랫폼으로 이식 시 상세 기획.</p>
+</div>
+</section>
+
+<!-- R1~R7 간소화: 각 게임 카드 형식 -->
+<div class="divider"></div>
+<section id="r1" class="fade-in"><div class="container"><div class="section-label">R01 &mdash; 교실 클릭 게임</div>
+<div class="game-section"><div class="game-header"><div class="game-num" style="color:var(--g7)">R1</div><div class="game-meta"><div class="game-title">🖱 교실 클릭 게임</div><div class="game-concept">수업 시간에 몰래 마우스를 클릭! 제한 시간 안에 최대한 빠르게 탭하라.</div><div style="margin-top:.6rem"><span class="badge badge-genre">반응속도</span><span class="badge badge-ref">레퍼런스</span></div></div></div>
+<div class="game-body"><div class="card-grid">
+<div class="spec-card"><h4>🎯 컨셉 &amp; 재미</h4><ul><li>단순 클릭 경쟁 &mdash; 중독성 최강 (CPS 테스트 류)</li><li>교실이라는 현실적 배경 + 몰래 게임 = 유머</li><li>하이스코어 갱신 성취감</li></ul></div>
+<div class="spec-card"><h4>🏆 랭킹</h4><p>총 클릭 수, CPS (초당 클릭), 연속 탭 유지</p></div>
+<div class="spec-card"><h4>📱 UI &amp; 조작</h4><p>교실 탑뷰 배경. 화면 전체 터치 영역. 상단 TIME/HIGH/CLICK 카운터. 하단 타임바.</p></div>
+<div class="spec-card"><h4>📦 리소스 + AI 프롬프트</h4><div class="resource-list"><span class="resource-tag">교실 배경</span><span class="resource-tag">학생 캐릭터</span><span class="resource-tag">클릭 효과음</span></div>
+<div class="prompt-box" style="margin-top:.5rem"><span class="prompt-label">🤖</span>"A pixel art classroom seen from above, desks in rows, students in blue uniforms, chalkboard at top, warm indoor lighting, 1080x1920, game background"</div></div>
+</div></div></div></div></section>
+
+<div class="divider"></div>
+<section id="r2" class="fade-in"><div class="container"><div class="section-label">R02 &mdash; 육상 게임</div>
+<div class="game-section"><div class="game-header"><div class="game-num" style="color:var(--g8)">R2</div><div class="game-meta"><div class="game-title">🏃 육상 게임 (멀리뛰기)</div><div class="game-concept">무지개 파워 게이지를 가득 채워 최대 거리를 달성하라!</div><div style="margin-top:.6rem"><span class="badge badge-genre">타이밍/연타</span><span class="badge badge-ref">레퍼런스</span></div></div></div>
+<div class="game-body"><div class="card-grid">
+<div class="spec-card"><h4>🎯 재미</h4><ul><li>무지개 게이지의 강렬한 시각 피드백</li><li>좌우 키(모바일: 좌우 번갈아 탭) 연타의 물리적 쾌감</li><li>실제 육상 경기의 긴장감을 모바일로 압축</li></ul></div>
+<div class="spec-card"><h4>🏆 랭킹</h4><p>최대 거리 (M), 파워 게이지 최대값, 연타 속도</p></div>
+<div class="spec-card"><h4>📱 UI &amp; 조작</h4><p>초록 잔디 탑뷰 트랙. 좌우 번갈아 빠르게 탭 &rarr; 파워 게이지 충전. 적시에 점프 탭 &rarr; 최대 거리. 하단 무지개 파워바. 거리 실시간 표시.</p></div>
+<div class="spec-card"><h4>📦 + 🤖</h4><div class="resource-list"><span class="resource-tag">잔디 트랙 배경</span><span class="resource-tag">캐릭터 달리기 애니메이션</span><span class="resource-tag">무지개 게이지</span></div>
+<div class="prompt-box" style="margin-top:.5rem"><span class="prompt-label">🤖</span>"A top-down green grass athletic track with white lane lines, distance markers 10M 20M 30M, pixel art style, 1080x1920 portrait, for mobile sports game"</div></div>
+</div></div></div></div></section>
+
+<div class="divider"></div>
+<section id="r3" class="fade-in"><div class="container"><div class="section-label">R03 &mdash; 장대 오르기</div>
+<div class="game-section"><div class="game-header"><div class="game-num" style="color:var(--g9)">R3</div><div class="game-meta"><div class="game-title">🏫 장대 오르기</div><div class="game-concept">학교 건물 외벽의 장대를 타고 꼭대기까지! 중력과 체력을 이겨라.</div><div style="margin-top:.6rem"><span class="badge badge-genre">리듬/타이밍</span><span class="badge badge-ref">레퍼런스</span></div></div></div>
+<div class="game-body"><div class="card-grid">
+<div class="spec-card"><h4>🎯 재미</h4><ul><li>수직 상승의 쾌감 + 추락의 공포 공존</li><li>간단한 컨트롤이지만 지구력+타이밍 요구</li><li>건물 배경이 학교 느낌 강화</li></ul></div>
+<div class="spec-card"><h4>🏆 랭킹</h4><p>최고 도달 높이, 클리어 시간, 추락 횟수</p></div>
+<div class="spec-card"><h4>📱 UI &amp; 조작</h4><p>사이드뷰 학교 건물. 중앙 수직 장대. 탭하면 위로 올라감, 안 하면 미끄러짐. 우측 높이 게이지.</p></div>
+<div class="spec-card"><h4>📦 + 🤖</h4><div class="resource-list"><span class="resource-tag">학교 건물 배경</span><span class="resource-tag">캐릭터 오르기 애니메이션</span><span class="resource-tag">하늘+구름</span></div>
+<div class="prompt-box" style="margin-top:.5rem"><span class="prompt-label">🤖</span>"A side-view school building exterior with beige walls and windows, blue sky with white clouds, a vertical pole in center, pixel art, 1080x1920"</div></div>
+</div></div></div></div></section>
+
+<div class="divider"></div>
+<section id="r4" class="fade-in"><div class="container"><div class="section-label">R04 &mdash; 파리 잡기</div>
+<div class="game-section"><div class="game-header"><div class="game-num" style="color:var(--g10)">R4</div><div class="game-meta"><div class="game-title">🪰 파리 잡기</div><div class="game-concept">모래사장을 날아다니는 파리를 빠르게 잡아라! 순발력 + 라운드제.</div><div style="margin-top:.6rem"><span class="badge badge-genre">반응속도</span><span class="badge badge-ref">레퍼런스</span></div></div></div>
+<div class="game-body"><div class="card-grid">
+<div class="spec-card"><h4>🎯 재미</h4><ul><li>파리를 때려잡는 원초적 쾌감</li><li>불규칙 이동 &rarr; 예측 불가 재미</li><li>라운드마다 숫자 증가 &rarr; 자연스러운 난이도 상승</li></ul></div>
+<div class="spec-card"><h4>🏆 랭킹</h4><p>최고 연속 포획, 라운드 클리어 수, 총 포획 수</p></div>
+<div class="spec-card"><h4>📱 UI &amp; 조작</h4><p>베이지 사각 경기장. 파리 2~4마리 무작위 이동. 터치 포획 시 파티클. HighScore / Win 카운터.</p></div>
+<div class="spec-card"><h4>📦 + 🤖</h4><div class="resource-list"><span class="resource-tag">파리 스프라이트</span><span class="resource-tag">모래/돌담 배경</span><span class="resource-tag">포획 파티클</span></div>
+<div class="prompt-box" style="margin-top:.5rem"><span class="prompt-label">🤖</span>"A cartoon fly insect sprite, buzzing wings, top-down view, 4-direction animation sheet, cute style, transparent bg, 128x128, for mobile catching game"</div></div>
+</div></div></div></div></section>
+
+<div class="divider"></div>
+<section id="r5" class="fade-in"><div class="container"><div class="section-label">R05 &mdash; 탑뷰 축구</div>
+<div class="game-section"><div class="game-header"><div class="game-num" style="color:var(--g11)">R5</div><div class="game-meta"><div class="game-title">⚽ 탑뷰 축구</div><div class="game-concept">TV 중계 화면 오버레이! 포메이션 기반 팀 축구 대결.</div><div style="margin-top:.6rem"><span class="badge badge-genre">스포츠 전략</span><span class="badge badge-ref">레퍼런스</span></div></div></div>
+<div class="game-body"><div class="card-grid">
+<div class="spec-card"><h4>🎯 재미</h4><ul><li>TV 중계 화면 오버레이 &rarr; 현실감의 유머</li><li>팀 포메이션 + 패스/슛 전술성</li><li>전반/후반 구성으로 전략 변경 가능</li></ul></div>
+<div class="spec-card"><h4>🏆 랭킹</h4><p>골 수, 점유율, 패스 성공률, 승리 횟수</p></div>
+<div class="spec-card"><h4>📱 UI &amp; 조작</h4><p>초록 잔디 축구장 탑뷰. 좌측 가상 조이스틱 이동 + 우측 패스/슛 버튼. 상단 스코어보드.</p></div>
+<div class="spec-card"><h4>📦 + 🤖</h4><div class="resource-list"><span class="resource-tag">축구장 배경</span><span class="resource-tag">선수 스프라이트</span><span class="resource-tag">축구공</span><span class="resource-tag">골대</span></div>
+<div class="prompt-box" style="margin-top:.5rem"><span class="prompt-label">🤖</span>"A top-down green soccer field with white lines, center circle, two goals, pixel art style, 1080x1920 portrait, for mobile sports game"</div></div>
+</div></div></div></div></section>
+
+<div class="divider"></div>
+<section id="r6" class="fade-in"><div class="container"><div class="section-label">R06 &mdash; 1:1 축구</div>
+<div class="game-section"><div class="game-header"><div class="game-num" style="color:var(--g12)">R6</div><div class="game-meta"><div class="game-title">⚽ 사이드뷰 1:1 축구</div><div class="game-concept">물리 기반 공을 컨트롤! 점프 헤딩으로 골을 넣어라.</div><div style="margin-top:.6rem"><span class="badge badge-genre">스포츠 액션</span><span class="badge badge-ref">레퍼런스</span></div></div></div>
+<div class="game-body"><div class="card-grid">
+<div class="spec-card"><h4>🎯 재미</h4><ul><li>물리 기반 공의 예측 불가 움직임</li><li>점프 헤딩 공중전의 박진감</li><li>단순 룰 + 실력 차이 극명</li></ul></div>
+<div class="spec-card"><h4>🏆 랭킹</h4><p>골 수, 연속 골, 세이브 횟수</p></div>
+<div class="spec-card"><h4>📱 UI &amp; 조작</h4><p>사이드뷰 야외. 양끝 골대. 좌측 이동 조이스틱 + 우측 점프 버튼. 좌우 스코어 박스.</p></div>
+<div class="spec-card"><h4>📦 + 🤖</h4><div class="resource-list"><span class="resource-tag">야외 배경 (하늘+언덕)</span><span class="resource-tag">골대 스프라이트</span><span class="resource-tag">축구공 (물리)</span></div>
+<div class="prompt-box" style="margin-top:.5rem"><span class="prompt-label">🤖</span>"A side-view outdoor soccer field, bright sky, green hills, two white goalposts on each side, cartoon style, 1080x1920 portrait"</div></div>
+</div></div></div></div></section>
+
+<div class="divider"></div>
+<section id="r7" class="fade-in"><div class="container"><div class="section-label">R07 &mdash; 어두운 탐험</div>
+<div class="game-section"><div class="game-header"><div class="game-num" style="color:var(--g13)">R7</div><div class="game-meta"><div class="game-title">🔦 어두운 탐험 맵</div><div class="game-concept">칠흑 같은 어둠 속 랜턴 하나로 학교의 비밀을 탐험하라!</div><div style="margin-top:.6rem"><span class="badge badge-genre">어드벤처</span><span class="badge badge-ref">레퍼런스</span></div></div></div>
+<div class="game-body"><div class="card-grid">
+<div class="spec-card"><h4>🎯 재미</h4><ul><li>어둠이 주는 긴장감 + 탐험의 설렘</li><li>제한된 시야 &rarr; 집중도 향상</li><li>다른 빠른 게임과 대조 &rarr; 완급 조절</li></ul></div>
+<div class="spec-card"><h4>🏆 랭킹</h4><p>탐색 완료율, 소요 시간, 발견 아이템 수</p></div>
+<div class="spec-card"><h4>📱 UI &amp; 조작</h4><p>전체 어두운 화면 + 캐릭터 중심 원형 빛. 터치/드래그로 이동. 빛나는 오브젝트 탭 상호작용.</p></div>
+<div class="spec-card"><h4>📦 + 🤖</h4><div class="resource-list"><span class="resource-tag">어두운 타일맵</span><span class="resource-tag">원형 빛 마스크</span><span class="resource-tag">건물/가구 실루엣</span></div>
+<div class="prompt-box" style="margin-top:.5rem"><span class="prompt-label">🤖</span>"A dark top-down RPG tile map, school interior at night, only small circular light area visible, mysterious atmosphere, pixel art, 1080x1920"</div></div>
+</div></div></div></div></section>
+
+<!-- ====== 전체 요약 테이블 ====== -->
+<div class="divider"></div>
+<section id="overview" class="fade-in">
+<div class="container">
+<div class="section-label">SUMMARY &mdash; 전체 비교</div>
+<h2>13종 미니게임 요약 테이블</h2>
+<div class="data-table-wrap">
+<table>
+<thead><tr>
+<th>#</th><th>게임명</th><th>장르</th><th>조작</th><th>제한시간</th><th>최대점수</th><th>난이도</th><th>상태</th>
+</tr></thead>
+<tbody>
+<tr><td style="color:var(--g1)">01</td><td>개구리 잡아라</td><td>반응속도</td><td>원터치</td><td>30초</td><td>1,000</td><td>★★★☆☆</td><td><span class="badge badge-status">구현</span></td></tr>
+<tr><td style="color:var(--g2)">02</td><td>라면 끓이지 마라</td><td>타이밍</td><td>원터치</td><td>45초</td><td>500</td><td>★★★☆☆</td><td><span class="badge badge-status">구현</span></td></tr>
+<tr><td style="color:var(--g3)">03</td><td>포커페이스 유지</td><td>역심리</td><td>터치금지</td><td>60초</td><td>800</td><td>★★☆☆☆</td><td><span class="badge badge-status">구현</span></td></tr>
+<tr><td style="color:var(--g4)">04</td><td>Dark Souls 도전</td><td>운빨</td><td>원버튼</td><td>30초</td><td>300</td><td>★★★★☆</td><td><span class="badge badge-status">구현</span></td></tr>
+<tr><td style="color:var(--g5)">05</td><td>카톡 읽씹하기</td><td>역심리</td><td>터치금지</td><td>20초</td><td>600</td><td>★★★☆☆</td><td><span class="badge badge-status">구현</span></td></tr>
+<tr><td style="color:var(--g6)">06</td><td>수학 천재 도전</td><td>두뇌</td><td>4지선다</td><td>30초</td><td>1,500</td><td>★★★☆☆</td><td><span class="badge badge-status">구현</span></td></tr>
+<tr><td style="color:var(--g7)">R1</td><td>교실 클릭 게임</td><td>반응속도</td><td>전체 터치</td><td>15초</td><td>-</td><td>★★☆☆☆</td><td><span class="badge badge-ref">레퍼런스</span></td></tr>
+<tr><td style="color:var(--g8)">R2</td><td>육상 게임</td><td>타이밍/연타</td><td>좌우 번갈아 탭</td><td>-</td><td>-</td><td>★★★☆☆</td><td><span class="badge badge-ref">레퍼런스</span></td></tr>
+<tr><td style="color:var(--g9)">R3</td><td>장대 오르기</td><td>리듬/타이밍</td><td>탭</td><td>-</td><td>-</td><td>★★★☆☆</td><td><span class="badge badge-ref">레퍼런스</span></td></tr>
+<tr><td style="color:var(--g10)">R4</td><td>파리 잡기</td><td>반응속도</td><td>원터치</td><td>-</td><td>-</td><td>★★★★☆</td><td><span class="badge badge-ref">레퍼런스</span></td></tr>
+<tr><td style="color:var(--g11)">R5</td><td>탑뷰 축구</td><td>스포츠 전략</td><td>조이스틱+버튼</td><td>경기시간</td><td>-</td><td>★★★★☆</td><td><span class="badge badge-ref">레퍼런스</span></td></tr>
+<tr><td style="color:var(--g12)">R6</td><td>1:1 축구</td><td>스포츠 액션</td><td>이동+점프</td><td>경기시간</td><td>-</td><td>★★★☆☆</td><td><span class="badge badge-ref">레퍼런스</span></td></tr>
+<tr><td style="color:var(--g13)">R7</td><td>어두운 탐험</td><td>어드벤처</td><td>터치 이동</td><td>-</td><td>-</td><td>★★☆☆☆</td><td><span class="badge badge-ref">레퍼런스</span></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+
+<!-- ====== 차트 분석 ====== -->
+<div class="divider"></div>
+<section id="chart" class="fade-in">
+<div class="container">
+<div class="section-label">ANALYSIS &mdash; 밸런스 분석</div>
+<h2>미니게임 특성 분석 차트</h2>
+<p class="lead">구현 완료 6종의 핵심 특성을 수치화해 전체 구성의 다양성과 밸런스를 점검한다.</p>
+
+<div class="chart-wrap">
+<div class="chart-title">🎯 구현 게임 핵심 특성 레이더 차트 (5점 만점)</div>
+<canvas id="radarChart"></canvas>
+</div>
+
+<div class="chart-wrap">
+<div class="chart-title">📊 구현 게임 난이도 &amp; 중독성 분포</div>
+<canvas id="barChart"></canvas>
+</div>
+
+<div class="highlight-box" style="margin-top:2rem">
+<strong>전체 구성 총평:</strong> 반응속도(개구리/파리), 타이밍(라면), 역심리(포커/카톡), 운빨(다크소울), 두뇌(수학) — 5가지 장르가 고르게 분포. 조작 방식도 원터치/원버튼/4지선다/터치금지로 다양. 플레이 타임 20~60초로 WarioWare 세션에 적합. 레퍼런스 7종 이식 시 스포츠/어드벤처 장르 추가로 볼륨업 가능.
+</div>
+</div>
+</section>
+
+<footer>
+<div class="container">
+<p style="font-family:'Fraunces',serif;font-size:1.1rem;color:var(--text);margin-bottom:.5rem">숏게타 미니게임 상세 기획서</p>
+<p>ShortGameTown — Game Detail Specification v1.0</p>
+<p style="margin-top:.5rem">구현 6종 (Unity 6 C#) + 레퍼런스 7종 (game_design_doc.html 기반)</p>
+<p style="margin-top:.3rem;color:var(--text-dim)">2026-04 &middot; Generated with Claude</p>
+</div>
+</footer>
+
+<script>
+Chart.defaults.color='#8b8fa3';Chart.defaults.borderColor='#2a2e3a';Chart.defaults.font.family="'Noto Sans KR','JetBrains Mono',sans-serif";
+const C={g1:'#5eead4',g2:'#fbbf24',g3:'#fb923c',g4:'#f472b6',g5:'#a78bfa',g6:'#38bdf8'};
+
+// Radar
+new Chart(document.getElementById('radarChart').getContext('2d'),{
+type:'radar',
+data:{
+labels:['중독성','난이도','반응속도','전략성','재도전욕구'],
+datasets:[
+{label:'개구리 잡기',data:[5,3,5,1,5],borderColor:C.g1,backgroundColor:C.g1+'22',pointBackgroundColor:C.g1,borderWidth:2},
+{label:'라면',data:[4,3,2,3,4],borderColor:C.g2,backgroundColor:C.g2+'22',pointBackgroundColor:C.g2,borderWidth:2},
+{label:'포커페이스',data:[3,2,1,1,3],borderColor:C.g3,backgroundColor:C.g3+'22',pointBackgroundColor:C.g3,borderWidth:2},
+{label:'다크소울',data:[5,4,2,1,5],borderColor:C.g4,backgroundColor:C.g4+'22',pointBackgroundColor:C.g4,borderWidth:2},
+{label:'카톡 읽씹',data:[3,3,1,1,3],borderColor:C.g5,backgroundColor:C.g5+'22',pointBackgroundColor:C.g5,borderWidth:2},
+{label:'수학 천재',data:[4,3,3,2,4],borderColor:C.g6,backgroundColor:C.g6+'22',pointBackgroundColor:C.g6,borderWidth:2},
+]},
+options:{responsive:true,scales:{r:{min:0,max:5,ticks:{stepSize:1,backdropColor:'transparent',font:{size:10}},grid:{color:'#2a2e3a'},pointLabels:{font:{size:12},color:'#e2e4ea'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:14}}}}
+});
+
+// Bar
+new Chart(document.getElementById('barChart').getContext('2d'),{
+type:'bar',
+data:{
+labels:['개구리','라면','포커페이스','다크소울','카톡읽씹','수학천재'],
+datasets:[
+{label:'난이도',data:[3,3,2,4,3,3],backgroundColor:[C.g1+'99',C.g2+'99',C.g3+'99',C.g4+'99',C.g5+'99',C.g6+'99'],borderColor:[C.g1,C.g2,C.g3,C.g4,C.g5,C.g6],borderWidth:1,borderRadius:6,borderSkipped:false},
+{label:'중독성',data:[5,4,3,5,3,4],backgroundColor:[C.g1+'44',C.g2+'44',C.g3+'44',C.g4+'44',C.g5+'44',C.g6+'44'],borderColor:[C.g1,C.g2,C.g3,C.g4,C.g5,C.g6],borderWidth:1,borderRadius:6,borderSkipped:false}
+]},
+options:{responsive:true,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:14}}},scales:{x:{grid:{display:false}},y:{min:0,max:5,ticks:{stepSize:1}}}}
+});
+
+// Fade in
+const obs=new IntersectionObserver(e=>{e.forEach(el=>{if(el.isIntersecting)el.target.classList.add('visible')})},{threshold:.08});
+document.querySelectorAll('.fade-in').forEach(el=>obs.observe(el));
+
+// TOC
+const sections=document.querySelectorAll('section[id],header[id]');
+const tocLinks=document.querySelectorAll('.toc a');
+window.addEventListener('scroll',()=>{let cur='';sections.forEach(s=>{if(window.scrollY>=s.offsetTop-250)cur=s.id});tocLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+cur))});
+</script>
+</body>
+</html>
