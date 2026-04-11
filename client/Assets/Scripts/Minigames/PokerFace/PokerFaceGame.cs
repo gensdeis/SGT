@@ -127,28 +127,39 @@ namespace ShortGeta.Minigames.PokerFace
             scaler.matchWidthOrHeight = 1f;
             _root.AddComponent<GraphicRaycaster>();
 
+            // 어두운 배경
+            var bgGo = new GameObject("Bg");
+            bgGo.transform.SetParent(_root.transform, false);
+            var bgRt = bgGo.AddComponent<RectTransform>();
+            bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
+            bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
+            bgGo.AddComponent<Image>().color = new Color(0.05f, 0.03f, 0.08f); // 다크 퍼플
+
+            // 점수 + 안내 (상단)
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(_root.transform, false);
             var lrt = labelGo.AddComponent<RectTransform>();
-            lrt.anchorMin = new Vector2(0.1f, 0.5f);
-            lrt.anchorMax = new Vector2(0.9f, 0.85f);
+            lrt.anchorMin = new Vector2(0.05f, 0.55f);
+            lrt.anchorMax = new Vector2(0.95f, 0.90f);
             lrt.offsetMin = Vector2.zero;
             lrt.offsetMax = Vector2.zero;
             _label = labelGo.AddComponent<TextMeshProUGUI>();
             _label.fontSize = 52;
             _label.alignment = TextAlignmentOptions.Center;
-            _label.color = Color.white;
+            _label.color = new Color(0.9f, 0.9f, 0.95f);
 
-            // 유혹 버튼
+            // 화려한 유혹 버튼 — 금색 + 라운드
             _temptButton = new GameObject("TemptButton");
             _temptButton.transform.SetParent(_root.transform, false);
             var brt = _temptButton.AddComponent<RectTransform>();
-            brt.anchorMin = new Vector2(0.15f, 0.15f);
-            brt.anchorMax = new Vector2(0.85f, 0.35f);
+            brt.anchorMin = new Vector2(0.1f, 0.20f);
+            brt.anchorMax = new Vector2(0.9f, 0.40f);
             brt.offsetMin = Vector2.zero;
             brt.offsetMax = Vector2.zero;
             var img = _temptButton.AddComponent<Image>();
-            img.color = new Color(1f, 0.3f, 0.3f);
+            img.color = new Color(1f, 0.75f, 0.0f); // 금색
+            img.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetRounded(28);
+            img.type = Image.Type.Sliced;
             var btn = _temptButton.AddComponent<Button>();
             btn.targetGraphic = img;
             btn.onClick.AddListener(OnTemptTapped);
@@ -161,7 +172,7 @@ namespace ShortGeta.Minigames.PokerFace
             trt.offsetMin = Vector2.zero;
             trt.offsetMax = Vector2.zero;
             var btnText = btnLabelGo.AddComponent<TextMeshProUGUI>();
-            btnText.text = "🎁 보상받기 🎁";
+            btnText.text = "🎁 보상받기! 🎁";
             btnText.fontSize = 56;
             btnText.alignment = TextAlignmentOptions.Center;
             btnText.color = Color.white;
