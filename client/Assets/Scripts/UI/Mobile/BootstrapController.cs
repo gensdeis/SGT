@@ -381,6 +381,9 @@ namespace ShortGeta.UI.Mobile
             if (_resultPanel != null) Destroy(_resultPanel);
             if (_homePanel != null) Destroy(_homePanel);
 
+            // #6: game-stats 재로드 (플레이 횟수/최고 점수 갱신)
+            RefreshGameStatsAsync().Forget();
+
             // 플랫폼 분기 — PC 면 PcHomeController 위임
             if (PlatformDetector.Detect() == LayoutMode.PC)
             {
@@ -476,6 +479,25 @@ namespace ShortGeta.UI.Mobile
                 case 1: BuildPopularTab(); break;
                 case 2: BuildLibraryTab(); break;
                 case 3: BuildSettingsTab(); break;
+            }
+        }
+
+        // #6: 홈 진입 시 game-stats 재로드 (fire-and-forget)
+        private async UniTaskVoid RefreshGameStatsAsync()
+        {
+            try
+            {
+                var statsResp = await _profileApi.GetGameStatsAsync();
+                if (statsResp?.Stats != null)
+                {
+                    _gameStats.Clear();
+                    foreach (var s in statsResp.Stats) _gameStats[s.GameId] = s;
+                    Debug.Log($"[GameStats] refreshed {_gameStats.Count}");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[GameStats] refresh failed: {e.Message}");
             }
         }
 
