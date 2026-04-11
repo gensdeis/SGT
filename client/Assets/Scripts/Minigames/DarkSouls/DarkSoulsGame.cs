@@ -105,32 +105,46 @@ namespace ShortGeta.Minigames.DarkSouls
             scaler.matchWidthOrHeight = 1f;
             _root.AddComponent<GraphicRaycaster>();
 
-            // 결과/안내 텍스트 (상단)
+            // 어둡고 묵직한 배경
+            var bgGo = new GameObject("Bg");
+            bgGo.transform.SetParent(_root.transform, false);
+            var bgRt = bgGo.AddComponent<RectTransform>();
+            bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
+            bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
+            var bgImg = bgGo.AddComponent<Image>();
+            bgImg.color = new Color(0.06f, 0.04f, 0.04f); // 거의 검정 + 약간 빨강
+
+            // 제목 + 점수 (상단)
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(_root.transform, false);
             var lrt = labelGo.AddComponent<RectTransform>();
-            lrt.anchorMin = new Vector2(0, 0.7f);
+            lrt.anchorMin = new Vector2(0, 0.75f);
             lrt.anchorMax = new Vector2(1, 0.95f);
             lrt.offsetMin = Vector2.zero;
             lrt.offsetMax = Vector2.zero;
             _label = labelGo.AddComponent<TextMeshProUGUI>();
             _label.fontSize = 48;
             _label.alignment = TextAlignmentOptions.Center;
-            _label.color = Color.white;
+            _label.color = new Color(0.9f, 0.85f, 0.7f); // 파치먼트 톤
 
-            // 큰 공격 버튼
+            // 큰 공격 버튼 — 빨간색 + 둥근 모서리
             var btnGo = new GameObject("AttackButton");
             btnGo.transform.SetParent(_root.transform, false);
             var brt = btnGo.AddComponent<RectTransform>();
-            brt.anchorMin = new Vector2(0.1f, 0.2f);
-            brt.anchorMax = new Vector2(0.9f, 0.6f);
+            brt.anchorMin = new Vector2(0.15f, 0.25f);
+            brt.anchorMax = new Vector2(0.85f, 0.55f);
             brt.offsetMin = Vector2.zero;
             brt.offsetMax = Vector2.zero;
             var img = btnGo.AddComponent<Image>();
-            img.color = new Color(0.3f, 0.3f, 0.3f);
+            img.color = new Color(0.6f, 0.1f, 0.1f); // 다크 레드
+            img.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetRounded(24);
+            img.type = Image.Type.Sliced;
             var btn = btnGo.AddComponent<Button>();
             btn.targetGraphic = img;
             btn.onClick.AddListener(OnAttackTapped);
+            var cb = btn.colors;
+            cb.pressedColor = new Color(0.8f, 0.15f, 0.15f);
+            btn.colors = cb;
 
             var btnLabelGo = new GameObject("AttackLabel");
             btnLabelGo.transform.SetParent(btnGo.transform, false);
@@ -140,7 +154,7 @@ namespace ShortGeta.Minigames.DarkSouls
             trt.offsetMin = Vector2.zero;
             trt.offsetMax = Vector2.zero;
             _resultText = btnLabelGo.AddComponent<TextMeshProUGUI>();
-            _resultText.text = "공격";
+            _resultText.text = "⚔ 공격";
             _resultText.fontSize = 100;
             _resultText.alignment = TextAlignmentOptions.Center;
             _resultText.color = Color.white;

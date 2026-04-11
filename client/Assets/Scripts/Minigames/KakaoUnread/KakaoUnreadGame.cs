@@ -119,28 +119,40 @@ namespace ShortGeta.Minigames.KakaoUnread
             scaler.matchWidthOrHeight = 1f;
             _root.AddComponent<GraphicRaycaster>();
 
+            // 채팅 배경
+            var bgGo = new GameObject("Bg");
+            bgGo.transform.SetParent(_root.transform, false);
+            var bgRt = bgGo.AddComponent<RectTransform>();
+            bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
+            bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
+            var bgImg = bgGo.AddComponent<Image>();
+            bgImg.color = new Color(0.08f, 0.10f, 0.14f); // 다크 블루그레이 (채팅 앱 배경)
+
+            // 안내 + 점수 (상단)
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(_root.transform, false);
             var lrt = labelGo.AddComponent<RectTransform>();
-            lrt.anchorMin = new Vector2(0.1f, 0.4f);
-            lrt.anchorMax = new Vector2(0.9f, 0.85f);
+            lrt.anchorMin = new Vector2(0.05f, 0.55f);
+            lrt.anchorMax = new Vector2(0.95f, 0.90f);
             lrt.offsetMin = Vector2.zero;
             lrt.offsetMax = Vector2.zero;
             _label = labelGo.AddComponent<TextMeshProUGUI>();
             _label.fontSize = 52;
             _label.alignment = TextAlignmentOptions.Center;
-            _label.color = Color.white;
+            _label.color = new Color(0.9f, 0.9f, 0.95f);
 
-            // 가짜 알림 버블
+            // 가짜 알림 버블 — 카톡 노란색 + 라운드
             _notifBubble = new GameObject("NotifBubble");
             _notifBubble.transform.SetParent(_root.transform, false);
             var nrt = _notifBubble.AddComponent<RectTransform>();
-            nrt.anchorMin = new Vector2(0.05f, 0.15f);
-            nrt.anchorMax = new Vector2(0.95f, 0.3f);
+            nrt.anchorMin = new Vector2(0.08f, 0.20f);
+            nrt.anchorMax = new Vector2(0.92f, 0.35f);
             nrt.offsetMin = Vector2.zero;
             nrt.offsetMax = Vector2.zero;
             var img = _notifBubble.AddComponent<Image>();
-            img.color = new Color(0.95f, 0.85f, 0.2f);
+            img.color = new Color(0.99f, 0.90f, 0.0f); // 카카오 노랑
+            img.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetRounded(20);
+            img.type = Image.Type.Sliced;
             var btn = _notifBubble.AddComponent<Button>();
             btn.targetGraphic = img;
             btn.onClick.AddListener(OnNotifTapped);
@@ -153,10 +165,10 @@ namespace ShortGeta.Minigames.KakaoUnread
             trt.offsetMin = new Vector2(20, 10);
             trt.offsetMax = new Vector2(-20, -10);
             var btnText = nLabelGo.AddComponent<TextMeshProUGUI>();
-            btnText.text = "📨 카톡: 잠깐 시간 돼?";
+            btnText.text = "💬 잠깐 시간 돼?";
             btnText.fontSize = 44;
-            btnText.alignment = TextAlignmentOptions.Center;
-            btnText.color = Color.black;
+            btnText.alignment = TextAlignmentOptions.Left;
+            btnText.color = new Color(0.15f, 0.15f, 0.15f);
 
             _notifBubble.SetActive(false);
         }
