@@ -13,6 +13,13 @@ using ShortGeta.Minigames.KakaoUnread;
 using ShortGeta.Minigames.MathGenius;
 using ShortGeta.Minigames.NoodleBoil;
 using ShortGeta.Minigames.PokerFace;
+using ClassroomClick = ShortGeta.Minigames.ClassroomClick;
+using TrackRun = ShortGeta.Minigames.TrackRun;
+using PoleClimb = ShortGeta.Minigames.PoleClimb;
+using FlyCatch = ShortGeta.Minigames.FlyCatch;
+using SoccerTopdown = ShortGeta.Minigames.SoccerTopdown;
+using SoccerSide = ShortGeta.Minigames.SoccerSide;
+using DarkExplore = ShortGeta.Minigames.DarkExplore;
 using ShortGeta.Network;
 using TMPro;
 using UnityEngine;
@@ -144,6 +151,14 @@ namespace ShortGeta.UI.Mobile
             _registry.Register("dark_souls_v1", parent => parent.AddComponent<DarkSoulsGame>());
             _registry.Register("kakao_unread_v1", parent => parent.AddComponent<KakaoUnreadGame>());
             _registry.Register("math_genius_v1", parent => parent.AddComponent<MathGeniusGame>());
+            // 신규 7종
+            _registry.Register("classroom_click_v1", parent => parent.AddComponent<ClassroomClick.ClassroomClickGame>());
+            _registry.Register("track_run_v1", parent => parent.AddComponent<TrackRun.TrackRunGame>());
+            _registry.Register("pole_climb_v1", parent => parent.AddComponent<PoleClimb.PoleClimbGame>());
+            _registry.Register("fly_catch_v1", parent => parent.AddComponent<FlyCatch.FlyCatchGame>());
+            _registry.Register("soccer_topdown_v1", parent => parent.AddComponent<SoccerTopdown.SoccerTopdownGame>());
+            _registry.Register("soccer_side_v1", parent => parent.AddComponent<SoccerSide.SoccerSideGame>());
+            _registry.Register("dark_explore_v1", parent => parent.AddComponent<DarkExplore.DarkExploreGame>());
         }
 
         // Addressables 기반 IBundleLoader 초기화. 실패 시 Stub 으로 fallback.
@@ -286,7 +301,10 @@ namespace ShortGeta.UI.Mobile
             sf?.SetValue(spawner, frogComp);
 
             var game = parent.AddComponent<FrogCatchGame>();
-            game.__TestSetSpawner(spawner);
+            // spawner 필드 리플렉션 주입 (Editor-only __TestSetSpawner 대체, 빌드 호환)
+            var spawnerField = typeof(FrogCatchGame).GetField("spawner",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            spawnerField?.SetValue(game, spawner);
             return game;
         }
 
@@ -326,6 +344,13 @@ namespace ShortGeta.UI.Mobile
             { "dark_souls_v1", "⚔" },
             { "kakao_unread_v1", "💬" },
             { "math_genius_v1", "🧮" },
+            { "classroom_click_v1", "🖱" },
+            { "track_run_v1", "🏃" },
+            { "pole_climb_v1", "🏫" },
+            { "fly_catch_v1", "🪰" },
+            { "soccer_topdown_v1", "⚽" },
+            { "soccer_side_v1", "⚽" },
+            { "dark_explore_v1", "🔦" },
         };
 
         private static readonly System.Collections.Generic.Dictionary<string, string> GameThumbBgHex = new()
@@ -336,6 +361,13 @@ namespace ShortGeta.UI.Mobile
             { "dark_souls_v1",   "#2a0d0d" }, // 다크 레드 (소울)
             { "kakao_unread_v1", "#3a3a0d" }, // 다크 옐로우 (카톡)
             { "math_genius_v1",  "#0d2a3a" }, // 다크 시안 (수학)
+            { "classroom_click_v1", "#1a1e28" }, // 다크 교실
+            { "track_run_v1",    "#0d2a0d" }, // 다크 잔디
+            { "pole_climb_v1",   "#2a3040" }, // 다크 스카이
+            { "fly_catch_v1",    "#3a3020" }, // 다크 모래
+            { "soccer_topdown_v1", "#0d300d" }, // 다크 잔디
+            { "soccer_side_v1",  "#203040" }, // 다크 하늘
+            { "dark_explore_v1", "#0a0a10" }, // 거의 검정
         };
 
         // Iter UI v1.3: fake play count 는 /v1/me/game-stats 실 API 로 대체됨.
@@ -1177,11 +1209,22 @@ namespace ShortGeta.UI.Mobile
 
         private void BuildGameCard(Transform parent, GameView g, int rank = 0, bool showNew = false)
         {
-            // 카드 전체 라운드
+            // 카드 전체 라운드 + 클릭으로 개별 게임 바로 시작
             var card = UIBuilder.RoundedPanel(parent, $"Card_{g.Id}",
                 Vector2.zero, Vector2.one, DesignTokens.Surface, 20);
             var le = card.AddComponent<LayoutElement>();
             le.preferredHeight = 480;
+
+            // 카드 전체 버튼 (게임 시작)
+            var cardBtn = card.AddComponent<Button>();
+            cardBtn.targetGraphic = card.GetComponent<Image>();
+            var cardColors = cardBtn.colors;
+            cardColors.normalColor = DesignTokens.Surface;
+            cardColors.highlightedColor = DesignTokens.Hex("#1e2030");
+            cardColors.pressedColor = DesignTokens.Hex("#252838");
+            cardBtn.colors = cardColors;
+            string gameId = g.Id;
+            cardBtn.onClick.AddListener(() => PlaySingleGameAsync(gameId).Forget());
 
             // 배지는 썸네일 생성 후에 추가 (밑에서 SetAsLastSibling 으로 최상위)
 
@@ -1434,6 +1477,56 @@ namespace ShortGeta.UI.Mobile
             }
         }
 
+        // Phase 1: 카드 클릭 → 개별 게임 1판 (서버 세션 없이 로컬 플레이)
+        private async UniTaskVoid PlaySingleGameAsync(string gameId)
+        {
+            if (!_registry.Contains(gameId))
+            {
+                Toast.Show($"게임 '{gameId}' 미등록", 2f);
+                return;
+            }
+            try
+            {
+                _homePanel.SetActive(false);
+                _sessionActive = true;
+                _currentDdaIntensity = 0; // 로컬은 기본 난이도
+                Debug.Log($"[Bootstrap] single game start: {gameId}");
+
+                var result = await PlaySingleAsync(gameId);
+                _sessionActive = false;
+
+                // Phase 2: 미니 결과 → 다시하기 / 홈 (단일 게임은 "다음" 없음)
+                while (true)
+                {
+                    var choice = await ShowMiniResultAsync(result, null);
+                    if (choice == MiniResultChoice.Replay)
+                    {
+                        _sessionActive = true;
+                        result = await PlaySingleAsync(gameId);
+                        _sessionActive = false;
+                        continue;
+                    }
+                    break; // Home or Next
+                }
+                ShowHome();
+            }
+            catch (System.OperationCanceledException)
+            {
+                Debug.Log("[Bootstrap] single game aborted");
+                _sessionActive = false;
+                Time.timeScale = 1f;
+                ShowHome();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Bootstrap] single game failed: {e}");
+                Toast.Show("게임 실패: " + e.Message, 3f);
+                _sessionActive = false;
+                Time.timeScale = 1f;
+                ShowHome();
+            }
+        }
+
         private async UniTask<MinigameResult> PlaySingleAsync(string gameId)
         {
             var go = new GameObject($"Runtime.{gameId}");
@@ -1494,8 +1587,9 @@ namespace ShortGeta.UI.Mobile
         private async UniTask<List<MinigameResult>> PlayQueueAsync(string[] gameIds)
         {
             var results = new List<MinigameResult>(gameIds.Length);
-            foreach (var id in gameIds)
+            for (int i = 0; i < gameIds.Length;)
             {
+                string id = gameIds[i];
                 if (!_registry.Contains(id))
                 {
                     Debug.LogWarning($"[Bootstrap] unregistered game id '{id}', skipping");
@@ -1503,8 +1597,113 @@ namespace ShortGeta.UI.Mobile
                 }
                 var r = await PlaySingleAsync(id);
                 results.Add(r);
+
+                // Phase 2: 각 게임 종료 후 미니 결과 표시 (마지막 게임 제외)
+                if (i < gameIds.Length - 1)
+                {
+                    string nextId = null;
+                    for (int j = i + 1; j < gameIds.Length; j++)
+                    {
+                        if (_registry.Contains(gameIds[j])) { nextId = gameIds[j]; break; }
+                    }
+                    var choice = await ShowMiniResultAsync(r, nextId);
+                    if (choice == MiniResultChoice.Replay)
+                    {
+                        var replay = await PlaySingleAsync(id);
+                        results[results.Count - 1] = replay; // 마지막 결과 교체
+                        i--; // 같은 인덱스 다시 (다음 ++i 로 상쇄)
+                    }
+                    else if (choice == MiniResultChoice.Home)
+                    {
+                        break; // 세션 중단
+                    }
+                    // Next → 자동으로 다음 루프
+                }
+                i++;
             }
             return results;
+        }
+
+        // ─── Phase 2: 미니 결과 화면 ───
+        private enum MiniResultChoice { Next, Replay, Home }
+        private GameObject _miniResultPanel;
+
+        private UniTask<MiniResultChoice> ShowMiniResultAsync(MinigameResult result, string nextGameId)
+        {
+            var tcs = new UniTaskCompletionSource<MiniResultChoice>();
+
+            // 반투명 오버레이
+            _miniResultPanel = UIBuilder.Panel(_rootCanvas.transform, "MiniResult",
+                Vector2.zero, Vector2.one, new Color(0f, 0f, 0f, 0.85f));
+
+            // 결과 카드
+            var box = UIBuilder.RoundedPanel(_miniResultPanel.transform, "Box",
+                new Vector2(0.08f, 0.25f), new Vector2(0.92f, 0.75f),
+                DesignTokens.Surface, 24);
+
+            // 게임 제목
+            string emoji = GameEmojis.TryGetValue(result.GameId, out var em) ? em : "🎮";
+            UIBuilder.Label(box.transform, $"{emoji}  {result.GameId}",
+                DesignTokens.FontBody, DesignTokens.TextDim, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.05f, 0.82f), anchorMax: new Vector2(0.95f, 0.95f));
+
+            // 점수 (큰 폰트)
+            UIBuilder.Label(box.transform, $"{result.Score}",
+                96, DesignTokens.Accent, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.1f, 0.55f), anchorMax: new Vector2(0.9f, 0.82f))
+                .fontStyle = FontStyles.Bold;
+
+            // 클리어 여부
+            string clearText = result.Score > 0 ? "CLEAR!" : "FAILED";
+            var clearColor = result.Score > 0 ? DesignTokens.PrimaryCTA : DesignTokens.Hex("#f472b6");
+            UIBuilder.Label(box.transform, clearText,
+                DesignTokens.FontH2, clearColor, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.1f, 0.42f), anchorMax: new Vector2(0.9f, 0.55f))
+                .fontStyle = FontStyles.Bold;
+
+            // 🔄 다시하기
+            UIBuilder.Button(box.transform, "ReplayBtn",
+                DesignTokens.AccentDark, DesignTokens.PrimaryCTA,
+                "🔄 다시하기", DesignTokens.FontBody,
+                new Vector2(0.08f, 0.22f), new Vector2(0.92f, 0.38f),
+                () => { DestroyMiniResult(); tcs.TrySetResult(MiniResultChoice.Replay); },
+                radius: 20);
+
+            // ▶ 다음 게임
+            if (nextGameId != null)
+            {
+                UIBuilder.Button(box.transform, "NextBtn",
+                    DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
+                    "▶ 다음 게임", DesignTokens.FontBody,
+                    new Vector2(0.08f, 0.06f), new Vector2(0.55f, 0.20f),
+                    () => { DestroyMiniResult(); tcs.TrySetResult(MiniResultChoice.Next); },
+                    radius: 20);
+            }
+
+            // 🏠 홈
+            UIBuilder.Button(box.transform, "HomeBtn",
+                DesignTokens.Surface2, DesignTokens.Text,
+                "🏠 홈", DesignTokens.FontBody,
+                new Vector2(nextGameId != null ? 0.58f : 0.08f, 0.06f),
+                new Vector2(0.92f, 0.20f),
+                () => { DestroyMiniResult(); tcs.TrySetResult(MiniResultChoice.Home); },
+                radius: 20);
+
+            // 스와이프 안내
+            UIBuilder.Label(_miniResultPanel.transform, "↑ 위로 스와이프 = 다음 게임",
+                DesignTokens.FontCaption, DesignTokens.TextDim, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.1f, 0.05f), anchorMax: new Vector2(0.9f, 0.12f));
+
+            // 스와이프 감지 (위로 스와이프 → 다음)
+            var swipe = _miniResultPanel.AddComponent<MiniResultSwipeDetector>();
+            swipe.OnSwipeUp = () => { DestroyMiniResult(); tcs.TrySetResult(MiniResultChoice.Next); };
+
+            return tcs.Task;
+        }
+
+        private void DestroyMiniResult()
+        {
+            if (_miniResultPanel != null) { Destroy(_miniResultPanel); _miniResultPanel = null; }
         }
 
         private void ShowResult(List<MinigameResult> results, EndSessionResponse end)

@@ -68,3 +68,68 @@ games:
     max_score: 1500
     rate_limit_per_min: 8
     tags: ["집중력", "병맛"]
+
+  # ─── 신규 7종 (레퍼런스 게임) ───
+
+  - id: "classroom_click_v1"
+    title: "교실 클릭 게임"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 15
+    min_play_seconds: 5
+    max_score: 500
+    rate_limit_per_min: 15
+    tags: ["반응속도", "일상"]
+
+  - id: "track_run_v1"
+    title: "육상 게임"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 20
+    min_play_seconds: 8
+    max_score: 1000
+    rate_limit_per_min: 10
+    tags: ["타이밍", "일상"]
+
+  - id: "pole_climb_v1"
+    title: "장대 오르기"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 30
+    min_play_seconds: 10
+    max_score: 500
+    rate_limit_per_min: 8
+    tags: ["타이밍", "일상"]
+
+  - id: "fly_catch_v1"
+    title: "파리 잡기"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 20
+    min_play_seconds: 6
+    max_score: 800
+    rate_limit_per_min: 12
+    tags: ["반응속도", "동물"]
+
+  - id: "soccer_topdown_v1"
+    title: "탑뷰 축구"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 30
+    min_play_seconds: 10
+    max_score: 500
+    rate_limit_per_min: 8
+    tags: ["타이밍", "일상"]
+
+  - id: "soccer_side_v1"
+    title: "1:1 축구"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 60
+    min_play_seconds: 15
+    max_score: 500
+    rate_limit_per_min: 6
+    tags: ["타이밍", "일상"]
+
+  - id: "dark_explore_v1"
+    title: "어두운 탐험"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 45
+    min_play_seconds: 15
+    max_score: 300
+    rate_limit_per_min: 6
+    tags: ["집중력", "판타지"]

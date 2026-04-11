@@ -127,34 +127,49 @@ namespace ShortGeta.Minigames.MathGenius
             scaler.matchWidthOrHeight = 1f;
             _root.AddComponent<GraphicRaycaster>();
 
-            // 점수
+            // 칠판 배경
+            var bgGo = new GameObject("Bg");
+            bgGo.transform.SetParent(_root.transform, false);
+            var bgRt = bgGo.AddComponent<RectTransform>();
+            bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
+            bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
+            bgGo.AddComponent<Image>().color = new Color(0.10f, 0.22f, 0.12f); // 다크 그린 칠판
+
+            // 점수 (우상단)
             var scoreGo = new GameObject("Score");
             scoreGo.transform.SetParent(_root.transform, false);
             var srt = scoreGo.AddComponent<RectTransform>();
-            srt.anchorMin = new Vector2(0, 0.85f);
-            srt.anchorMax = new Vector2(1, 0.95f);
+            srt.anchorMin = new Vector2(0, 0.88f);
+            srt.anchorMax = new Vector2(1, 0.97f);
             srt.offsetMin = Vector2.zero;
             srt.offsetMax = Vector2.zero;
             _scoreLabel = scoreGo.AddComponent<TextMeshProUGUI>();
             _scoreLabel.text = "점수: 0";
-            _scoreLabel.fontSize = 48;
+            _scoreLabel.fontSize = 44;
             _scoreLabel.alignment = TextAlignmentOptions.Center;
-            _scoreLabel.color = Color.white;
+            _scoreLabel.color = new Color(0.95f, 0.95f, 0.85f); // 분필 색
 
-            // 질문
+            // 질문 (크게, 중앙 상단)
             var qGo = new GameObject("Question");
             qGo.transform.SetParent(_root.transform, false);
             var qrt = qGo.AddComponent<RectTransform>();
-            qrt.anchorMin = new Vector2(0, 0.6f);
-            qrt.anchorMax = new Vector2(1, 0.82f);
+            qrt.anchorMin = new Vector2(0.05f, 0.58f);
+            qrt.anchorMax = new Vector2(0.95f, 0.82f);
             qrt.offsetMin = Vector2.zero;
             qrt.offsetMax = Vector2.zero;
             _question = qGo.AddComponent<TextMeshProUGUI>();
             _question.fontSize = 96;
             _question.alignment = TextAlignmentOptions.Center;
             _question.color = Color.white;
+            _question.fontStyle = FontStyles.Bold;
 
-            // 4지선다 (2x2 grid)
+            // 4지선다 (2x2 grid) — 4색 라운드
+            var btnColors = new[] {
+                new Color(0.3f, 0.6f, 0.95f), // 파랑
+                new Color(0.2f, 0.75f, 0.5f),  // 민트
+                new Color(0.95f, 0.55f, 0.2f), // 주황
+                new Color(0.85f, 0.35f, 0.55f), // 핑크
+            };
             for (int i = 0; i < 4; i++)
             {
                 int row = i / 2;
@@ -162,16 +177,18 @@ namespace ShortGeta.Minigames.MathGenius
                 var btnGo = new GameObject($"Choice{i}");
                 btnGo.transform.SetParent(_root.transform, false);
                 var brt = btnGo.AddComponent<RectTransform>();
-                float xMin = 0.1f + col * 0.4f + col * 0.05f;
-                float xMax = xMin + 0.35f;
-                float yMin = 0.15f + (1 - row) * 0.18f;
-                float yMax = yMin + 0.15f;
+                float xMin = 0.08f + col * 0.44f;
+                float xMax = xMin + 0.40f;
+                float yMin = 0.12f + (1 - row) * 0.20f;
+                float yMax = yMin + 0.17f;
                 brt.anchorMin = new Vector2(xMin, yMin);
                 brt.anchorMax = new Vector2(xMax, yMax);
                 brt.offsetMin = Vector2.zero;
                 brt.offsetMax = Vector2.zero;
                 var img = btnGo.AddComponent<Image>();
-                img.color = new Color(0.2f, 0.5f, 0.9f);
+                img.color = btnColors[i];
+                img.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetRounded(20);
+                img.type = Image.Type.Sliced;
                 var btn = btnGo.AddComponent<Button>();
                 btn.targetGraphic = img;
                 _choices[i] = btn;
@@ -187,6 +204,7 @@ namespace ShortGeta.Minigames.MathGenius
                 lbl.fontSize = 80;
                 lbl.alignment = TextAlignmentOptions.Center;
                 lbl.color = Color.white;
+                lbl.fontStyle = FontStyles.Bold;
                 _choiceLabels[i] = lbl;
             }
         }
