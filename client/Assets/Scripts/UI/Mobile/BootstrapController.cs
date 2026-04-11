@@ -1268,15 +1268,15 @@ namespace ShortGeta.UI.Mobile
                 var sprGo = new GameObject("ThumbSprite");
                 sprGo.transform.SetParent(thumb.transform, false);
                 var srt = sprGo.AddComponent<RectTransform>();
-                srt.anchorMin = new Vector2(0.15f, 0.1f);
-                srt.anchorMax = new Vector2(0.85f, 0.9f);
+                srt.anchorMin = new Vector2(0.05f, 0.05f);
+                srt.anchorMax = new Vector2(0.95f, 0.95f);
                 srt.offsetMin = Vector2.zero;
                 srt.offsetMax = Vector2.zero;
                 var simg = sprGo.AddComponent<Image>();
                 simg.sprite = thumbSprite;
-                simg.preserveAspect = true;
+                simg.preserveAspect = true; // 비율 유지, 영역 꽉 채움
                 simg.raycastTarget = false;
-                emojiLabel.gameObject.SetActive(false); // 이모지 숨김
+                emojiLabel.gameObject.SetActive(false);
             }
 
             // 우하단 하트 — 썸네일 우측에 가까이 (경계에 붙지는 않음)
