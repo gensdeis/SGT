@@ -127,13 +127,16 @@ namespace ShortGeta.Minigames.MathGenius
             scaler.matchWidthOrHeight = 1f;
             _root.AddComponent<GraphicRaycaster>();
 
-            // 칠판 배경
+            // 칠판 배경 (스프라이트 우선)
             var bgGo = new GameObject("Bg");
             bgGo.transform.SetParent(_root.transform, false);
             var bgRt = bgGo.AddComponent<RectTransform>();
             bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
             bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
-            bgGo.AddComponent<Image>().color = new Color(0.10f, 0.22f, 0.12f); // 다크 그린 칠판
+            var mathBgImg = bgGo.AddComponent<Image>();
+            var chalkSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg("math_genius_v1");
+            if (chalkSprite != null) { mathBgImg.sprite = chalkSprite; mathBgImg.color = Color.white; }
+            else mathBgImg.color = new Color(0.10f, 0.22f, 0.12f);
 
             // 점수 (우상단)
             var scoreGo = new GameObject("Score");

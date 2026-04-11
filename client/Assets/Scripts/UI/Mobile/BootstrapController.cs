@@ -381,6 +381,9 @@ namespace ShortGeta.UI.Mobile
             if (_resultPanel != null) Destroy(_resultPanel);
             if (_homePanel != null) Destroy(_homePanel);
 
+            // #6: game-stats 재로드 (플레이 횟수/최고 점수 갱신)
+            RefreshGameStatsAsync().Forget();
+
             // 플랫폼 분기 — PC 면 PcHomeController 위임
             if (PlatformDetector.Detect() == LayoutMode.PC)
             {
@@ -476,6 +479,25 @@ namespace ShortGeta.UI.Mobile
                 case 1: BuildPopularTab(); break;
                 case 2: BuildLibraryTab(); break;
                 case 3: BuildSettingsTab(); break;
+            }
+        }
+
+        // #6: 홈 진입 시 game-stats 재로드 (fire-and-forget)
+        private async UniTaskVoid RefreshGameStatsAsync()
+        {
+            try
+            {
+                var statsResp = await _profileApi.GetGameStatsAsync();
+                if (statsResp?.Stats != null)
+                {
+                    _gameStats.Clear();
+                    foreach (var s in statsResp.Stats) _gameStats[s.GameId] = s;
+                    Debug.Log($"[GameStats] refreshed {_gameStats.Count}");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[GameStats] refresh failed: {e.Message}");
             }
         }
 
@@ -1236,8 +1258,26 @@ namespace ShortGeta.UI.Mobile
             _cardThumbs[g.Id] = thumb.GetComponent<Image>();
 
             string emoji = GameEmojis.TryGetValue(g.Id, out var e) ? e : "🎮";
-            UIBuilder.Label(thumb.transform, emoji, 160, DesignTokens.Text,
+            var emojiLabel = UIBuilder.Label(thumb.transform, emoji, 160, DesignTokens.Text,
                 TextAlignmentOptions.Center);
+
+            // 스프라이트 썸네일이 있으면 이모지 대체
+            var thumbSprite = GameSpriteLoader.LoadThumbnail(g.Id);
+            if (thumbSprite != null)
+            {
+                var sprGo = new GameObject("ThumbSprite");
+                sprGo.transform.SetParent(thumb.transform, false);
+                var srt = sprGo.AddComponent<RectTransform>();
+                srt.anchorMin = new Vector2(0.05f, 0.05f);
+                srt.anchorMax = new Vector2(0.95f, 0.95f);
+                srt.offsetMin = Vector2.zero;
+                srt.offsetMax = Vector2.zero;
+                var simg = sprGo.AddComponent<Image>();
+                simg.sprite = thumbSprite;
+                simg.preserveAspect = true; // 비율 유지, 영역 꽉 채움
+                simg.raycastTarget = false;
+                emojiLabel.gameObject.SetActive(false);
+            }
 
             // 우하단 하트 — 썸네일 우측에 가까이 (경계에 붙지는 않음)
             bool favorited = _gameStats.TryGetValue(g.Id, out var stat0) && stat0.Favorited;
@@ -1706,124 +1746,108 @@ namespace ShortGeta.UI.Mobile
             if (_miniResultPanel != null) { Destroy(_miniResultPanel); _miniResultPanel = null; }
         }
 
+        // ─── 세션 결과 화면 (DesignTokens 통일) ───
         private void ShowResult(List<MinigameResult> results, EndSessionResponse end)
         {
             if (_homePanel != null) _homePanel.SetActive(false);
             if (_resultPanel != null) Destroy(_resultPanel);
 
-            _resultPanel = new GameObject("ResultPanel");
-            _resultPanel.transform.SetParent(_rootCanvas.transform, false);
-            var rt = _resultPanel.AddComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-            var bg = _resultPanel.AddComponent<Image>();
-            bg.color = new Color(0.05f, 0.05f, 0.08f, 0.95f);
+            // 풀스크린 다크 배경
+            _resultPanel = UIBuilder.Panel(_rootCanvas.transform, "ResultPanel",
+                Vector2.zero, Vector2.one, DesignTokens.Bg);
 
-            var titleGo = new GameObject("Title");
-            titleGo.transform.SetParent(_resultPanel.transform, false);
-            var trt = titleGo.AddComponent<RectTransform>();
-            trt.anchorMin = new Vector2(0, 0.85f);
-            trt.anchorMax = new Vector2(1, 0.95f);
-            trt.offsetMin = Vector2.zero;
-            trt.offsetMax = Vector2.zero;
-            var t = titleGo.AddComponent<TextMeshProUGUI>();
-            t.text = "결과";
-            t.fontSize = 64;
-            t.alignment = TextAlignmentOptions.Center;
-            t.color = Color.white;
+            // 제목
+            UIBuilder.Label(_resultPanel.transform, "세션 결과",
+                DesignTokens.FontTitle, DesignTokens.Text, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0f, 0.88f), anchorMax: new Vector2(1f, 0.97f))
+                .fontStyle = FontStyles.Bold;
 
-            var listGo = new GameObject("ScoreList");
-            listGo.transform.SetParent(_resultPanel.transform, false);
-            var lrt = listGo.AddComponent<RectTransform>();
-            lrt.anchorMin = new Vector2(0.1f, 0.3f);
-            lrt.anchorMax = new Vector2(0.9f, 0.8f);
-            lrt.offsetMin = Vector2.zero;
-            lrt.offsetMax = Vector2.zero;
-            var lt = listGo.AddComponent<TextMeshProUGUI>();
-            lt.fontSize = 40;
-            lt.alignment = TextAlignmentOptions.TopLeft;
-            lt.color = Color.white;
-
-            var sb = new System.Text.StringBuilder();
-            string ddaLabel = _currentDdaIntensity == 1 ? "+1 어려움"
-                            : _currentDdaIntensity == -1 ? "-1 쉬움"
-                            : "0 기본";
-            sb.AppendLine($"DDA: {ddaLabel}");
-            sb.AppendLine();
+            // 총점 카드
             int total = 0;
+            foreach (var r in results) total += r.Score;
+            var totalCard = UIBuilder.RoundedPanel(_resultPanel.transform, "TotalCard",
+                new Vector2(0.08f, 0.76f), new Vector2(0.92f, 0.87f),
+                DesignTokens.Surface, 20);
+            UIBuilder.Label(totalCard.transform, "합계",
+                DesignTokens.FontCaption, DesignTokens.TextDim, TextAlignmentOptions.Left,
+                anchorMin: new Vector2(0.08f, 0f), anchorMax: new Vector2(0.4f, 1f));
+            UIBuilder.Label(totalCard.transform, $"{total:N0}",
+                DesignTokens.FontH2, DesignTokens.Accent, TextAlignmentOptions.Right,
+                anchorMin: new Vector2(0.5f, 0f), anchorMax: new Vector2(0.92f, 1f))
+                .fontStyle = FontStyles.Bold;
+
+            // 게임별 점수 리스트 (스크롤)
+            var scroll = UIBuilder.Panel(_resultPanel.transform, "ScoreScroll",
+                new Vector2(0.05f, 0.28f), new Vector2(0.95f, 0.75f), DesignTokens.Bg);
+            var sr = scroll.AddComponent<ScrollRect>();
+            sr.horizontal = false; sr.vertical = true;
+            scroll.AddComponent<RectMask2D>();
+            var content = new GameObject("Content");
+            content.transform.SetParent(scroll.transform, false);
+            var crt = content.AddComponent<RectTransform>();
+            crt.anchorMin = new Vector2(0f, 1f); crt.anchorMax = new Vector2(1f, 1f);
+            crt.pivot = new Vector2(0.5f, 1f);
+            crt.offsetMin = Vector2.zero; crt.offsetMax = Vector2.zero;
+            var vlg = content.AddComponent<VerticalLayoutGroup>();
+            vlg.padding = new RectOffset(8, 8, 8, 8);
+            vlg.spacing = 10;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            var csf = content.AddComponent<ContentSizeFitter>();
+            csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            sr.content = crt;
+
             var acceptedSet = new HashSet<string>(end.Accepted ?? new string[0]);
             foreach (var r in results)
             {
-                string mark = acceptedSet.Contains(r.GameId) ? "✓" : "✗";
-                sb.AppendLine($"{mark} {r.GameId,-20} {r.Score,5}");
-                total += r.Score;
-            }
-            sb.AppendLine();
-            sb.AppendLine($"합계: {total}");
-            lt.text = sb.ToString();
+                var row = UIBuilder.RoundedPanel(content.transform, $"Row_{r.GameId}",
+                    Vector2.zero, Vector2.one, DesignTokens.Surface, 14);
+                var rle = row.AddComponent<LayoutElement>();
+                rle.preferredHeight = 100;
 
-            // 하이라이트 보기 + 공유 버튼 (highlight 가 있을 때만)
+                string emoji = GameEmojis.TryGetValue(r.GameId, out var em) ? em : "🎮";
+                bool accepted = acceptedSet.Contains(r.GameId);
+                string mark = accepted ? "✓" : "✗";
+                var markColor = accepted ? DesignTokens.Accent : DesignTokens.Hex("#f472b6");
+
+                UIBuilder.Label(row.transform, mark, 40, markColor, TextAlignmentOptions.Center,
+                    anchorMin: new Vector2(0f, 0f), anchorMax: new Vector2(0.1f, 1f))
+                    .fontStyle = FontStyles.Bold;
+                UIBuilder.Label(row.transform, $"{emoji} {r.GameId}",
+                    DesignTokens.FontCaption, DesignTokens.Text, TextAlignmentOptions.Left,
+                    anchorMin: new Vector2(0.12f, 0f), anchorMax: new Vector2(0.7f, 1f));
+                UIBuilder.Label(row.transform, $"{r.Score}",
+                    DesignTokens.FontBody, DesignTokens.Accent, TextAlignmentOptions.Right,
+                    anchorMin: new Vector2(0.7f, 0f), anchorMax: new Vector2(0.95f, 1f))
+                    .fontStyle = FontStyles.Bold;
+            }
+
+            // 하단 버튼들
+            UIBuilder.Button(_resultPanel.transform, "RankBtn",
+                DesignTokens.AccentDark, DesignTokens.PrimaryCTA,
+                "🏆 랭킹 보기", DesignTokens.FontBody,
+                new Vector2(0.08f, 0.16f), new Vector2(0.92f, 0.26f),
+                () => ShowRankingAsync(results).Forget(),
+                radius: 20);
+
             if (_sessionHighlights.Count > 0)
             {
-                CreateRectButton("HighlightButton", new Vector2(0.05f, 0.23f), new Vector2(0.48f, 0.32f),
-                    new Color(1f, 0.6f, 0.2f), $"📁 보기 ({_sessionHighlights.Count})", 38,
-                    () =>
-                    {
-                        if (_recording != null && _recording.IsSupported)
-                            _recording.OpenLastClipExternally();
-                        else
-                            Toast.Show("Editor / Standalone 에서만 폴더 열기 가능", 3f);
-                    });
-
-                CreateRectButton("ShareButton", new Vector2(0.52f, 0.23f), new Vector2(0.95f, 0.32f),
-                    new Color(0.2f, 0.7f, 0.4f), "📤 공유", 38,
-                    () =>
-                    {
-                        if (_recording != null) _recording.ShareLastClip();
-                        else Toast.Show("녹화 서비스 없음", 3f);
-                        // Iter 3: 공유 보상 claim (서버 일 1회 limit)
-                        ClaimShareRewardAsync().Forget();
-                    });
+                UIBuilder.Button(_resultPanel.transform, "ShareBtn",
+                    DesignTokens.Surface2, DesignTokens.Text,
+                    "📤 공유", DesignTokens.FontCaption,
+                    new Vector2(0.52f, 0.06f), new Vector2(0.92f, 0.14f),
+                    () => { _recording?.ShareLastClip(); ClaimShareRewardAsync().Forget(); },
+                    radius: 16);
             }
 
-            // Iter 3: 랭킹 보기 버튼 (홈으로 위)
-            CreateRectButton("RankingButton", new Vector2(0.05f, 0.34f), new Vector2(0.95f, 0.42f),
-                new Color(0.4f, 0.5f, 0.9f), "🏆 랭킹 보기", 38,
-                () => ShowRankingAsync(results).Forget());
-
-            var btnGo = new GameObject("BackButton");
-            btnGo.transform.SetParent(_resultPanel.transform, false);
-            var brt = btnGo.AddComponent<RectTransform>();
-            brt.anchorMin = new Vector2(0.2f, 0.1f);
-            brt.anchorMax = new Vector2(0.8f, 0.2f);
-            brt.offsetMin = Vector2.zero;
-            brt.offsetMax = Vector2.zero;
-            var img = btnGo.AddComponent<Image>();
-            img.color = new Color(0.3f, 0.6f, 1f);
-            var btn = btnGo.AddComponent<Button>();
-            btn.targetGraphic = img;
-
-            var labelGo = new GameObject("Label");
-            labelGo.transform.SetParent(btnGo.transform, false);
-            var llrt = labelGo.AddComponent<RectTransform>();
-            llrt.anchorMin = Vector2.zero;
-            llrt.anchorMax = Vector2.one;
-            llrt.offsetMin = Vector2.zero;
-            llrt.offsetMax = Vector2.zero;
-            var lbl = labelGo.AddComponent<TextMeshProUGUI>();
-            lbl.text = "홈으로";
-            lbl.fontSize = 56;
-            lbl.alignment = TextAlignmentOptions.Center;
-            lbl.color = Color.white;
-
-            btn.onClick.AddListener(() =>
-            {
-                Destroy(_resultPanel);
-                _resultPanel = null;
-                ShowHome();
-            });
+            UIBuilder.Button(_resultPanel.transform, "HomeBtn",
+                DesignTokens.PrimaryCTA, DesignTokens.OnPrimary,
+                "🏠 홈으로", DesignTokens.FontBody,
+                new Vector2(0.08f, 0.06f), new Vector2(0.50f, 0.14f),
+                () => { Destroy(_resultPanel); _resultPanel = null; ShowHome(); },
+                radius: 20);
         }
 
         // Iter 3: 공유 보상 claim
