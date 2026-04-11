@@ -1180,11 +1180,22 @@ namespace ShortGeta.UI.Mobile
 
         private void BuildGameCard(Transform parent, GameView g, int rank = 0, bool showNew = false)
         {
-            // 카드 전체 라운드
+            // 카드 전체 라운드 + 클릭으로 개별 게임 바로 시작
             var card = UIBuilder.RoundedPanel(parent, $"Card_{g.Id}",
                 Vector2.zero, Vector2.one, DesignTokens.Surface, 20);
             var le = card.AddComponent<LayoutElement>();
             le.preferredHeight = 480;
+
+            // 카드 전체 버튼 (게임 시작)
+            var cardBtn = card.AddComponent<Button>();
+            cardBtn.targetGraphic = card.GetComponent<Image>();
+            var cardColors = cardBtn.colors;
+            cardColors.normalColor = DesignTokens.Surface;
+            cardColors.highlightedColor = DesignTokens.Hex("#1e2030");
+            cardColors.pressedColor = DesignTokens.Hex("#252838");
+            cardBtn.colors = cardColors;
+            string gameId = g.Id;
+            cardBtn.onClick.AddListener(() => PlaySingleGameAsync(gameId).Forget());
 
             // 배지는 썸네일 생성 후에 추가 (밑에서 SetAsLastSibling 으로 최상위)
 
@@ -1431,6 +1442,49 @@ namespace ShortGeta.UI.Mobile
             {
                 Debug.LogError($"[Bootstrap] session failed: {e}");
                 Toast.Show("세션 실패: " + e.Message, 4f);
+                _sessionActive = false;
+                Time.timeScale = 1f;
+                ShowHome();
+            }
+        }
+
+        // Phase 1: 카드 클릭 → 개별 게임 1판 (서버 세션 없이 로컬 플레이)
+        private async UniTaskVoid PlaySingleGameAsync(string gameId)
+        {
+            if (!_registry.Contains(gameId))
+            {
+                Toast.Show($"게임 '{gameId}' 미등록", 2f);
+                return;
+            }
+            try
+            {
+                _homePanel.SetActive(false);
+                _sessionActive = true;
+                _currentDdaIntensity = 0; // 로컬은 기본 난이도
+                Debug.Log($"[Bootstrap] single game start: {gameId}");
+
+                var result = await PlaySingleAsync(gameId);
+
+                _sessionActive = false;
+                // 단일 게임 결과 — 간이 표시 후 홈 복귀 (Phase 2 에서 ShowMiniResult 로 교체 예정)
+                var fakeEnd = new EndSessionResponse
+                {
+                    Accepted = new[] { result.GameId },
+                    Rejected = new string[0],
+                };
+                ShowResult(new List<MinigameResult> { result }, fakeEnd);
+            }
+            catch (System.OperationCanceledException)
+            {
+                Debug.Log("[Bootstrap] single game aborted");
+                _sessionActive = false;
+                Time.timeScale = 1f;
+                ShowHome();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Bootstrap] single game failed: {e}");
+                Toast.Show("게임 실패: " + e.Message, 3f);
                 _sessionActive = false;
                 Time.timeScale = 1f;
                 ShowHome();
