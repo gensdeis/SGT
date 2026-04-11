@@ -159,29 +159,39 @@ namespace ShortGeta.Minigames.NoodleBoil
             scaler.matchWidthOrHeight = 1f;
             _root.AddComponent<GraphicRaycaster>();
 
-            // Label
+            // 따뜻한 주방 배경
+            var sceneBg = new GameObject("Bg");
+            sceneBg.transform.SetParent(_root.transform, false);
+            var sceneBgRt = sceneBg.AddComponent<RectTransform>();
+            sceneBgRt.anchorMin = Vector2.zero; sceneBgRt.anchorMax = Vector2.one;
+            sceneBgRt.offsetMin = Vector2.zero; sceneBgRt.offsetMax = Vector2.zero;
+            sceneBg.AddComponent<Image>().color = new Color(0.12f, 0.08f, 0.06f); // 다크 브라운 (주방)
+
+            // Label — 라운드 + 안내
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(_root.transform, false);
             var lrt = labelGo.AddComponent<RectTransform>();
-            lrt.anchorMin = new Vector2(0, 0.7f);
-            lrt.anchorMax = new Vector2(1, 0.85f);
+            lrt.anchorMin = new Vector2(0.05f, 0.72f);
+            lrt.anchorMax = new Vector2(0.95f, 0.90f);
             lrt.offsetMin = Vector2.zero;
             lrt.offsetMax = Vector2.zero;
             _label = labelGo.AddComponent<TextMeshProUGUI>();
-            _label.fontSize = 56;
+            _label.fontSize = 48;
             _label.alignment = TextAlignmentOptions.Center;
-            _label.color = Color.white;
+            _label.color = new Color(1f, 0.92f, 0.75f); // 따뜻한 베이지
 
-            // Bar background
+            // Bar 배경 — 라운드
             var bgGo = new GameObject("BarBG");
             bgGo.transform.SetParent(_root.transform, false);
             var brt = bgGo.AddComponent<RectTransform>();
-            brt.anchorMin = new Vector2(0.1f, 0.4f);
-            brt.anchorMax = new Vector2(0.9f, 0.55f);
+            brt.anchorMin = new Vector2(0.08f, 0.40f);
+            brt.anchorMax = new Vector2(0.92f, 0.58f);
             brt.offsetMin = Vector2.zero;
             brt.offsetMax = Vector2.zero;
             var bgImg = bgGo.AddComponent<Image>();
-            bgImg.color = new Color(0.2f, 0.2f, 0.2f);
+            bgImg.color = new Color(0.15f, 0.15f, 0.15f);
+            bgImg.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetRounded(16);
+            bgImg.type = Image.Type.Sliced;
 
             // Bar fill
             var fillGo = new GameObject("BarFill");
