@@ -12,7 +12,7 @@ namespace ShortGeta.Minigames.ClassroomClick
         public string Title => "교실 클릭 게임";
         public string CreatorId => "shotgeta_official";
         public float TimeLimit => 15f;
-        public string[] Tags => new[] { GameTags.Reaction, GameTags.Everyday };
+        public string[] Tags => new[] { GameTags.Reflex, GameTags.Daily };
 
         private const int MaxScore = 500;
         private SafeInt _score;
