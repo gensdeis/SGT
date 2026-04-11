@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>놀이특성화초등학교 — 게임 기획서</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@300;400;600;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:       #0c0e13;
+  --surface:  #14161d;
+  --surface2: #1b1e28;
+  --border:   #2a2e3a;
+  --text:     #e2e4ea;
+  --text-dim: #8b8fa3;
+  --accent:   #5eead4;
+  --accent2:  #a78bfa;
+  --accent3:  #f472b6;
+  --accent4:  #fbbf24;
+  --accent5:  #38bdf8;
+  --accent6:  #fb923c;
+
+  --game1: var(--accent);
+  --game2: var(--accent4);
+  --game3: var(--accent6);
+  --game4: var(--accent3);
+  --game5: var(--accent2);
+  --game6: var(--accent5);
+  --game7: #4ade80;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  font-weight: 300;
+  overflow-x: hidden;
+}
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  text-align: center;
+  padding: 4rem 2rem;
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(94,234,212,0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(244,114,182,0.05) 0%, transparent 50%);
+  animation: driftBg 20s ease-in-out infinite alternate;
+}
+@keyframes driftBg {
+  0% { transform: rotate(0deg) scale(1); }
+  100% { transform: rotate(5deg) scale(1.05); }
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .5rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  font-size: .78rem; color: var(--text-dim);
+  letter-spacing: .1em; text-transform: uppercase;
+  backdrop-filter: blur(8px);
+  background: rgba(20,22,29,0.6);
+  margin-bottom: 2rem;
+  font-family: 'JetBrains Mono', monospace;
+  position: relative; z-index: 1;
+}
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(94,234,212,.4); }
+  50% { opacity: .7; box-shadow: 0 0 0 6px rgba(94,234,212,0); }
+}
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.8rem, 7vw, 6rem);
+  letter-spacing: -.03em; line-height: 1.05;
+  margin-bottom: 1.5rem;
+  position: relative; z-index: 1;
+}
+.hero h1 span {
+  background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  font-size: 1.1rem; color: var(--text-dim);
+  max-width: 600px; margin-bottom: 3rem;
+  position: relative; z-index: 1;
+}
+.hero-stats {
+  display: flex; flex-wrap: wrap; gap: 2rem 3rem;
+  justify-content: center;
+  position: relative; z-index: 1;
+  margin-bottom: 4rem;
+}
+.hero-stat .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2.4rem; font-weight: 600;
+  color: var(--accent);
+}
+.hero-stat .label {
+  font-size: .8rem; color: var(--text-dim);
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.scroll-hint {
+  position: absolute; bottom: 2rem;
+  display: flex; flex-direction: column; align-items: center; gap: .5rem;
+  font-size: .72rem; color: var(--text-dim);
+  letter-spacing: .15em; text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+  animation: bobDown 2s ease-in-out infinite;
+  z-index: 1;
+}
+.scroll-hint svg { width: 20px; height: 20px; stroke: var(--text-dim); }
+@keyframes bobDown {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+
+/* ── LAYOUT ── */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+section { padding: 5rem 0; }
+.section-label {
+  display: inline-flex; align-items: center; gap: .5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .72rem; color: var(--accent);
+  letter-spacing: .15em; text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+.section-label::before { content: ''; width: 24px; height: 1px; background: var(--accent); }
+h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  letter-spacing: -.02em; margin-bottom: 1rem;
+}
+.lead {
+  font-size: 1rem; color: var(--text-dim);
+  max-width: 720px; margin-bottom: 3rem;
+}
+.divider {
+  width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* ── WORLD CARD ── */
+.world-card {
+  background: linear-gradient(135deg, rgba(94,234,212,0.06), rgba(167,139,250,0.04));
+  border: 1px solid rgba(94,234,212,0.2);
+  border-radius: 20px;
+  padding: 2.5rem;
+  margin-bottom: 3rem;
+}
+.world-card h3 { color: var(--accent); margin-bottom: .75rem; font-size: 1.1rem; }
+
+/* ── GAME CARDS ── */
+.game-section {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  background: var(--surface);
+  transition: border-color .3s;
+}
+.game-section:hover { border-color: rgba(94,234,212,0.25); }
+
+.game-header {
+  padding: 2rem 2.5rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.game-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3rem; font-weight: 600; line-height: 1;
+  opacity: .18; flex-shrink: 0; margin-top: 4px;
+}
+.game-meta { flex: 1; min-width: 200px; }
+.game-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.7rem; margin-bottom: .4rem;
+}
+.game-concept { color: var(--text-dim); font-size: .95rem; }
+.badge {
+  display: inline-flex; align-items: center;
+  padding: .25rem .75rem;
+  border-radius: 100px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .7rem; font-weight: 600;
+  letter-spacing: .05em;
+  margin-right: .4rem; margin-top: .5rem;
+}
+.badge-genre { background: rgba(94,234,212,.1); color: var(--accent); }
+.badge-view  { background: rgba(167,139,250,.1); color: var(--accent2); }
+.badge-input { background: rgba(251,191,36,.1); color: var(--accent4); }
+
+.game-body { padding: 2rem 2.5rem; }
+.spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.spec-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+}
+.spec-card h4 {
+  font-size: .72rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .1em;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: .75rem;
+}
+.spec-card p, .spec-card li { font-size: .92rem; color: var(--text); }
+.spec-card ul { padding-left: 1rem; }
+.spec-card li { margin-bottom: .25rem; }
+
+.highlight-box {
+  background: linear-gradient(135deg, rgba(94,234,212,0.05), rgba(167,139,250,0.03));
+  border: 1px solid rgba(94,234,212,0.12);
+  border-radius: 12px;
+  padding: 1.25rem 1.75rem;
+  margin-top: 1.5rem;
+  font-size: .9rem;
+}
+.highlight-box strong { color: var(--accent); }
+
+.diff-bar-wrap { margin-top: .75rem; }
+.diff-label { display: flex; justify-content: space-between; font-size: .78rem; color: var(--text-dim); margin-bottom: .3rem; font-family: 'JetBrains Mono', monospace; }
+.diff-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.diff-fill { height: 100%; border-radius: 3px; }
+
+/* ── OVERVIEW TABLE ── */
+.table-wrap { overflow-x: auto; margin: 2rem 0; border-radius: 14px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--surface2); }
+th {
+  padding: .85rem 1.25rem;
+  text-align: left;
+  font-size: .72rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .1em;
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+}
+td {
+  padding: .85rem 1.25rem;
+  font-size: .88rem;
+  border-top: 1px solid var(--border);
+}
+tbody tr:hover { background: rgba(255,255,255,.02); }
+
+/* ── CHART ── */
+.chart-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem; margin: 2rem 0;
+}
+.chart-wrap canvas { max-height: 380px; }
+.chart-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .75rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .1em;
+  margin-bottom: 1.25rem;
+}
+
+/* ── PROS / CONS ── */
+.pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+.pros-cons .card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 1.5rem;
+}
+.pros-cons h4 { font-size: .85rem; margin-bottom: .75rem; }
+.pros h4 { color: var(--accent); }
+.cons h4 { color: var(--accent3); }
+.pros-cons ul { list-style: none; }
+.pros-cons li { padding: .3rem 0 .3rem 1.4rem; position: relative; font-size: .88rem; }
+.pros li::before { content: '✓'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+.cons li::before { content: '✗'; position: absolute; left: 0; color: var(--accent3); font-weight: 700; }
+
+/* ── TOC ── */
+.toc {
+  position: fixed; right: 1.75rem;
+  top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: .55rem;
+  z-index: 100;
+}
+@media(max-width:1300px){.toc{display:none;}}
+.toc a {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border);
+  transition: all .3s; position: relative;
+  display: block;
+}
+.toc a:hover, .toc a.active { background: var(--accent); box-shadow: 0 0 8px rgba(94,234,212,.4); }
+.toc a::after {
+  content: attr(data-label);
+  position: absolute; right: 18px; top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: .68rem; color: var(--text-dim);
+  opacity: 0; transition: opacity .3s;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', monospace;
+}
+.toc a:hover::after { opacity: 1; }
+
+/* ── FADE IN ── */
+.fade-in { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+.fade-in.visible { opacity: 1; transform: translateY(0); }
+
+/* ── FOOTER ── */
+footer {
+  padding: 4rem 0; border-top: 1px solid var(--border);
+  text-align: center; color: var(--text-dim); font-size: .82rem;
+}
+footer p { margin-bottom: .4rem; }
+
+@media(max-width:768px){
+  .pros-cons { grid-template-columns: 1fr; }
+  .game-header { gap: 1rem; }
+  .game-num { font-size: 2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOC -->
+<nav class="toc" id="toc">
+  <a href="#hero"    data-label="표지"></a>
+  <a href="#world"   data-label="세계관"></a>
+  <a href="#overview" data-label="게임 개요"></a>
+  <a href="#game1"   data-label="교실 클릭"></a>
+  <a href="#game2"   data-label="육상 게임"></a>
+  <a href="#game3"   data-label="장대 오르기"></a>
+  <a href="#game4"   data-label="파리 잡기"></a>
+  <a href="#game5"   data-label="탑뷰 축구"></a>
+  <a href="#game6"   data-label="1:1 축구"></a>
+  <a href="#game7"   data-label="어두운 탐험"></a>
+  <a href="#chart"   data-label="분석"></a>
+</nav>
+
+<!-- HERO -->
+<header class="hero" id="hero">
+  <div class="hero-badge"><span class="dot"></span> Cocos2D · Game Design Document · 2021</div>
+  <h1><span>놀이특성화초등학교</span></h1>
+  <p class="hero-sub">공부 대신 놀이가 정식 과목인 학교 — 모든 놀이 고수를 이기고 <strong style="color:var(--accent)">놀이짱</strong>이 되자!</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">7</div><div class="label">미니게임</div></div>
+    <div class="hero-stat"><div class="num">3:20</div><div class="label">총 런타임</div></div>
+    <div class="hero-stat"><div class="num">2D</div><div class="label">Cocos2D</div></div>
+    <div class="hero-stat"><div class="num">1인</div><div class="label">플레이어</div></div>
+  </div>
+  <div class="scroll-hint">SCROLL <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></div>
+</header>
+
+<!-- WORLD -->
+<div class="divider"></div>
+<section id="world" class="fade-in">
+  <div class="container">
+    <div class="section-label">00 — 세계관 & 스토리</div>
+    <h2>놀이짱이 되어라</h2>
+    <p class="lead">아이들에게 노는 방법을 가르치고 평가하는 전무후무한 학교. 이 곳에서 놀이는 하나의 정식 과목이다.</p>
+    <div class="world-card">
+      <h3>📖 배경 스토리</h3>
+      <p>공부만을 강요하던 어른들은 아이들이 놀이를 통해 건강하게 스트레스를 해소하는 것이 얼마나 중요한지 깨달았다. 그렇게 탄생한 <strong style="color:var(--accent)">놀이특성화초등학교</strong>. 선생님들은 아이들에게 노는 방법을 가르치고, 평가한다. 이 학교에서 제일 잘 노는 학생은 인기스타이자 짱이다.</p>
+      <br>
+      <p>시대의 흐름에 맞춰 "공부특성화초등학교"에서 전학 온 주인공. 학교에 있는 <strong style="color:var(--accent2)">모든 놀이 고수들을 이기고 놀이짱</strong>이 되어야 한다!</p>
+    </div>
+    <div class="spec-grid">
+      <div class="spec-card">
+        <h4>🎯 핵심 판타지</h4>
+        <p>진지한 학교 세팅에서 놀이가 공식 평가 과목이라는 역발상. 공부 대신 게임 실력으로 서열이 정해지는 세계.</p>
+      </div>
+      <div class="spec-card">
+        <h4>🏫 진행 방식</h4>
+        <p>탑뷰 RPG 스타일 오버월드(학교 맵)를 이동하며 각 장소에서 다른 미니게임 고수들과 대결. 승리 시 다음 구역 해금.</p>
+      </div>
+      <div class="spec-card">
+        <h4>🎮 플랫폼 & 엔진</h4>
+        <p>Cocos2D 기반 PC 게임. 픽셀 아트 그래픽, 실제 사진을 배경으로 활용하는 하이브리드 비주얼 스타일.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- OVERVIEW TABLE -->
+<div class="divider"></div>
+<section id="overview" class="fade-in">
+  <div class="container">
+    <div class="section-label">01 — 전체 게임 개요</div>
+    <h2>7개 미니게임 한눈에 보기</h2>
+    <p class="lead">영상에서 확인된 각 미니게임의 핵심 정보 요약.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>게임명</th>
+            <th>장르</th>
+            <th>시점</th>
+            <th>핵심 입력</th>
+            <th>목표</th>
+            <th>난이도</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span style="color:var(--game1);font-family:'JetBrains Mono',mono;font-weight:600">01</span></td>
+            <td>교실 클릭 게임</td>
+            <td>반응속도</td>
+            <td>탑뷰</td>
+            <td>마우스 클릭</td>
+            <td>제한시간 내 최다 클릭</td>
+            <td>★★☆☆☆</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--game2);font-family:'JetBrains Mono',mono;font-weight:600">02</span></td>
+            <td>육상 게임</td>
+            <td>타이밍</td>
+            <td>탑뷰</td>
+            <td>키보드 연타</td>
+            <td>최대 거리 달성</td>
+            <td>★★★☆☆</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--game3);font-family:'JetBrains Mono',mono;font-weight:600">03</span></td>
+            <td>장대 오르기</td>
+            <td>리듬/타이밍</td>
+            <td>사이드뷰</td>
+            <td>키보드</td>
+            <td>장대 꼭대기 도달</td>
+            <td>★★★☆☆</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--game4);font-family:'JetBrains Mono',mono;font-weight:600">04</span></td>
+            <td>파리 잡기</td>
+            <td>반응속도</td>
+            <td>탑뷰</td>
+            <td>마우스 클릭</td>
+            <td>제한시간 내 최다 포획</td>
+            <td>★★★★☆</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--game5);font-family:'JetBrains Mono',mono;font-weight:600">05</span></td>
+            <td>탑뷰 축구</td>
+            <td>스포츠 전략</td>
+            <td>탑뷰</td>
+            <td>키보드 이동</td>
+            <td>상대팀보다 많은 득점</td>
+            <td>★★★★☆</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--game6);font-family:'JetBrains Mono',mono;font-weight:600">06</span></td>
+            <td>사이드뷰 1:1 축구</td>
+            <td>스포츠 액션</td>
+            <td>사이드뷰</td>
+            <td>키보드 이동+점프</td>
+            <td>골 더 많이 넣기</td>
+            <td>★★★☆☆</td>
+          </tr>
+          <tr>
+            <td><span style="color:var(--game7);font-family:'JetBrains Mono',mono;font-weight:600">07</span></td>
+            <td>어두운 탐험 맵</td>
+            <td>어드벤처/RPG</td>
+            <td>탑뷰</td>
+            <td>키보드 이동</td>
+            <td>목적지 탐색·도달</td>
+            <td>★★☆☆☆</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- GAME 1 -->
+<div class="divider"></div>
+<section id="game1" class="fade-in">
+  <div class="container">
+    <div class="section-label">02 — 미니게임 #01</div>
+    <div class="game-section">
+      <div class="game-header">
+        <div class="game-num" style="color:var(--game1)">01</div>
+        <div class="game-meta">
+          <div class="game-title">🖱️ 교실 클릭 게임</div>
+          <div class="game-concept">수업 시간, 몰래 마우스를 클릭하라 — 제한 시간 안에 최대한 많이!</div>
+          <div style="margin-top:.6rem">
+            <span class="badge badge-genre">반응속도</span>
+            <span class="badge badge-view">탑뷰</span>
+            <span class="badge badge-input">마우스 클릭</span>
+          </div>
+        </div>
+      </div>
+      <div class="game-body">
+        <div class="spec-grid">
+          <div class="spec-card">
+            <h4>🎮 핵심 메커닉</h4>
+            <p>교실 탑뷰 화면에서 선생님의 눈을 피해가며 마우스를 빠르게 클릭한다. <strong>TIME</strong>(남은 시간) / <strong>HIGH</strong>(최고 기록) / <strong>CLICK</strong>(현재 클릭 수) 세 가지 지표를 실시간 표시.</p>
+          </div>
+          <div class="spec-card">
+            <h4>🏫 씬 구성</h4>
+            <ul>
+              <li>벽돌 패턴 바닥의 교실</li>
+              <li>5×5 격자로 배치된 학생 책상</li>
+              <li>청색 교복 착용 캐릭터들</li>
+              <li>상단 칠판 영역에 UI 배치</li>
+              <li>하단 바 = 시간 게이지</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>📊 UI 요소</h4>
+            <ul>
+              <li><strong>TIME</strong> — 남은 시간 (소수점 2자리)</li>
+              <li><strong>HIGH</strong> — 세션 최고 클릭 수</li>
+              <li><strong>CLICK</strong> — 현재 클릭 카운트</li>
+              <li>하단 주황색 타임바 (감소)</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>⚙️ 게임 루프</h4>
+            <ul>
+              <li>시작: 타이머 시작 (~15초)</li>
+              <li>플레이: 마우스 빠르게 클릭</li>
+              <li>종료: 시간 0 → 결과 표시</li>
+              <li>HIGH 갱신 시 하이라이트</li>
+              <li>재도전 or 다음 스테이지</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box">
+          <strong>핵심 재미 요소:</strong> 단순하지만 중독성 강한 클릭 경쟁. "조금만 더 빨리 클릭하면..."이라는 욕구를 자극. 하이스코어 갱신 시 성취감 극대화. 교실이라는 현실적 배경이 몰래 게임하는 콘셉트와 맞물려 유머를 형성.
+        </div>
+        <div class="spec-card" style="margin-top:1.5rem">
+          <h4>📈 난이도 설계</h4>
+          <div class="diff-bar-wrap">
+            <div class="diff-label"><span>반응속도 요구</span><span>중</span></div>
+            <div class="diff-bar"><div class="diff-fill" style="width:50%;background:var(--game1)"></div></div>
+          </div>
+          <div class="diff-bar-wrap" style="margin-top:.6rem">
+            <div class="diff-label"><span>학습 곡선</span><span>낮음 (즉시 이해)</span></div>
+            <div class="diff-bar"><div class="diff-fill" style="width:20%;background:var(--game1)"></div></div>
+          </div>
+          <div class="diff-bar-wrap" style="margin-top:.6rem">
+            <div class="diff-label"><span>중독성</span><span>높음</span></div>
+            <div class="diff-bar"><div class="diff-fill" style="width:80%;background:var(--game1)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAME 2 -->
+<div class="divider"></div>
+<section id="game2" class="fade-in">
+  <div class="container">
+    <div class="section-label">03 — 미니게임 #02</div>
+    <div class="game-section">
+      <div class="game-header">
+        <div class="game-num" style="color:var(--game2)">02</div>
+        <div class="game-meta">
+          <div class="game-title">🏃 육상 게임 (멀리뛰기 / 달리기)</div>
+          <div class="game-concept">운동장 탑뷰 — 파워 게이지를 가득 채워 최고 기록을 달성하라!</div>
+          <div style="margin-top:.6rem">
+            <span class="badge badge-genre">타이밍</span>
+            <span class="badge badge-view">탑뷰</span>
+            <span class="badge badge-input">키 연타</span>
+          </div>
+        </div>
+      </div>
+      <div class="game-body">
+        <div class="spec-grid">
+          <div class="spec-card">
+            <h4>🎮 핵심 메커닉</h4>
+            <p>탑뷰 운동장에서 캐릭터(노란 캐릭터)가 달려나간다. 하단 좌측의 <strong>무지개색 파워 게이지</strong>를 키 입력으로 채워 최대 거리를 달성. 화면에 현재 기록 "<strong>11M</strong>" 등의 거리 수치 실시간 표시.</p>
+          </div>
+          <div class="spec-card">
+            <h4>🏟️ 씬 구성</h4>
+            <ul>
+              <li>초록색 잔디밭 탑뷰 그라운드</li>
+              <li>흰 라인으로 구분된 트랙 레인</li>
+              <li>우측에 학교 건물 일부 노출</li>
+              <li>10M / 20M / 30M / 40M 거리 표시</li>
+              <li>하단 좌측 무지개 파워 게이지</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>📊 UI 요소</h4>
+            <ul>
+              <li><strong>거리 카운터</strong> — 현재 기록(M 단위)</li>
+              <li><strong>파워 게이지</strong> — 7색 무지개 바</li>
+              <li><strong>레인 마커</strong> — 거리 기준선</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>⚙️ 게임 루프</h4>
+            <ul>
+              <li>준비: 출발선에 캐릭터 대기</li>
+              <li>달리기: 좌우 키 빠르게 번갈아 입력</li>
+              <li>도약: 적시에 점프키 → 멀리뛰기</li>
+              <li>착지: 거리 기록 확정</li>
+              <li>최고 기록 갱신 여부 판정</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box">
+          <strong>핵심 재미 요소:</strong> 무지개 게이지의 시각적 피드백이 강렬. 키보드 연타의 물리적 쾌감. "조금만 더 빠르게 했으면..."이라는 아쉬움이 재도전을 유도. 실제 육상 경기의 긴장감을 픽셀로 압축.
+        </div>
+        <div class="spec-card" style="margin-top:1.5rem">
+          <h4>📈 난이도 설계</h4>
+          <div class="diff-bar-wrap">
+            <div class="diff-label"><span>파워 게이지 타이밍</span><span>중-고</span></div>
+            <div class="diff-bar"><div class="diff-fill" style="width:65%;background:var(--game2)"></div></div>
+          </div>
+          <div class="diff-bar-wrap" style="margin-top:.6rem">
+            <div class="diff-label"><span>연타 피지컬 요구</span><span>높음</span></div>
+            <div class="diff-bar"><div class="diff-fill" style="width:75%;background:var(--game2)"></div></div>
+          </div>
+          <div class="diff-bar-wrap" style="margin-top:.6rem">
+            <div class="diff-label"><span>중독성</span><span>높음</span></div>
+            <div class="diff-bar"><div class="diff-fill" style="width:80%;background:var(--game2)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAME 3 -->
+<div class="divider"></div>
+<section id="game3" class="fade-in">
+  <div class="container">
+    <div class="section-label">04 — 미니게임 #03</div>
+    <div class="game-section">
+      <div class="game-header">
+        <div class="game-num" style="color:var(--game3)">03</div>
+        <div class="game-meta">
+          <div class="game-title">🏫 장대 오르기</div>
+          <div class="game-concept">학교 건물 외벽의 장대를 타고 꼭대기까지 — 중력을 이겨라!</div>
+          <div style="margin-top:.6rem">
+            <span class="badge badge-genre">리듬/타이밍</span>
+            <span class="badge badge-view">사이드뷰</span>
+            <span class="badge badge-input">키보드</span>
+          </div>
+        </div>
+      </div>
+      <div class="game-body">
+        <div class="spec-grid">
+          <div class="spec-card">
+            <h4>🎮 핵심 메커닉</h4>
+            <p>사이드뷰 배경의 학교 건물 외벽에 세워진 기다란 장대(사다리). 캐릭터가 장대를 타고 <strong>위로 올라가는 것</strong>이 목표. 타이밍에 맞춰 올라가는 리듬 게임 요소 포함.</p>
+          </div>
+          <div class="spec-card">
+            <h4>🏗️ 씬 구성</h4>
+            <ul>
+              <li>맑은 하늘 + 흰 구름 배경</li>
+              <li>베이지색 학교 건물 외벽</li>
+              <li>창문 격자가 배치된 건물</li>
+              <li>하단 정원/화단 영역</li>
+              <li>중앙에 수직으로 세워진 장대</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>⚙️ 게임 루프</h4>
+            <ul>
+              <li>시작: 장대 하단에 캐릭터 위치</li>
+              <li>입력: 방향키로 캐릭터 오르기</li>
+              <li>도달: 장대 꼭대기 → 클리어</li>
+              <li>실패: 체력/타이머 소진 or 추락</li>
+              <li>기록: 최고 도달 높이 저장</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>🎯 도전 요소</h4>
+            <ul>
+              <li>중력 — 손을 놓으면 미끄러짐</li>
+              <li>체력 소모 — 오래 매달릴수록 감소</li>
+              <li>타이머 — 제한 시간 존재</li>
+              <li>장애물 — 구간별 방해 요소</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box">
+          <strong>핵심 재미 요소:</strong> 수직 상승의 쾌감과 추락의 공포가 공존. 건물 배경이 실제 학교 느낌을 강화하며 몰입도 상승. 간단한 컨트롤이지만 지구력과 타이밍이 요구되는 숙련 구조.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAME 4 -->
+<div class="divider"></div>
+<section id="game4" class="fade-in">
+  <div class="container">
+    <div class="section-label">05 — 미니게임 #04</div>
+    <div class="game-section">
+      <div class="game-header">
+        <div class="game-num" style="color:var(--game4)">04</div>
+        <div class="game-meta">
+          <div class="game-title">🪰 파리 잡기</div>
+          <div class="game-concept">모래사장을 날아다니는 파리들을 빠르게 잡아라 — 순발력 대결!</div>
+          <div style="margin-top:.6rem">
+            <span class="badge badge-genre">반응속도</span>
+            <span class="badge badge-view">탑뷰</span>
+            <span class="badge badge-input">마우스 클릭</span>
+          </div>
+        </div>
+      </div>
+      <div class="game-body">
+        <div class="spec-grid">
+          <div class="spec-card">
+            <h4>🎮 핵심 메커닉</h4>
+            <p>베이지/모래색 바닥 위에서 파리(벌레)들이 무작위로 이동한다. 플레이어는 마우스로 파리를 클릭해 잡으며 <strong>HighScore</strong>와 <strong>Win(승리 횟수)</strong>을 쌓는다. 파리의 이동 패턴이 불규칙적으로 예측 불가.</p>
+          </div>
+          <div class="spec-card">
+            <h4>🏜️ 씬 구성</h4>
+            <ul>
+              <li>베이지 모래색 사각형 경기장</li>
+              <li>돌담 패턴 테두리 (경계선)</li>
+              <li>파리 2~4마리 동시 등장</li>
+              <li>보라+노란 파티클 효과 (잡을 때)</li>
+              <li>간결한 UI (HighScore / Win)</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>📊 UI 요소</h4>
+            <ul>
+              <li><strong>HighScore</strong> — 최고 연속 포획 수</li>
+              <li><strong>Win</strong> — 라운드 승리 횟수</li>
+              <li>파리 포획 시 파티클 이펙트</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>⚙️ 게임 루프</h4>
+            <ul>
+              <li>시작: 파리 등장 (2~4마리)</li>
+              <li>플레이: 마우스로 파리 클릭 포획</li>
+              <li>클리어: 모든 파리 포획 → Win +1</li>
+              <li>다음 라운드: 더 많은 파리, 빠른 이동</li>
+              <li>실패: 타임아웃 → HighScore 비교</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box">
+          <strong>핵심 재미 요소:</strong> 실제 파리를 때려잡는 행위의 원초적 쾌감. 불규칙한 이동이 만드는 예측 불가능한 재미. 라운드마다 숫자가 늘어 점점 어려워지는 자연스러운 난이도 상승. "이번엔 다 잡을 수 있다!"는 욕구 자극.
+        </div>
+        <div class="pros-cons">
+          <div class="card pros">
+            <h4>강점</h4>
+            <ul>
+              <li>직관적 조작 — 설명 불필요</li>
+              <li>강한 클릭 쾌감</li>
+              <li>다양한 파리 개수로 난이도 조절</li>
+              <li>파티클 피드백이 시원함</li>
+            </ul>
+          </div>
+          <div class="card cons">
+            <h4>개선 포인트</h4>
+            <ul>
+              <li>파리 종류 다양화 필요</li>
+              <li>특수 파리 (보너스/함정) 추가</li>
+              <li>시간제한 UI 명확화</li>
+              <li>연속 포획 콤보 시스템 검토</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAME 5 -->
+<div class="divider"></div>
+<section id="game5" class="fade-in">
+  <div class="container">
+    <div class="section-label">06 — 미니게임 #05</div>
+    <div class="game-section">
+      <div class="game-header">
+        <div class="game-num" style="color:var(--game5)">05</div>
+        <div class="game-meta">
+          <div class="game-title">⚽ 탑뷰 축구 (BUG vs MARO)</div>
+          <div class="game-concept">실제 SBS 중계 화면 오버레이 — 픽셀 캐릭터들의 진짜 축구 대결!</div>
+          <div style="margin-top:.6rem">
+            <span class="badge badge-genre">스포츠 전략</span>
+            <span class="badge badge-view">탑뷰</span>
+            <span class="badge badge-input">키보드 이동</span>
+          </div>
+        </div>
+      </div>
+      <div class="game-body">
+        <div class="spec-grid">
+          <div class="spec-card">
+            <h4>🎮 핵심 메커닉</h4>
+            <p>탑뷰 축구장에서 <strong>BUG팀</strong>(파랑)과 <strong>MARO팀</strong>(주황)이 대결. SBS 스포츠 중계 화면처럼 스코어보드가 오버레이되어 현실감 극대화. 각 팀 픽셀 캐릭터들이 실제 포메이션으로 배치되어 이동·패스·슛.</p>
+          </div>
+          <div class="spec-card">
+            <h4>🏟️ 씬 구성</h4>
+            <ul>
+              <li>진초록 잔디 + 흰 라인 축구장</li>
+              <li>센터서클 중앙 배치</li>
+              <li>SBS Sports LIVE HD 워터마크</li>
+              <li>상단 스코어보드 오버레이</li>
+              <li>팀별 색상 구분 (파랑/주황)</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>📊 UI 요소</h4>
+            <ul>
+              <li><strong>팀 스코어보드</strong> — BUG 0:1 MARO</li>
+              <li><strong>경기 시간</strong> — 분:초 표시</li>
+              <li><strong>팀 로고/뱃지</strong> — 상단 좌측</li>
+              <li>방송 스타일 중계 오버레이</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>⚙️ 게임 루프</h4>
+            <ul>
+              <li>킥오프: 센터에서 공 배치</li>
+              <li>이동: 방향키로 선수 컨트롤</li>
+              <li>패스/슛: 버튼 입력</li>
+              <li>전반/후반 구성 (제한시간)</li>
+              <li>종료: 최종 스코어로 승패 결정</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box">
+          <strong>핵심 재미 요소:</strong> 실제 TV 스포츠 중계 화면 오버레이가 주는 유머와 현실감의 충돌. 픽셀 캐릭터들의 귀여운 비주얼과 정통 축구 규칙의 결합. 팀명(BUG/MARO)이 영상 세계관의 캐릭터들임을 암시해 스토리 연결.
+        </div>
+        <div class="spec-card" style="margin-top:1.5rem">
+          <h4>📈 난이도 설계</h4>
+          <div class="diff-bar-wrap">
+            <div class="diff-label"><span>AI 팀원 협력</span><span>높음</span></div>
+            <div class="diff-bar"><div class="diff-fill" style="width:70%;background:var(--game5)"></div></div>
+          </div>
+          <div class="diff-bar-wrap" style="margin-top:.6rem">
+            <div class="diff-label"><span>전술적 깊이</span><span>중-고</span></div>
+            <div class="diff-bar"><div class="diff-fill" style="width:65%;background:var(--game5)"></div></div>
+          </div>
+          <div class="diff-bar-wrap" style="margin-top:.6rem">
+            <div class="diff-label"><span>학습 곡선</span><span>중간</span></div>
+            <div class="diff-bar"><div class="diff-fill" style="width:50%;background:var(--game5)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAME 6 -->
+<div class="divider"></div>
+<section id="game6" class="fade-in">
+  <div class="container">
+    <div class="section-label">07 — 미니게임 #06</div>
+    <div class="game-section">
+      <div class="game-header">
+        <div class="game-num" style="color:var(--game6)">06</div>
+        <div class="game-meta">
+          <div class="game-title">⚽ 사이드뷰 1:1 축구</div>
+          <div class="game-concept">맑은 야외에서 1:1 대결 — 물리 기반 공을 컨트롤해 골을 넣어라!</div>
+          <div style="margin-top:.6rem">
+            <span class="badge badge-genre">스포츠 액션</span>
+            <span class="badge badge-view">사이드뷰</span>
+            <span class="badge badge-input">이동+점프</span>
+          </div>
+        </div>
+      </div>
+      <div class="game-body">
+        <div class="spec-grid">
+          <div class="spec-card">
+            <h4>🎮 핵심 메커닉</h4>
+            <p>사이드뷰 야외 축구장. 양 끝에 골대, 중앙에 공. 두 픽셀 캐릭터가 <strong>점프와 이동</strong>으로 공을 다루며 상대 골대에 넣는 게임. Cocos2D 물리엔진 기반 공 튕김이 예측 불가한 재미를 제공.</p>
+          </div>
+          <div class="spec-card">
+            <h4>🌤️ 씬 구성</h4>
+            <ul>
+              <li>밝은 하늘 + 흰 구름 배경</li>
+              <li>초록 언덕 배경 + 나무</li>
+              <li>양 끝 흰 골대 (좌/우)</li>
+              <li>검은색 축구공 (물리 적용)</li>
+              <li>양 팀 픽셀 캐릭터 (캐릭터 구분)</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>📊 UI 요소</h4>
+            <ul>
+              <li>좌우 골대 스코어 (숫자 박스)</li>
+              <li>점수 변경 시 깜빡임 효과</li>
+              <li>골 효과음 및 이펙트</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>⚙️ 물리 설계</h4>
+            <ul>
+              <li>중력: 공에 중력 상시 적용</li>
+              <li>바운스: 땅/벽 반사 계수</li>
+              <li>캐릭터 충돌: 공에 힘 전달</li>
+              <li>점프 높이: 공 위 타격 가능</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box">
+          <strong>핵심 재미 요소:</strong> 물리 기반 공의 예측 불가 움직임이 만드는 우연성과 재미. 점프로 헤딩하는 공중전의 박진감. 단순한 룰(공 넣기)이지만 실력 차이가 극명하게 드러나는 구조. <em>Slope Game</em> 류의 물리 기반 캐주얼 스포츠 게임과 동일한 DNA.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAME 7 -->
+<div class="divider"></div>
+<section id="game7" class="fade-in">
+  <div class="container">
+    <div class="section-label">08 — 미니게임 #07</div>
+    <div class="game-section">
+      <div class="game-header">
+        <div class="game-num" style="color:var(--game7)">07</div>
+        <div class="game-meta">
+          <div class="game-title">🔦 어두운 탐험 맵</div>
+          <div class="game-concept">칠흑 같은 어둠 속 — 랜턴 하나로 학교의 비밀을 탐험하라!</div>
+          <div style="margin-top:.6rem">
+            <span class="badge badge-genre">어드벤처/RPG</span>
+            <span class="badge badge-view">탑뷰</span>
+            <span class="badge badge-input">키보드 이동</span>
+          </div>
+        </div>
+      </div>
+      <div class="game-body">
+        <div class="spec-grid">
+          <div class="spec-card">
+            <h4>🎮 핵심 메커닉</h4>
+            <p>전체 맵이 어두운 상태에서 캐릭터 주변 <strong>원형 시야(랜턴 효과)</strong>만 밝혀진다. 맵을 탐색하며 특정 구조물(건물, 가구)을 찾고 목적지에 도달하는 어드벤처 구조. 오버월드 이동 씬으로도 기능.</p>
+          </div>
+          <div class="spec-card">
+            <h4>🌑 씬 구성</h4>
+            <ul>
+              <li>전체 어두운 배경 (alpha 마스크)</li>
+              <li>캐릭터 중심 원형 빛 범위</li>
+              <li>어둠 속 건물/가구 실루엣</li>
+              <li>특정 포인트 — 빛나는 상호작용 오브젝트</li>
+              <li>RPG 느낌의 탑뷰 타일맵</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>⚙️ 게임 루프</h4>
+            <ul>
+              <li>입장: 어두운 맵에 캐릭터 배치</li>
+              <li>탐색: 키보드로 이동, 시야 이동</li>
+              <li>발견: 목표 오브젝트/NPC 조우</li>
+              <li>상호작용: 버튼 입력 → 이벤트</li>
+              <li>클리어: 탈출 or 목표 달성</li>
+            </ul>
+          </div>
+          <div class="spec-card">
+            <h4>🎯 설계 의도</h4>
+            <ul>
+              <li>오버월드 허브 — 게임 간 이동 씬</li>
+              <li>긴장감과 호기심 자극</li>
+              <li>스토리 전달 공간</li>
+              <li>분위기 전환 완충재</li>
+            </ul>
+          </div>
+        </div>
+        <div class="highlight-box">
+          <strong>핵심 재미 요소:</strong> 어둠이 주는 긴장감과 탐험의 설렘. 제한된 시야로 인한 집중도 향상. 다른 밝고 빠른 미니게임들과 대조를 이루며 전체 리듬에 완급 조절. 학교 세계관의 비밀을 암시하는 스토리 공간으로 활용.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHART ANALYSIS -->
+<div class="divider"></div>
+<section id="chart" class="fade-in">
+  <div class="container">
+    <div class="section-label">09 — 게임 분석</div>
+    <h2>미니게임 밸런스 분석</h2>
+    <p class="lead">7개 게임의 핵심 특성을 수치화해 전체 구성의 다양성과 밸런스를 점검한다.</p>
+
+    <div class="chart-wrap">
+      <div class="chart-title">🎯 게임별 핵심 특성 레이더 차트 (중독성 / 난이도 / 학습곡선 / 전략성)</div>
+      <canvas id="radarChart"></canvas>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">📊 게임별 난이도 분포</div>
+      <canvas id="diffChart"></canvas>
+    </div>
+
+    <div class="table-wrap" style="margin-top:2rem">
+      <table>
+        <thead>
+          <tr>
+            <th>게임</th>
+            <th>중독성</th>
+            <th>난이도</th>
+            <th>반응속도</th>
+            <th>전략성</th>
+            <th>피지컬</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="color:var(--game1)">교실 클릭</td><td>★★★★★</td><td>★★☆☆☆</td><td>★★★☆☆</td><td>★☆☆☆☆</td><td>★★☆☆☆</td></tr>
+          <tr><td style="color:var(--game2)">육상 게임</td><td>★★★★☆</td><td>★★★☆☆</td><td>★★★★☆</td><td>★★☆☆☆</td><td>★★★★☆</td></tr>
+          <tr><td style="color:var(--game3)">장대 오르기</td><td>★★★☆☆</td><td>★★★☆☆</td><td>★★★☆☆</td><td>★★☆☆☆</td><td>★★★☆☆</td></tr>
+          <tr><td style="color:var(--game4)">파리 잡기</td><td>★★★★☆</td><td>★★★★☆</td><td>★★★★★</td><td>★☆☆☆☆</td><td>★★☆☆☆</td></tr>
+          <tr><td style="color:var(--game5)">탑뷰 축구</td><td>★★★☆☆</td><td>★★★★☆</td><td>★★★☆☆</td><td>★★★★☆</td><td>★★★☆☆</td></tr>
+          <tr><td style="color:var(--game6)">1:1 축구</td><td>★★★★☆</td><td>★★★☆☆</td><td>★★★☆☆</td><td>★★★☆☆</td><td>★★★☆☆</td></tr>
+          <tr><td style="color:var(--game7)">어두운 탐험</td><td>★★☆☆☆</td><td>★★☆☆☆</td><td>★☆☆☆☆</td><td>★★★☆☆</td><td>★☆☆☆☆</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="highlight-box" style="margin-top:2rem">
+      <strong>전체 구성 총평:</strong> 빠른 반응속도 게임(클릭/파리)과 전략성 게임(축구), 탐험형 완충씬(어두운 맵)이 적절히 배분되어 있다. 7개 게임 모두 30초~3분 내 플레이 가능한 미니게임 형식이며, 조작 방법이 다양해 단조로움을 방지한다. <strong>시즌 2 확장 시</strong> 농구, 수영, 줄넘기 등 추가 종목으로 볼륨업 가능한 구조.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--text);margin-bottom:.5rem">Cocos2D 놀이특성화초등학교</p>
+    <p>Game Design Document — 영상 분석 기반 역기획서</p>
+    <p style="margin-top:.5rem">원본 영상: <span style="color:var(--accent)">김우성</span> · Cocos2D · 2021 · 분석: Claude Sonnet 2025</p>
+  </div>
+</footer>
+
+<script>
+// ── Chart Defaults
+Chart.defaults.color = '#8b8fa3';
+Chart.defaults.borderColor = '#2a2e3a';
+Chart.defaults.font.family = "'Noto Sans KR', 'JetBrains Mono', sans-serif";
+
+const C = {
+  g1: '#5eead4', g2: '#fbbf24', g3: '#fb923c',
+  g4: '#f472b6', g5: '#a78bfa', g6: '#38bdf8', g7: '#4ade80'
+};
+
+// ── Radar Chart
+const radarCtx = document.getElementById('radarChart').getContext('2d');
+new Chart(radarCtx, {
+  type: 'radar',
+  data: {
+    labels: ['중독성', '난이도', '반응속도', '전략성', '피지컬'],
+    datasets: [
+      { label: '교실 클릭', data: [5,2,3,1,2], borderColor: C.g1, backgroundColor: C.g1+'22', pointBackgroundColor: C.g1, borderWidth: 2 },
+      { label: '파리 잡기', data: [4,4,5,1,2], borderColor: C.g4, backgroundColor: C.g4+'22', pointBackgroundColor: C.g4, borderWidth: 2 },
+      { label: '탑뷰 축구', data: [3,4,3,4,3], borderColor: C.g5, backgroundColor: C.g5+'22', pointBackgroundColor: C.g5, borderWidth: 2 },
+      { label: '육상 게임', data: [4,3,4,2,4], borderColor: C.g2, backgroundColor: C.g2+'22', pointBackgroundColor: C.g2, borderWidth: 2 },
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      r: {
+        min: 0, max: 5,
+        ticks: { stepSize: 1, backdropColor: 'transparent', font: { size: 10 } },
+        grid: { color: '#2a2e3a' },
+        pointLabels: { font: { size: 12 }, color: '#e2e4ea' }
+      }
+    },
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } } }
+  }
+});
+
+// ── Difficulty Bar Chart
+const diffCtx = document.getElementById('diffChart').getContext('2d');
+new Chart(diffCtx, {
+  type: 'bar',
+  data: {
+    labels: ['교실 클릭', '육상 게임', '장대 오르기', '파리 잡기', '탑뷰 축구', '1:1 축구', '어두운 탐험'],
+    datasets: [
+      {
+        label: '난이도 (5점 만점)',
+        data: [2, 3, 3, 4, 4, 3, 2],
+        backgroundColor: [C.g1+'bb', C.g2+'bb', C.g3+'bb', C.g4+'bb', C.g5+'bb', C.g6+'bb', C.g7+'bb'],
+        borderColor: [C.g1, C.g2, C.g3, C.g4, C.g5, C.g6, C.g7],
+        borderWidth: 1,
+        borderRadius: 8,
+        borderSkipped: false
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { min: 0, max: 5, ticks: { stepSize: 1 } }
+    }
+  }
+});
+
+// ── Fade In
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08 });
+document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
+
+// ── TOC Active
+const sections = document.querySelectorAll('section[id], header[id]');
+const tocLinks = document.querySelectorAll('.toc a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 250) current = s.id; });
+  tocLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + current));
+});
+</script>
+</body>
+</html>
