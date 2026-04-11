@@ -12,7 +12,7 @@ namespace ShortGeta.Minigames.DarkExplore
         public string Title => "어두운 탐험";
         public string CreatorId => "shotgeta_official";
         public float TimeLimit => 45f;
-        public string[] Tags => new[] { GameTags.Concentration, GameTags.Fantasy };
+        public string[] Tags => new[] { GameTags.Focus, GameTags.Fantasy };
 
         private const int MaxScore = 300;
         private const int ItemScore = 30;

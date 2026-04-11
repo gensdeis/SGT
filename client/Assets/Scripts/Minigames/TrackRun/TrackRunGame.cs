@@ -12,7 +12,7 @@ namespace ShortGeta.Minigames.TrackRun
         public string Title => "육상 게임";
         public string CreatorId => "shotgeta_official";
         public float TimeLimit => 20f;
-        public string[] Tags => new[] { GameTags.Timing, GameTags.Everyday };
+        public string[] Tags => new[] { GameTags.Timing, GameTags.Daily };
 
         private const int MaxScore = 1000;
         private SafeInt _score;
