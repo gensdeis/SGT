@@ -8,36 +8,62 @@ namespace ShortGeta.Core.UI
     //
     // 사용:
     //   var frog = GameSpriteLoader.Load("FrogCatch", "frog_idle");
-    //   var bg   = GameSpriteLoader.LoadBg("FrogCatch");
+    //   var bg   = GameSpriteLoader.LoadBg("frog_catch_v1");
     //   var thumb = GameSpriteLoader.LoadThumbnail("frog_catch_v1");
     public static class GameSpriteLoader
     {
-        // gameId → Resources 폴더명 매핑
+        // gameId → Resources 폴더명 매핑 (13종 전체)
         private static readonly Dictionary<string, string> FolderMap = new()
         {
-            { "frog_catch_v1",      "FrogCatch" },
-            { "noodle_boil_v1",     "NoodleBoil" },
-            { "poker_face_v1",      "PokerFace" },
-            { "dark_souls_v1",      "DarkSouls" },
-            { "kakao_unread_v1",    "KakaoUnread" },
-            { "math_genius_v1",     "MathGenius" },
+            { "frog_catch_v1",       "FrogCatch" },
+            { "noodle_boil_v1",      "NoodleBoil" },
+            { "poker_face_v1",       "PokerFace" },
+            { "dark_souls_v1",       "DarkSouls" },
+            { "kakao_unread_v1",     "KakaoUnread" },
+            { "math_genius_v1",      "MathGenius" },
+            { "classroom_click_v1",  "ClassroomClick" },
+            { "track_run_v1",        "TrackRun" },
+            { "pole_climb_v1",       "PoleClimb" },
+            { "fly_catch_v1",        "FlyCatch" },
+            { "soccer_topdown_v1",   "SoccerTopdown" },
+            { "soccer_side_v1",      "SoccerSide" },
+            { "dark_explore_v1",     "DarkExplore" },
         };
 
         // gameId → 썸네일 파일명 매핑 (홈 카드용)
         private static readonly Dictionary<string, string> ThumbnailMap = new()
         {
-            { "frog_catch_v1",      "frog_idle" },
-            { "noodle_boil_v1",     "ramen_pot" },
-            { "dark_souls_v1",      "boss_silhouette" },
+            { "frog_catch_v1",       "frog_idle" },
+            { "noodle_boil_v1",      "ramen_pot" },
+            { "poker_face_v1",       "poker_face_thumb" },
+            { "dark_souls_v1",       "boss_silhouette" },
+            { "kakao_unread_v1",     "kakao_thumb" },
+            { "math_genius_v1",      "math_thumb" },
+            { "classroom_click_v1",  "classroom_thumb" },
+            { "track_run_v1",        "runner_thumb" },
+            { "pole_climb_v1",       "pole_thumb" },
+            { "fly_catch_v1",        "fly_thumb" },
+            { "soccer_topdown_v1",   "soccer_top_thumb" },
+            { "soccer_side_v1",      "soccer_side_thumb" },
+            { "dark_explore_v1",     "explorer_thumb" },
         };
 
         // gameId → 배경 파일명 매핑 (인게임용)
         private static readonly Dictionary<string, string> BgMap = new()
         {
-            { "frog_catch_v1",      "bg_pond" },
-            { "noodle_boil_v1",     "bg_kitchen" },
-            { "dark_souls_v1",      "bg_dungeon" },
-            { "math_genius_v1",     "bg_chalkboard" },
+            { "frog_catch_v1",       "bg_pond" },
+            { "noodle_boil_v1",      "bg_kitchen" },
+            { "poker_face_v1",       "bg_poker" },
+            { "dark_souls_v1",       "bg_dungeon" },
+            { "kakao_unread_v1",     "bg_kakao" },
+            { "math_genius_v1",      "bg_chalkboard" },
+            { "classroom_click_v1",  "bg_classroom" },
+            { "track_run_v1",        "bg_track" },
+            { "pole_climb_v1",       "bg_pole" },
+            { "fly_catch_v1",        "bg_wall" },
+            { "soccer_topdown_v1",   "bg_field_top" },
+            { "soccer_side_v1",      "bg_field_side" },
+            { "dark_explore_v1",     "bg_cave" },
         };
 
         // 캐시
