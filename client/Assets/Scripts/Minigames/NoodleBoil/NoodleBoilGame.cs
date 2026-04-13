@@ -14,8 +14,10 @@ namespace ShortGeta.Minigames.NoodleBoil
     //   라운드 종료 후 1초 휴식
     //
     // 점수 한계: 5 * 100 = 500 (server max_score=500 일치)
-    public class NoodleBoilGame : MonoBehaviour, IMinigame, IDifficultyAware
+    public class NoodleBoilGame : MonoBehaviour, IMinigame, IDifficultyAware, IEarlyCompletable
     {
+        // 5라운드 모두 완료되면 시간 만료 전이라도 즉시 결과 화면으로
+        public bool IsComplete => _roundIdx >= RoundCount && !_filling;
         public string GameId => "noodle_boil_v1";
         public string Title => "라면 끓이지 마라";
         public string CreatorId => "shotgeta_official";
@@ -87,16 +89,26 @@ namespace ShortGeta.Minigames.NoodleBoil
             int gain = 0;
             if (p >= _sweetSpotMin && p <= _sweetSpotMax)
             {
-                // sweet spot 정중앙(0.7) 이 100점, 양 끝(0.6/0.8) 이 70점
                 float center = (_sweetSpotMin + _sweetSpotMax) / 2f;
                 float dist = Mathf.Abs(p - center);
                 float maxDist = (_sweetSpotMax - _sweetSpotMin) / 2f;
                 float t = 1f - (dist / maxDist) * 0.3f;
                 gain = Mathf.RoundToInt(100f * t);
             }
-            // sweet spot 외부 = 0점
             _score = _score + gain;
+            ShowFeedback(gain);
             EndRound();
+        }
+
+        private void ShowFeedback(int gain)
+        {
+            if (_feedback == null) return;
+            if (gain >= 90)      { _feedback.text = "PERFECT!";  _feedback.color = new Color(0.2f, 1f, 0.3f); }
+            else if (gain >= 70) { _feedback.text = "Good!";     _feedback.color = new Color(0.9f, 1f, 0.2f); }
+            else if (gain > 0)   { _feedback.text = $"+{gain}";  _feedback.color = new Color(1f, 0.8f, 0.2f); }
+            else                 { _feedback.text = "불어버렸다!"; _feedback.color = new Color(1f, 0.3f, 0.2f); }
+            _feedback.gameObject.SetActive(true);
+            _feedbackHideAt = Time.realtimeSinceStartup + 0.8f;
         }
 
         private float Progress
@@ -111,14 +123,28 @@ namespace ShortGeta.Minigames.NoodleBoil
         private void Update()
         {
             if (!_running) return;
+
+            // 피드백 텍스트 자동 숨김
+            if (_feedback != null && _feedback.gameObject.activeSelf
+                && Time.realtimeSinceStartup >= _feedbackHideAt)
+                _feedback.gameObject.SetActive(false);
+
             if (_filling)
             {
-                if (Progress >= 1f)
+                float p = Progress;
+                if (p >= 1f)
                 {
-                    // 100% 까지 도달 = 라면 불음 = 0점, 다음 라운드
+                    ShowFeedback(0); // 100% 도달 = 불어버렸다!
                     EndRound();
                 }
-                if (_bar != null) _bar.fillAmount = Progress;
+                if (_bar != null)
+                {
+                    _bar.fillAmount = p;
+                    // 초록 구간 진입 시 바 색 초록, 초과 시 빨강
+                    _bar.color = p > _sweetSpotMax
+                        ? new Color(1f, 0.2f, 0.1f)
+                        : (p >= _sweetSpotMin ? new Color(0.2f, 0.9f, 0.2f) : new Color(1f, 0.45f, 0.10f));
+                }
             }
             else
             {
@@ -144,12 +170,15 @@ namespace ShortGeta.Minigames.NoodleBoil
             UpdateLabel();
         }
 
+        // 피드백 텍스트 (탭 결과)
+        private TextMeshProUGUI _feedback;
+        private float _feedbackHideAt;
+
         private void BuildUI()
         {
             _root = new GameObject("NoodleBoilUI");
             _root.transform.SetParent(transform, false);
 
-            // Canvas
             var canvas = _root.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 100;
@@ -159,86 +188,141 @@ namespace ShortGeta.Minigames.NoodleBoil
             scaler.matchWidthOrHeight = 1f;
             _root.AddComponent<GraphicRaycaster>();
 
-            // 따뜻한 주방 배경 (스프라이트 우선)
-            var sceneBg = new GameObject("Bg");
-            sceneBg.transform.SetParent(_root.transform, false);
-            var sceneBgRt = sceneBg.AddComponent<RectTransform>();
-            sceneBgRt.anchorMin = Vector2.zero; sceneBgRt.anchorMax = Vector2.one;
-            sceneBgRt.offsetMin = Vector2.zero; sceneBgRt.offsetMax = Vector2.zero;
-            var sceneBgImg = sceneBg.AddComponent<Image>();
-            var kitchenSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg("noodle_boil_v1");
-            if (kitchenSprite != null) { sceneBgImg.sprite = kitchenSprite; sceneBgImg.color = Color.white; }
-            else sceneBgImg.color = new Color(0.12f, 0.08f, 0.06f);
-
-            // Label — 라운드 + 안내
-            var labelGo = new GameObject("Label");
-            labelGo.transform.SetParent(_root.transform, false);
-            var lrt = labelGo.AddComponent<RectTransform>();
-            lrt.anchorMin = new Vector2(0.05f, 0.72f);
-            lrt.anchorMax = new Vector2(0.95f, 0.90f);
-            lrt.offsetMin = Vector2.zero;
-            lrt.offsetMax = Vector2.zero;
-            _label = labelGo.AddComponent<TextMeshProUGUI>();
-            _label.fontSize = 48;
-            _label.alignment = TextAlignmentOptions.Center;
-            _label.color = new Color(1f, 0.92f, 0.75f); // 따뜻한 베이지
-
-            // Bar 배경 — 라운드
-            var bgGo = new GameObject("BarBG");
+            // ── 배경 ──
+            var bgGo = new GameObject("Bg");
             bgGo.transform.SetParent(_root.transform, false);
-            var brt = bgGo.AddComponent<RectTransform>();
-            brt.anchorMin = new Vector2(0.08f, 0.40f);
-            brt.anchorMax = new Vector2(0.92f, 0.58f);
-            brt.offsetMin = Vector2.zero;
-            brt.offsetMax = Vector2.zero;
+            var bgRt = bgGo.AddComponent<RectTransform>();
+            bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
+            bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
             var bgImg = bgGo.AddComponent<Image>();
-            bgImg.color = new Color(0.15f, 0.15f, 0.15f);
-            bgImg.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetRounded(16);
-            bgImg.type = Image.Type.Sliced;
+            var kitchenSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg(GameId);
+            if (kitchenSprite != null) { bgImg.sprite = kitchenSprite; bgImg.color = Color.white; }
+            else bgImg.color = new Color(0.55f, 0.38f, 0.22f);
 
-            // Bar fill
+            // ── 라면 팟 이미지 ──
+            var potGo = new GameObject("Pot");
+            potGo.transform.SetParent(_root.transform, false);
+            var potRt = potGo.AddComponent<RectTransform>();
+            potRt.anchorMin = new Vector2(0.25f, 0.38f);
+            potRt.anchorMax = new Vector2(0.75f, 0.72f);
+            potRt.offsetMin = Vector2.zero; potRt.offsetMax = Vector2.zero;
+            var potImg = potGo.AddComponent<Image>();
+            var potSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadByGameId(GameId, "ramen_pot");
+            if (potSprite != null)
+            {
+                potImg.sprite = potSprite;
+                potImg.color = Color.white;
+                potImg.preserveAspect = true;
+            }
+            else
+            {
+                // 팟 이미지 없으면 원형 냄비 대용
+                potImg.color = new Color(0.25f, 0.25f, 0.30f);
+                potImg.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetCircle();
+                var potEmoji = new GameObject("Emoji"); potEmoji.transform.SetParent(potGo.transform, false);
+                var prt2 = potEmoji.AddComponent<RectTransform>();
+                prt2.anchorMin = Vector2.zero; prt2.anchorMax = Vector2.one;
+                prt2.offsetMin = Vector2.zero; prt2.offsetMax = Vector2.zero;
+                var pt = potEmoji.AddComponent<TextMeshProUGUI>();
+                pt.text = "🍜"; pt.fontSize = 120; pt.alignment = TextAlignmentOptions.Center;
+            }
+
+            // ── 상단 정보 패널 (반투명 배경 + 레이블) ──
+            var infoPanelGo = new GameObject("InfoPanel");
+            infoPanelGo.transform.SetParent(_root.transform, false);
+            var ipRt = infoPanelGo.AddComponent<RectTransform>();
+            ipRt.anchorMin = new Vector2(0f, 0.80f);
+            ipRt.anchorMax = new Vector2(1f, 1.00f);
+            ipRt.offsetMin = Vector2.zero; ipRt.offsetMax = Vector2.zero;
+            var ipImg = infoPanelGo.AddComponent<Image>();
+            ipImg.color = new Color(0f, 0f, 0f, 0.55f);
+
+            var labelGo = new GameObject("Label");
+            labelGo.transform.SetParent(infoPanelGo.transform, false);
+            var lrt = labelGo.AddComponent<RectTransform>();
+            lrt.anchorMin = new Vector2(0.05f, 0f);
+            lrt.anchorMax = new Vector2(0.95f, 1f);
+            lrt.offsetMin = Vector2.zero; lrt.offsetMax = Vector2.zero;
+            _label = labelGo.AddComponent<TextMeshProUGUI>();
+            _label.fontSize = 40;
+            _label.alignment = TextAlignmentOptions.Center;
+            _label.color = Color.white;
+
+            // ── 게이지 바 영역 ──
+            var barAreaGo = new GameObject("BarArea");
+            barAreaGo.transform.SetParent(_root.transform, false);
+            var baRt = barAreaGo.AddComponent<RectTransform>();
+            baRt.anchorMin = new Vector2(0.05f, 0.24f);
+            baRt.anchorMax = new Vector2(0.95f, 0.38f);
+            baRt.offsetMin = Vector2.zero; baRt.offsetMax = Vector2.zero;
+            var baImg = barAreaGo.AddComponent<Image>();
+            baImg.color = new Color(0.10f, 0.10f, 0.10f, 0.80f);
+            baImg.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetRounded(16);
+            baImg.type = Image.Type.Sliced;
+
+            // sweet spot (초록 영역) — 바 배경 위에 먼저 그림
+            var ssGo = new GameObject("SweetSpot");
+            ssGo.transform.SetParent(barAreaGo.transform, false);
+            var ssRt = ssGo.AddComponent<RectTransform>();
+            ssRt.anchorMin = new Vector2(_sweetSpotMin, 0.05f);
+            ssRt.anchorMax = new Vector2(_sweetSpotMax, 0.95f);
+            ssRt.offsetMin = Vector2.zero; ssRt.offsetMax = Vector2.zero;
+            var ssImg = ssGo.AddComponent<Image>();
+            ssImg.color = new Color(0.15f, 0.90f, 0.15f, 0.45f);
+
+            // 바 fill
             var fillGo = new GameObject("BarFill");
-            fillGo.transform.SetParent(bgGo.transform, false);
+            fillGo.transform.SetParent(barAreaGo.transform, false);
             var frt = fillGo.AddComponent<RectTransform>();
-            frt.anchorMin = Vector2.zero;
-            frt.anchorMax = Vector2.one;
-            frt.offsetMin = Vector2.zero;
-            frt.offsetMax = Vector2.zero;
+            frt.anchorMin = new Vector2(0f, 0.05f);
+            frt.anchorMax = new Vector2(1f, 0.95f);
+            frt.offsetMin = Vector2.zero; frt.offsetMax = Vector2.zero;
             _bar = fillGo.AddComponent<Image>();
-            _bar.color = new Color(1f, 0.5f, 0.2f);
+            _bar.color = new Color(1f, 0.45f, 0.10f);
             _bar.type = Image.Type.Filled;
             _bar.fillMethod = Image.FillMethod.Horizontal;
             _bar.fillAmount = 0f;
 
-            // Sweet spot indicator
-            var ssGo = new GameObject("SweetSpot");
-            ssGo.transform.SetParent(bgGo.transform, false);
-            var srt = ssGo.AddComponent<RectTransform>();
-            srt.anchorMin = new Vector2(_sweetSpotMin, 0);
-            srt.anchorMax = new Vector2(_sweetSpotMax, 1);
-            srt.offsetMin = Vector2.zero;
-            srt.offsetMax = Vector2.zero;
-            var ssImg = ssGo.AddComponent<Image>();
-            ssImg.color = new Color(0.2f, 1f, 0.2f, 0.4f);
-            ssGo.transform.SetSiblingIndex(0); // 뒤로
+            // 바 위 안내 텍스트
+            var barLabelGo = new GameObject("BarLabel");
+            barLabelGo.transform.SetParent(barAreaGo.transform, false);
+            var blrt = barLabelGo.AddComponent<RectTransform>();
+            blrt.anchorMin = Vector2.zero; blrt.anchorMax = Vector2.one;
+            blrt.offsetMin = Vector2.zero; blrt.offsetMax = Vector2.zero;
+            var bl = barLabelGo.AddComponent<TextMeshProUGUI>();
+            bl.text = "초록 구간에서 탭!";
+            bl.fontSize = 28; bl.alignment = TextAlignmentOptions.Center;
+            bl.color = new Color(1f, 1f, 1f, 0.75f);
 
-            // Tap area (전체 화면)
+            // ── 탭 피드백 텍스트 ──
+            var fbGo = new GameObject("Feedback");
+            fbGo.transform.SetParent(_root.transform, false);
+            var fbRt = fbGo.AddComponent<RectTransform>();
+            fbRt.anchorMin = new Vector2(0.1f, 0.42f);
+            fbRt.anchorMax = new Vector2(0.9f, 0.58f);
+            fbRt.offsetMin = Vector2.zero; fbRt.offsetMax = Vector2.zero;
+            _feedback = fbGo.AddComponent<TextMeshProUGUI>();
+            _feedback.fontSize = 72; _feedback.alignment = TextAlignmentOptions.Center;
+            _feedback.color = Color.white;
+            _feedback.fontStyle = FontStyles.Bold;
+            fbGo.SetActive(false);
+
+            // ── 탭 영역 (최상단) ──
             var tapGo = new GameObject("TapArea");
             tapGo.transform.SetParent(_root.transform, false);
-            var trt = tapGo.AddComponent<RectTransform>();
-            trt.anchorMin = Vector2.zero;
-            trt.anchorMax = Vector2.one;
-            trt.offsetMin = Vector2.zero;
-            trt.offsetMax = Vector2.zero;
+            var tapRt = tapGo.AddComponent<RectTransform>();
+            tapRt.anchorMin = Vector2.zero; tapRt.anchorMax = Vector2.one;
+            tapRt.offsetMin = Vector2.zero; tapRt.offsetMax = Vector2.zero;
             var tapImg = tapGo.AddComponent<Image>();
-            tapImg.color = new Color(0, 0, 0, 0); // 투명하지만 raycast 받음
+            tapImg.color = new Color(0, 0, 0, 0);
             var tapBtn = tapGo.AddComponent<Button>();
             tapBtn.targetGraphic = tapImg;
+            tapBtn.transition = Selectable.Transition.None;
             tapBtn.onClick.AddListener(() =>
             {
                 OnInput(new InputEvent(InputEventType.Down, Vector2.zero, KeyCode.None, Time.realtimeSinceStartup));
             });
-            tapGo.transform.SetSiblingIndex(0);
+            // SetSiblingIndex 없이 마지막에 추가 → 최상위 렌더링
         }
 
         private void UpdateLabel()

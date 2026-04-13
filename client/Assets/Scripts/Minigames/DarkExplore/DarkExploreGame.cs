@@ -115,7 +115,10 @@ namespace ShortGeta.Minigames.DarkExplore
             var bgRt = bg.AddComponent<RectTransform>();
             bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
             bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
-            bg.AddComponent<Image>().color = new Color(0.03f, 0.03f, 0.05f); // 거의 검정
+            var bgImg = bg.AddComponent<Image>();
+            bgImg.color = new Color(0.03f, 0.03f, 0.05f); // 거의 검정
+            var bgSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg(GameId);
+            if (bgSprite != null) { bgImg.sprite = bgSprite; bgImg.color = Color.white; }
 
             // 플레이어 (밝은 원)
             var player = new GameObject("Player"); player.transform.SetParent(_root.transform, false);

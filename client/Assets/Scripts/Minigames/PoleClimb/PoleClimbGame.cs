@@ -70,7 +70,10 @@ namespace ShortGeta.Minigames.PoleClimb
             var bgRt = bg.AddComponent<RectTransform>();
             bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
             bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
-            bg.AddComponent<Image>().color = new Color(0.45f, 0.65f, 0.85f); // 하늘
+            var bgImg = bg.AddComponent<Image>();
+            bgImg.color = new Color(0.45f, 0.65f, 0.85f); // 하늘
+            var bgSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg(GameId);
+            if (bgSprite != null) { bgImg.sprite = bgSprite; bgImg.color = Color.white; }
 
             var lg = new GameObject("Label"); lg.transform.SetParent(_root.transform, false);
             var lr = lg.AddComponent<RectTransform>();

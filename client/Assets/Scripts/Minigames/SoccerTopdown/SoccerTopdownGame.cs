@@ -91,7 +91,10 @@ namespace ShortGeta.Minigames.SoccerTopdown
             var bgRt = bg.AddComponent<RectTransform>();
             bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
             bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
-            bg.AddComponent<Image>().color = new Color(0.10f, 0.30f, 0.10f); // 잔디
+            var bgImg = bg.AddComponent<Image>();
+            bgImg.color = new Color(0.10f, 0.30f, 0.10f); // 잔디
+            var bgSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg(GameId);
+            if (bgSprite != null) { bgImg.sprite = bgSprite; bgImg.color = Color.white; }
 
             var lg = new GameObject("Label"); lg.transform.SetParent(_root.transform, false);
             var lr = lg.AddComponent<RectTransform>();

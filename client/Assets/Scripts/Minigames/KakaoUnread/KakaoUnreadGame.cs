@@ -127,6 +127,8 @@ namespace ShortGeta.Minigames.KakaoUnread
             bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
             var bgImg = bgGo.AddComponent<Image>();
             bgImg.color = new Color(0.08f, 0.10f, 0.14f); // 다크 블루그레이 (채팅 앱 배경)
+            var bgSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg(GameId);
+            if (bgSprite != null) { bgImg.sprite = bgSprite; bgImg.color = Color.white; }
 
             // 안내 + 점수 (상단)
             var labelGo = new GameObject("Label");

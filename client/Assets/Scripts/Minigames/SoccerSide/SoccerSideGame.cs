@@ -91,7 +91,10 @@ namespace ShortGeta.Minigames.SoccerSide
             var bgRt = bg.AddComponent<RectTransform>();
             bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
             bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
-            bg.AddComponent<Image>().color = new Color(0.4f, 0.7f, 0.9f); // 하늘
+            var bgImg = bg.AddComponent<Image>();
+            bgImg.color = new Color(0.4f, 0.7f, 0.9f); // 하늘
+            var bgSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg(GameId);
+            if (bgSprite != null) { bgImg.sprite = bgSprite; bgImg.color = Color.white; }
 
             // 플레이어
             var player = new GameObject("Player"); player.transform.SetParent(_root.transform, false);

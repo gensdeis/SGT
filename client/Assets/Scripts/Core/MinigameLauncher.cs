@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace ShortGeta.Core
 {
@@ -18,6 +19,10 @@ namespace ShortGeta.Core
         private IMinigame _current;
         private float _startedAt;
         private bool _running;
+
+        // 타이머 오버레이
+        private GameObject _timerRoot;
+        private Image _timerBarFill;
 
         public bool IsRunning => _running;
         public float ElapsedSec => _running ? Time.realtimeSinceStartup - _startedAt : 0f;
@@ -42,7 +47,9 @@ namespace ShortGeta.Core
                 Debug.LogError($"[MinigameLauncher] OnGameStart threw: {e}");
                 _running = false;
                 _current = null;
+                return;
             }
+            BuildTimerOverlay(_current.TimeLimit);
         }
 
         public void ForceEnd()
@@ -54,11 +61,24 @@ namespace ShortGeta.Core
         private void Update()
         {
             if (!_running) return;
-            if (ElapsedSec >= _current.TimeLimit)
+            float elapsed = ElapsedSec;
+            float limit = _current.TimeLimit;
+
+            // 조기 완료 체크 (IEarlyCompletable 구현 게임)
+            if (_current is IEarlyCompletable ec && ec.IsComplete)
             {
+                UpdateTimerOverlay(0f, limit);
                 FinishInternal();
                 return;
             }
+
+            if (elapsed >= limit)
+            {
+                UpdateTimerOverlay(0f, limit);
+                FinishInternal();
+                return;
+            }
+            UpdateTimerOverlay(limit - elapsed, limit);
             CollectInputs();
         }
 
@@ -104,16 +124,79 @@ namespace ShortGeta.Core
                 Debug.LogError($"[MinigameLauncher] OnGameEnd threw: {e}");
             }
 
+            DestroyTimerOverlay();
+
             var result = new MinigameResult
             {
                 GameId = _current.GameId,
                 Score = score,
                 PlayTimeSec = elapsed,
-                Cleared = score > 0, // 단순 규칙. 실제 clear 정의는 각 게임이 GetScore 양수로 표현
+                Cleared = score > 0,
             };
             _running = false;
             _current = null;
             OnFinished?.Invoke(result);
+        }
+
+        // ── 타이머 오버레이 ──────────────────────────────────────────────
+
+        private void BuildTimerOverlay(float totalSec)
+        {
+            _timerRoot = new GameObject("[TimerOverlay]");
+
+            var canvas = _timerRoot.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 200;
+
+            var scaler = _timerRoot.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(720, 1280);
+            scaler.matchWidthOrHeight = 1f;
+
+            // 하단 전용 섹션 (높이 3.5% ≈ 45px @1280) — 게임 UI 와 시각적으로 분리
+            var sectionGo = new GameObject("TimerSection");
+            sectionGo.transform.SetParent(_timerRoot.transform, false);
+            var sectionRt = sectionGo.AddComponent<RectTransform>();
+            sectionRt.anchorMin = new Vector2(0f, 0f);
+            sectionRt.anchorMax = new Vector2(1f, 0.035f);
+            sectionRt.offsetMin = Vector2.zero;
+            sectionRt.offsetMax = Vector2.zero;
+            var sectionImg = sectionGo.AddComponent<Image>();
+            sectionImg.color = new Color(0.06f, 0.06f, 0.08f); // 거의 검정
+
+            // 얇은 게이지 fill (섹션 내 중앙 세로 40%)
+            var fillGo = new GameObject("Fill");
+            fillGo.transform.SetParent(sectionGo.transform, false);
+            var fillRt = fillGo.AddComponent<RectTransform>();
+            fillRt.anchorMin = new Vector2(0f, 0.30f);
+            fillRt.anchorMax = new Vector2(1f, 0.70f);
+            fillRt.offsetMin = Vector2.zero;
+            fillRt.offsetMax = Vector2.zero;
+            _timerBarFill = fillGo.AddComponent<Image>();
+            _timerBarFill.color = new Color(0.25f, 0.85f, 0.35f);
+            _timerBarFill.type = Image.Type.Filled;
+            _timerBarFill.fillMethod = Image.FillMethod.Horizontal;
+            _timerBarFill.fillOrigin = (int)Image.OriginHorizontal.Left; // 오른쪽 끝이 점점 왼쪽으로
+            _timerBarFill.fillAmount = 1f;
+        }
+
+        private void UpdateTimerOverlay(float remaining, float total)
+        {
+            if (_timerBarFill == null) return;
+            _timerBarFill.fillAmount = total > 0f ? remaining / total : 0f;
+            _timerBarFill.color = remaining <= 10f
+                ? new Color(0.95f, 0.25f, 0.20f)   // 10초 이하 → 빨강
+                : new Color(0.25f, 0.85f, 0.35f);   // 그 외 → 초록
+        }
+
+        private void DestroyTimerOverlay()
+        {
+            if (_timerRoot != null)
+            {
+                Destroy(_timerRoot);
+                _timerRoot = null;
+                _timerBarFill = null;
+            }
         }
     }
 

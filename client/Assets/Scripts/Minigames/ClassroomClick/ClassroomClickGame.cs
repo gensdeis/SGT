@@ -44,7 +44,7 @@ namespace ShortGeta.Minigames.ClassroomClick
         public void OnInput(InputEvent input)
         {
             if (!_running || input.Type != InputEventType.Down) return;
-            int gain = _difficulty == 1 ? 1 : (_difficulty == -1 ? 3 : 2);
+            int gain = _difficulty == -1 ? 1 : (_difficulty == 1 ? 3 : 2);
             _score = _score + gain;
             UpdateLabel();
         }
@@ -73,7 +73,10 @@ namespace ShortGeta.Minigames.ClassroomClick
             var bgRt = bgGo.AddComponent<RectTransform>();
             bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
             bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
-            bgGo.AddComponent<Image>().color = new Color(0.12f, 0.15f, 0.20f);
+            var bgImg = bgGo.AddComponent<Image>();
+            bgImg.color = new Color(0.12f, 0.15f, 0.20f);
+            var bgSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg(GameId);
+            if (bgSprite != null) { bgImg.sprite = bgSprite; bgImg.color = Color.white; }
 
             var labelGo = new GameObject("Label");
             labelGo.transform.SetParent(_root.transform, false);

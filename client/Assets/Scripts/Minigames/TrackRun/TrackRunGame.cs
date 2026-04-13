@@ -91,7 +91,10 @@ namespace ShortGeta.Minigames.TrackRun
             var bgRt = bg.AddComponent<RectTransform>();
             bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
             bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
-            bg.AddComponent<Image>().color = new Color(0.08f, 0.20f, 0.06f); // 잔디
+            var bgImg = bg.AddComponent<Image>();
+            bgImg.color = new Color(0.08f, 0.20f, 0.06f); // 잔디
+            var bgSprite = ShortGeta.Core.UI.GameSpriteLoader.LoadBg(GameId);
+            if (bgSprite != null) { bgImg.sprite = bgSprite; bgImg.color = Color.white; }
 
             var labelGo = new GameObject("Label"); labelGo.transform.SetParent(_root.transform, false);
             var lrt = labelGo.AddComponent<RectTransform>();

@@ -141,11 +141,7 @@ namespace ShortGeta.UI.Mobile
         private void BuildRegistry()
         {
             _registry = new MinigameRegistry();
-            _registry.Register("frog_catch_v1", parent =>
-            {
-                // FrogCatch 는 별도 spawner + Frog primitive 가 필요해서 헬퍼 사용
-                return CreateFrogCatch(parent);
-            });
+            _registry.Register("frog_catch_v1", parent => parent.AddComponent<FrogCatchGame>());
             _registry.Register("noodle_boil_v1", parent => parent.AddComponent<NoodleBoilGame>());
             _registry.Register("poker_face_v1", parent => parent.AddComponent<PokerFaceGame>());
             _registry.Register("dark_souls_v1", parent => parent.AddComponent<DarkSoulsGame>());
@@ -281,32 +277,6 @@ namespace ShortGeta.UI.Mobile
             }
         }
 
-        private IMinigame CreateFrogCatch(GameObject parent)
-        {
-            var spawnerGo = new GameObject("FrogSpawner");
-            spawnerGo.transform.SetParent(parent.transform, false);
-            var spawner = spawnerGo.AddComponent<FrogSpawner>();
-
-            // Frog prefab 대용 sphere primitive
-            var primFrog = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            primFrog.name = "FrogPrefab";
-            primFrog.transform.localScale = Vector3.one * 0.6f;
-            primFrog.GetComponent<Renderer>().material.color = new Color(0.2f, 0.8f, 0.3f);
-            primFrog.AddComponent<SpriteRenderer>();
-            var frogComp = primFrog.AddComponent<Frog>();
-            primFrog.SetActive(false);
-            primFrog.transform.SetParent(parent.transform, false);
-            var sf = typeof(FrogSpawner).GetField("frogPrefab",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            sf?.SetValue(spawner, frogComp);
-
-            var game = parent.AddComponent<FrogCatchGame>();
-            // spawner 필드 리플렉션 주입 (Editor-only __TestSetSpawner 대체, 빌드 호환)
-            var spawnerField = typeof(FrogCatchGame).GetField("spawner",
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            spawnerField?.SetValue(game, spawner);
-            return game;
-        }
 
         private void BuildRootUI()
         {
