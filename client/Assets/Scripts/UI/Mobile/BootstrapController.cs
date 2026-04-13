@@ -370,6 +370,24 @@ namespace ShortGeta.UI.Mobile
             { "dark_explore_v1", "#0a0a10" }, // 거의 검정
         };
 
+        // #7: 게임별 한 줄 액션 힌트
+        private static readonly System.Collections.Generic.Dictionary<string, string> GameHints = new()
+        {
+            { "frog_catch_v1",      "화면에 나타나는 개구리를 탭하세요!" },
+            { "noodle_boil_v1",     "타이밍 맞춰 게이지를 채우세요!" },
+            { "poker_face_v1",      "상대의 포커페이스를 읽어라!" },
+            { "dark_souls_v1",      "타이밍에 공격하세요!" },
+            { "kakao_unread_v1",    "카카오 알림을 없애세요!" },
+            { "math_genius_v1",     "빠르게 정답을 골라요!" },
+            { "classroom_click_v1", "최대한 많이 클릭하세요!" },
+            { "track_run_v1",       "좌우 번갈아 탭해서 달리세요!" },
+            { "pole_climb_v1",      "멈추지 말고 탭해서 올라가요!" },
+            { "fly_catch_v1",       "날아다니는 파리를 잡으세요!" },
+            { "soccer_topdown_v1",  "스와이프로 공을 골대에 넣으세요!" },
+            { "soccer_side_v1",     "점프+이동으로 공을 컨트롤하세요!" },
+            { "dark_explore_v1",    "터치로 이동, 아이템을 수집하세요!" },
+        };
+
         // Iter UI v1.3: fake play count 는 /v1/me/game-stats 실 API 로 대체됨.
 
         // 하트 색상 상수
@@ -1596,11 +1614,14 @@ namespace ShortGeta.UI.Mobile
             _currentMinigameTcs = tcs;
             launcher.OnFinished += r => tcs.TrySetResult(r);
 
-            // 카운트다운
+            // #7: 게임 룰 인트로 오버레이
+            await ShowGameIntroAsync(gameId, game.Title);
+
+            // 카운트다운 (0.6s × 3)
             for (int s = 3; s > 0; s--)
             {
-                Toast.Show($"{game.Title} 시작! {s}", 0.8f);
-                await UniTask.Delay(System.TimeSpan.FromSeconds(1));
+                Toast.Show($"{s}", 0.5f);
+                await UniTask.Delay(System.TimeSpan.FromSeconds(0.6));
             }
 
             // 녹화 시작
@@ -1662,6 +1683,90 @@ namespace ShortGeta.UI.Mobile
                 i++;
             }
             return results;
+        }
+
+        // ─── #7: 게임 인트로 오버레이 (룰 안내) ───
+        private async UniTask ShowGameIntroAsync(string gameId, string title)
+        {
+            string emoji = GameEmojis.TryGetValue(gameId, out var em) ? em : "🎮";
+            string hint  = GameHints.TryGetValue(gameId, out var h) ? h : "시작하세요!";
+
+            // 풀스크린 반투명 오버레이
+            var overlay = UIBuilder.Panel(_rootCanvas.transform, "GameIntro",
+                Vector2.zero, Vector2.one, new Color(0f, 0f, 0f, 0f));
+            var overlayImg = overlay.GetComponent<Image>();
+
+            // 중앙 카드
+            var card = UIBuilder.RoundedPanel(overlay.transform, "IntroCard",
+                new Vector2(0.08f, 0.28f), new Vector2(0.92f, 0.72f),
+                DesignTokens.Surface, 24);
+            var cardRt = card.GetComponent<RectTransform>();
+
+            // 이모지 (상단)
+            UIBuilder.Label(card.transform, emoji, 120, DesignTokens.Text,
+                TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.1f, 0.60f), anchorMax: new Vector2(0.9f, 0.95f));
+
+            // 게임 제목
+            UIBuilder.Label(card.transform, title ?? gameId,
+                DesignTokens.FontH2, DesignTokens.Text, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.08f, 0.38f), anchorMax: new Vector2(0.92f, 0.60f))
+                .fontStyle = FontStyles.Bold;
+
+            // 힌트 (한 줄 룰)
+            UIBuilder.Label(card.transform, hint,
+                DesignTokens.FontBody, DesignTokens.PrimaryCTA, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.08f, 0.15f), anchorMax: new Vector2(0.92f, 0.38f));
+
+            // "탭하면 바로 시작" 안내
+            UIBuilder.Label(card.transform, "탭하면 바로 시작",
+                DesignTokens.FontCaption, DesignTokens.TextDim, TextAlignmentOptions.Center,
+                anchorMin: new Vector2(0.08f, 0.02f), anchorMax: new Vector2(0.92f, 0.14f));
+
+            // 오버레이 전체 탭 → 빨리 닫기
+            bool tapped = false;
+            var tapBtn = overlay.AddComponent<Button>();
+            tapBtn.targetGraphic = overlayImg;
+            tapBtn.onClick.AddListener(() => tapped = true);
+
+            // 페이드 인 + 카드 스케일 업 (0.2s easeOut)
+            const float fadeInDur = 0.20f;
+            float t = 0f;
+            while (t < fadeInDur)
+            {
+                if (overlay == null) return;
+                t += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t / fadeInDur);
+                k = 1f - (1f - k) * (1f - k);
+                if (overlayImg != null) overlayImg.color = new Color(0f, 0f, 0f, k * 0.85f);
+                if (cardRt != null) cardRt.localScale = Vector3.one * Mathf.Lerp(0.85f, 1f, k);
+                await UniTask.Yield();
+            }
+
+            // 최소 표시 시간 (1.2s) 또는 탭 시 즉시
+            const float minShow = 1.2f;
+            float elapsed = 0f;
+            while (elapsed < minShow && !tapped)
+            {
+                if (overlay == null) return;
+                elapsed += Time.unscaledDeltaTime;
+                await UniTask.Yield();
+            }
+
+            // 페이드 아웃 (0.20s)
+            const float fadeOutDur = 0.20f;
+            t = 0f;
+            while (t < fadeOutDur)
+            {
+                if (overlay == null) return;
+                t += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t / fadeOutDur);
+                if (overlayImg != null) overlayImg.color = new Color(0f, 0f, 0f, (1f - k) * 0.85f);
+                if (cardRt != null) cardRt.localScale = Vector3.one * Mathf.Lerp(1f, 0.92f, k);
+                await UniTask.Yield();
+            }
+
+            if (overlay != null) Destroy(overlay);
         }
 
         // ─── Phase 2: 미니 결과 화면 ───
