@@ -28,6 +28,7 @@ namespace ShortGeta.Core.UI
             { "soccer_topdown_v1",   "SoccerTopdown" },
             { "soccer_side_v1",      "SoccerSide" },
             { "dark_explore_v1",     "DarkExplore" },
+            { "candle_out_v1",       "CandleOut" },
         };
 
         // gameId → 썸네일 파일명 매핑 (홈 카드용)
@@ -46,6 +47,7 @@ namespace ShortGeta.Core.UI
             { "soccer_topdown_v1",   "soccer_top_thumb" },
             { "soccer_side_v1",      "soccer_side_thumb" },
             { "dark_explore_v1",     "explorer_thumb" },
+            { "candle_out_v1",       "candle_thumb" },
         };
 
         // gameId → 배경 파일명 매핑 (인게임용)
@@ -64,6 +66,7 @@ namespace ShortGeta.Core.UI
             { "soccer_topdown_v1",   "bg_field_top" },
             { "soccer_side_v1",      "bg_field_side" },
             { "dark_explore_v1",     "bg_cave" },
+            { "candle_out_v1",       "bg_room" },
         };
 
         // 캐시

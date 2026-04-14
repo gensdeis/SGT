@@ -20,6 +20,7 @@ using FlyCatch = ShortGeta.Minigames.FlyCatch;
 using SoccerTopdown = ShortGeta.Minigames.SoccerTopdown;
 using SoccerSide = ShortGeta.Minigames.SoccerSide;
 using DarkExplore = ShortGeta.Minigames.DarkExplore;
+using CandleOut   = ShortGeta.Minigames.CandleOut;
 using ShortGeta.Network;
 using TMPro;
 using UnityEngine;
@@ -155,6 +156,7 @@ namespace ShortGeta.UI.Mobile
             _registry.Register("soccer_topdown_v1", parent => parent.AddComponent<SoccerTopdown.SoccerTopdownGame>());
             _registry.Register("soccer_side_v1", parent => parent.AddComponent<SoccerSide.SoccerSideGame>());
             _registry.Register("dark_explore_v1", parent => parent.AddComponent<DarkExplore.DarkExploreGame>());
+            _registry.Register("candle_out_v1",   parent => parent.AddComponent<CandleOut.CandleOutGame>());
         }
 
         // Addressables 기반 IBundleLoader 초기화. 실패 시 Stub 으로 fallback.
@@ -321,6 +323,7 @@ namespace ShortGeta.UI.Mobile
             { "soccer_topdown_v1", "⚽" },
             { "soccer_side_v1", "⚽" },
             { "dark_explore_v1", "🔦" },
+            { "candle_out_v1",   "🕯" },
         };
 
         private static readonly System.Collections.Generic.Dictionary<string, string> GameThumbBgHex = new()
@@ -338,6 +341,7 @@ namespace ShortGeta.UI.Mobile
             { "soccer_topdown_v1", "#0d300d" }, // 다크 잔디
             { "soccer_side_v1",  "#203040" }, // 다크 하늘
             { "dark_explore_v1", "#0a0a10" }, // 거의 검정
+            { "candle_out_v1",   "#1a0e05" }, // 다크 앰버 (촛불)
         };
 
         // #7: 게임별 한 줄 액션 힌트
@@ -356,6 +360,7 @@ namespace ShortGeta.UI.Mobile
             { "soccer_topdown_v1",  "스와이프로 공을 골대에 넣으세요!" },
             { "soccer_side_v1",     "점프+이동으로 공을 컨트롤하세요!" },
             { "dark_explore_v1",    "터치로 이동, 아이템을 수집하세요!" },
+            { "candle_out_v1",      "문이 열릴 때 촛불이 켜져 있으면 탭하세요!" },
         };
 
         // Iter UI v1.3: fake play count 는 /v1/me/game-stats 실 API 로 대체됨.
