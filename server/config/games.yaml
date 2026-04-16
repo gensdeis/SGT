@@ -133,3 +133,15 @@ games:
     max_score: 300
     rate_limit_per_min: 6
     tags: ["집중력", "판타지"]
+
+  - id: "candle_out_v1"
+    title: "촛불 끄기"
+    creator_id: "shotgeta_official"
+    time_limit_sec: 30
+    min_play_seconds: 8
+    max_score: 500
+    rate_limit_per_min: 10
+    tags: ["타이밍", "레트로"]
+    bundle_url: ""
+    bundle_version: ""
+    bundle_hash: ""
