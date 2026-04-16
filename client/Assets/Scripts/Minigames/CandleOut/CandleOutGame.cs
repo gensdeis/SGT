@@ -406,28 +406,28 @@ namespace ShortGeta.Minigames.CandleOut
             _comboText.alignment = TextAlignmentOptions.MidlineRight;
             _comboText.color = new Color(1f, 0.92f, 0.25f);
 
-            // ── 9. 상태 힌트 (탭! / 참아!) ──────────────────────────────────
+            // ── 9. 상태 힌트 (탭! / 참아!) — 촛불 바로 위, 문 안쪽 ───────────
             var hintGo = MakeRect(_root.transform, "StateHint",
-                new Vector2(0.05f, DoorYMax + 0.01f), new Vector2(0.95f, DoorYMax + 0.09f));
+                new Vector2(0.10f, 0.65f), new Vector2(0.90f, 0.76f));
             _stateHintText = hintGo.AddComponent<TextMeshProUGUI>();
-            _stateHintText.fontSize = 48; _stateHintText.fontStyle = FontStyles.Bold;
+            _stateHintText.fontSize = 52; _stateHintText.fontStyle = FontStyles.Bold;
             _stateHintText.alignment = TextAlignmentOptions.Center;
-            _stateHintText.color = new Color(1f, 0.95f, 0.4f);
+            _stateHintText.color = new Color(1f, 0.95f, 0.35f);
 
-            // ── 10. 이벤트 텍스트 ────────────────────────────────────────────
+            // ── 10. 이벤트 텍스트 — 문 상단부 안쪽 ─────────────────────────
             var eventGo = MakeRect(_root.transform, "EventText",
-                new Vector2(0.1f, DoorYMin - 0.09f), new Vector2(0.9f, DoorYMin - 0.01f));
+                new Vector2(0.10f, 0.73f), new Vector2(0.90f, 0.83f));
             _eventText = eventGo.AddComponent<TextMeshProUGUI>();
-            _eventText.fontSize = 42; _eventText.fontStyle = FontStyles.Bold;
+            _eventText.fontSize = 44; _eventText.fontStyle = FontStyles.Bold;
             _eventText.alignment = TextAlignmentOptions.Center;
             _eventText.color = new Color(1f, 0.88f, 0.45f);
             eventGo.SetActive(false);
 
-            // ── 11. 탭 결과 피드백 ───────────────────────────────────────────
+            // ── 11. 탭 결과 피드백 — 화면 하단 전용 영역 ───────────────────
             var fbGo = MakeRect(_root.transform, "Feedback",
-                new Vector2(0.1f, 0.08f), new Vector2(0.9f, 0.16f));
+                new Vector2(0.10f, 0.06f), new Vector2(0.90f, 0.15f));
             _feedbackText = fbGo.AddComponent<TextMeshProUGUI>();
-            _feedbackText.fontSize = 68; _feedbackText.fontStyle = FontStyles.Bold;
+            _feedbackText.fontSize = 64; _feedbackText.fontStyle = FontStyles.Bold;
             _feedbackText.alignment = TextAlignmentOptions.Center;
             fbGo.SetActive(false);
 
