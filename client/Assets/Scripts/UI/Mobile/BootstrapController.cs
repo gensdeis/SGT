@@ -1576,6 +1576,17 @@ namespace ShortGeta.UI.Mobile
                 Debug.Log($"[DDA] {gameId} difficulty={_currentDdaIntensity}");
             }
 
+            // TimeLimit 주입 — games.yaml time_limit_sec → ITimeLimitAware (OnGameStart 이전)
+            if (game is ITimeLimitAware timeLimitAware && _games != null)
+            {
+                var gv = System.Array.Find(_games, g => g.Id == gameId);
+                if (gv != null && gv.TimeLimitSec > 0)
+                {
+                    timeLimitAware.SetTimeLimit(gv.TimeLimitSec);
+                    Debug.Log($"[TimeLimit] {gameId} timeLimit={gv.TimeLimitSec}s (from server)");
+                }
+            }
+
             var launcher = go.AddComponent<MinigameLauncher>();
             var tcs = new UniTaskCompletionSource<MinigameResult>();
             _currentMinigameTcs = tcs;

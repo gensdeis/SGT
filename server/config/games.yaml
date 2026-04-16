@@ -137,7 +137,7 @@ games:
   - id: "candle_out_v1"
     title: "촛불 끄기"
     creator_id: "shotgeta_official"
-    time_limit_sec: 30
+    time_limit_sec: 60
     min_play_seconds: 8
     max_score: 500
     rate_limit_per_min: 10

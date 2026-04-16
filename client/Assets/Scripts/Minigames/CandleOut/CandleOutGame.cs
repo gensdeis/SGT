@@ -18,13 +18,17 @@ namespace ShortGeta.Minigames.CandleOut
     //
     // 랜덤 이벤트(Opening 진입 시):
     //   바람: 켜짐 → 꺼짐 / 손: 꺼짐 → 켜짐
-    public class CandleOutGame : MonoBehaviour, IMinigame, IDifficultyAware
+    public class CandleOutGame : MonoBehaviour, IMinigame, IDifficultyAware, ITimeLimitAware
     {
-        public string GameId   => "candle_out_v1";
-        public string Title    => "촛불 끄기";
+        public string GameId    => "candle_out_v1";
+        public string Title     => "촛불 끄기";
         public string CreatorId => "shotgeta_official";
-        public float  TimeLimit => 30f;
-        public string[] Tags   => new[] { GameTags.Timing, GameTags.Retro };
+        public float  TimeLimit => _timeLimit;
+        public string[] Tags    => new[] { GameTags.Timing, GameTags.Retro };
+
+        // ── ITimeLimitAware — games.yaml time_limit_sec 주입 ────────────────
+        private float _timeLimit = 60f; // 기본값: 서버 데이터 없을 때 fallback
+        public void SetTimeLimit(float sec) => _timeLimit = Mathf.Max(5f, sec);
 
         // ── Inspector 노출 변수 (기획서 §4.2) ──────────────────────────────
         [SerializeField] private float openDuration     = 1.0f;
