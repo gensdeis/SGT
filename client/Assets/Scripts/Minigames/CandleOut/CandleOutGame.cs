@@ -64,10 +64,23 @@ namespace ShortGeta.Minigames.CandleOut
         private TextMeshProUGUI _comboText;
         private TextMeshProUGUI _feedbackText;
         private TextMeshProUGUI _eventText;
-        private TextMeshProUGUI _stateHintText; // "탭!" / "대기..." 안내
+        private TextMeshProUGUI _stateHintText; // "탭!" / "참아!" 안내
 
         private float _feedbackHideAt;
         private float _eventTextHideAt;
+
+        // ── 패턴 3·4 — Open 후 지연 이벤트 ────────────────────────────────
+        private bool  _hadOpeningEvent;   // 이번 라운드 Opening 이벤트 발생 여부
+        private bool  _postOpenPending;   // Open 진입 후 지연 이벤트 대기 중
+        private float _postOpenFireAt;    // 이벤트 발동 절대 시각
+        private bool  _postOpenIsWind;    // true=바람(켜→꺼) / false=손(꺼→켜)
+
+        // ── 손 VFX (패턴 4) ─────────────────────────────────────────────────
+        private GameObject    _handGo;
+        private RectTransform _handRt;
+        private bool          _handAnimating;
+        private float         _handAnimStart;
+        private const float   HandAnimSec = 0.35f;
 
         // ── IDifficultyAware ────────────────────────────────────────────────
         public void SetDifficulty(int i)
@@ -131,6 +144,32 @@ namespace ShortGeta.Minigames.CandleOut
                 }
 
                 case State.Open:
+                    // 패턴 3·4: 지연 이벤트 발동
+                    if (_postOpenPending && now >= _postOpenFireAt)
+                    {
+                        _postOpenPending = false;
+                        if (_postOpenIsWind)
+                        {
+                            // 패턴 3: 켜진 촛불 → 바람으로 꺼짐
+                            _candleLit = false;
+                            UpdateCandleVisual();
+                            ShowEventText("💨 바람!");
+                            SetStateHint("참아!");
+                        }
+                        else
+                        {
+                            // 패턴 4: 꺼진 촛불 → 손이 나와 켜짐
+                            _candleLit = true;
+                            UpdateCandleVisual();
+                            ShowEventText("🤚 손!");
+                            StartHandAnim();
+                            SetStateHint("탭!");
+                        }
+                    }
+
+                    // 손 슬라이드 애니메이션 갱신
+                    UpdateHandAnim(now);
+
                     if (stateElapsed >= openDuration)
                     {
                         if (!_tappedThisRound && _candleLit)
@@ -140,6 +179,8 @@ namespace ShortGeta.Minigames.CandleOut
                             ShowFeedback("놓쳤다!", new Color(1f, 0.65f, 0.1f));
                             UpdateScoreUI();
                         }
+                        _postOpenPending = false;
+                        HideHand();
                         EnterState(State.Closing);
                     }
                     break;
@@ -164,7 +205,9 @@ namespace ShortGeta.Minigames.CandleOut
             {
                 case State.Closed:
                     SetDoorAnim(0f);
-                    _tappedThisRound = false;
+                    _tappedThisRound  = false;
+                    _postOpenPending  = false;
+                    HideHand();
                     // 다음 라운드 촛불 상태 결정 (60% 켜짐)
                     _candleLit = Random.value < 0.6f;
                     UpdateCandleVisual();
@@ -172,18 +215,20 @@ namespace ShortGeta.Minigames.CandleOut
                     break;
 
                 case State.Opening:
-                    // 랜덤 이벤트 판정 (문이 열리는 중에 상태 변화)
+                    // 패턴 1·2: 문이 열리는 도중 상태 변화 (Opening 이벤트)
+                    _hadOpeningEvent = false;
                     if (Random.value < eventProbability)
                     {
+                        _hadOpeningEvent = true;
                         if (_candleLit)
                         {
                             _candleLit = false;
-                            ShowEventText("💨 바람!");
+                            ShowEventText("💨 바람~");
                         }
                         else
                         {
                             _candleLit = true;
-                            ShowEventText("🖐 손!");
+                            ShowEventText("🖐 손~");
                         }
                         UpdateCandleVisual();
                     }
@@ -191,11 +236,23 @@ namespace ShortGeta.Minigames.CandleOut
                     break;
 
                 case State.Open:
+                    // 패턴 3·4: Opening 이벤트가 없었던 라운드에만 Post-Open 이벤트 발동
+                    _postOpenPending = false;
+                    if (!_hadOpeningEvent && Random.value < eventProbability)
+                    {
+                        _postOpenPending  = true;
+                        _postOpenIsWind   = _candleLit; // 켜짐이면 바람, 꺼짐이면 손
+                        // 이벤트 발동 지연: openDuration 의 35% (최소 0.25s)
+                        float delay       = Mathf.Max(0.25f, openDuration * 0.35f);
+                        _postOpenFireAt   = Time.realtimeSinceStartup + delay;
+                    }
                     UpdateCandleVisual();
                     SetStateHint(_candleLit ? "탭!" : "참아!");
                     break;
 
                 case State.Closing:
+                    _postOpenPending = false;
+                    HideHand();
                     SetStateHint("");
                     break;
             }
@@ -206,6 +263,9 @@ namespace ShortGeta.Minigames.CandleOut
         {
             if (!_running || _state != State.Open || _tappedThisRound) return;
             _tappedThisRound = true;
+            // 탭 시점에 대기 중인 Post-Open 이벤트 취소 (이미 결정된 상태로 판정)
+            _postOpenPending = false;
+            HideHand();
 
             if (_candleLit)
             {
@@ -260,6 +320,39 @@ namespace ShortGeta.Minigames.CandleOut
                 _glowImg.color = _candleLit
                     ? new Color(1f, 0.72f, 0.1f, 0.15f)
                     : new Color(0f, 0f, 0f, 0f);
+        }
+
+        // ── 손 VFX (패턴 4) ─────────────────────────────────────────────────
+        // 오른쪽 문 뒤에서 손이 미끄러져 나와 촛불 근처까지 이동
+        private void StartHandAnim()
+        {
+            if (_handGo == null) return;
+            _handAnimating = true;
+            _handAnimStart = Time.realtimeSinceStartup;
+            // 시작: 오른쪽 문 안쪽 (x ≈ 0.78~1.00)
+            _handRt.anchorMin = new Vector2(0.78f, 0.36f);
+            _handRt.anchorMax = new Vector2(1.00f, 0.58f);
+            _handRt.offsetMin = _handRt.offsetMax = Vector2.zero;
+            _handGo.SetActive(true);
+        }
+
+        private void UpdateHandAnim(float now)
+        {
+            if (!_handAnimating || _handRt == null) return;
+            float t = Mathf.Clamp01((now - _handAnimStart) / HandAnimSec);
+            // 목표: 촛불 오른쪽 (x ≈ 0.56~0.78) — 손이 촛불 옆까지 뻗어옴
+            float xMin = Mathf.Lerp(0.78f, 0.56f, t);
+            float xMax = Mathf.Lerp(1.00f, 0.78f, t);
+            _handRt.anchorMin = new Vector2(xMin, 0.36f);
+            _handRt.anchorMax = new Vector2(xMax, 0.58f);
+            _handRt.offsetMin = _handRt.offsetMax = Vector2.zero;
+            if (t >= 1f) _handAnimating = false;
+        }
+
+        private void HideHand()
+        {
+            _handAnimating = false;
+            if (_handGo != null) _handGo.SetActive(false);
         }
 
         // ── 문 애니메이션 ────────────────────────────────────────────────────
@@ -431,7 +524,16 @@ namespace ShortGeta.Minigames.CandleOut
             _feedbackText.alignment = TextAlignmentOptions.Center;
             fbGo.SetActive(false);
 
-            // ── 12. 탭 영역 (최상단 투명 버튼) ──────────────────────────────
+            // ── 12. 손 VFX (패턴 4 전용 — 기본 비활성) ─────────────────────
+            _handGo = MakeRect(_root.transform, "HandVFX",
+                new Vector2(0.78f, 0.36f), new Vector2(1.00f, 0.58f));
+            _handRt = _handGo.GetComponent<RectTransform>();
+            var handT = _handGo.AddComponent<TextMeshProUGUI>();
+            handT.text = "🤚"; handT.fontSize = 80;
+            handT.alignment = TextAlignmentOptions.Center;
+            _handGo.SetActive(false);
+
+            // ── 13. 탭 영역 (최상단 투명 버튼) ──────────────────────────────
             var tapGo  = MakeFullRect(_root.transform, "TapArea");
             var tapImg = tapGo.AddComponent<Image>();
             tapImg.color = new Color(0, 0, 0, 0);
