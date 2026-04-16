@@ -138,25 +138,11 @@ namespace ShortGeta.UI.Mobile
             }
         }
 
-        // 6개 미니게임 모두 등록. 새 게임 추가 시 여기에 한 줄만 추가.
+        // 활성 게임 등록. 새 게임 추가 시 여기에 한 줄만 추가.
         private void BuildRegistry()
         {
             _registry = new MinigameRegistry();
-            _registry.Register("frog_catch_v1", parent => parent.AddComponent<FrogCatchGame>());
-            _registry.Register("noodle_boil_v1", parent => parent.AddComponent<NoodleBoilGame>());
-            _registry.Register("poker_face_v1", parent => parent.AddComponent<PokerFaceGame>());
-            _registry.Register("dark_souls_v1", parent => parent.AddComponent<DarkSoulsGame>());
-            _registry.Register("kakao_unread_v1", parent => parent.AddComponent<KakaoUnreadGame>());
-            _registry.Register("math_genius_v1", parent => parent.AddComponent<MathGeniusGame>());
-            // 신규 7종
-            _registry.Register("classroom_click_v1", parent => parent.AddComponent<ClassroomClick.ClassroomClickGame>());
-            _registry.Register("track_run_v1", parent => parent.AddComponent<TrackRun.TrackRunGame>());
-            _registry.Register("pole_climb_v1", parent => parent.AddComponent<PoleClimb.PoleClimbGame>());
-            _registry.Register("fly_catch_v1", parent => parent.AddComponent<FlyCatch.FlyCatchGame>());
-            _registry.Register("soccer_topdown_v1", parent => parent.AddComponent<SoccerTopdown.SoccerTopdownGame>());
-            _registry.Register("soccer_side_v1", parent => parent.AddComponent<SoccerSide.SoccerSideGame>());
-            _registry.Register("dark_explore_v1", parent => parent.AddComponent<DarkExplore.DarkExploreGame>());
-            _registry.Register("candle_out_v1",   parent => parent.AddComponent<CandleOut.CandleOutGame>());
+            _registry.Register("candle_out_v1", parent => parent.AddComponent<CandleOut.CandleOutGame>());
         }
 
         // Addressables 기반 IBundleLoader 초기화. 실패 시 Stub 으로 fallback.
@@ -867,10 +853,10 @@ namespace ShortGeta.UI.Mobile
         }
 
         // ─── 홈 탭 ───
-        // NEW 배지를 달 게임 id (목업과 동일 — poker_face_v1)
+        // NEW 배지를 달 게임 id
         private static readonly System.Collections.Generic.HashSet<string> NewGameIds = new()
         {
-            "poker_face_v1"
+            "candle_out_v1"
         };
 
         private void BuildHomeTab()
@@ -880,23 +866,29 @@ namespace ShortGeta.UI.Mobile
             // 퀵 시작 카드
             BuildQuickStartCard(content);
 
-            // "내 취향 게임" 섹션
-            BuildSectionHeader(content, "내 취향 게임", $"{_games?.Length ?? 0}개");
+            // "내 취향 게임" 섹션 (레지스트리에 등록된 게임만 표시)
+            int registeredCount = 0;
+            if (_games != null)
+                foreach (var g in _games)
+                    if (_registry.Contains(g.Id) && !NewGameIds.Contains(g.Id)) registeredCount++;
+            BuildSectionHeader(content, "내 취향 게임", $"{registeredCount}개");
             if (_games != null)
             {
                 foreach (var g in _games)
                 {
-                    if (NewGameIds.Contains(g.Id)) continue; // NEW 는 아래 섹션에
+                    if (!_registry.Contains(g.Id)) continue; // 미등록 게임 숨김
+                    if (NewGameIds.Contains(g.Id)) continue;  // NEW 는 아래 섹션에
                     BuildGameCard(content, g, rank: 0, showNew: false);
                 }
             }
 
-            // "새로 나왔어요" 섹션
+            // "새로 나왔어요" 섹션 (레지스트리에 등록된 NEW 게임만)
             BuildSectionHeader(content, "새로 나왔어요", null);
             if (_games != null)
             {
                 foreach (var g in _games)
                 {
+                    if (!_registry.Contains(g.Id)) continue;
                     if (!NewGameIds.Contains(g.Id)) continue;
                     BuildGameCard(content, g, rank: 0, showNew: true);
                 }
@@ -965,7 +957,7 @@ namespace ShortGeta.UI.Mobile
             var subLe = subGo.AddComponent<LayoutElement>();
             subLe.preferredHeight = 32;
             var sub = subGo.AddComponent<TextMeshProUGUI>();
-            sub.text = runFrogCatchOnly ? "디버그: frog_catch 1판" : "반응속도 · 동물 취향 맞춤";
+            sub.text = runFrogCatchOnly ? "디버그: candle_out 1판" : "타이밍 · 조선시대 분위기";
             sub.fontSize = 22;
             sub.color = DesignTokens.Hex("#82C8AD");
             sub.alignment = TextAlignmentOptions.Left;
@@ -1460,8 +1452,8 @@ namespace ShortGeta.UI.Mobile
                 List<MinigameResult> results;
                 if (runFrogCatchOnly)
                 {
-                    // 디버그: frog_catch 1판
-                    results = new List<MinigameResult> { await PlaySingleAsync("frog_catch_v1") };
+                    // 디버그: candle_out 1판
+                    results = new List<MinigameResult> { await PlaySingleAsync("candle_out_v1") };
                 }
                 else
                 {
@@ -1629,6 +1621,7 @@ namespace ShortGeta.UI.Mobile
                 if (!_registry.Contains(id))
                 {
                     Debug.LogWarning($"[Bootstrap] unregistered game id '{id}', skipping");
+                    i++; // 무한루프 방지
                     continue;
                 }
                 var r = await PlaySingleAsync(id);
