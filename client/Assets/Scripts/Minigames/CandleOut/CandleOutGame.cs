@@ -67,6 +67,7 @@ namespace ShortGeta.Minigames.CandleOut
         private TextMeshProUGUI _scoreText;
         private TextMeshProUGUI _comboText;
         private TextMeshProUGUI _eventText;
+        private TextMeshProUGUI _candleEmojiText; // 촛불 이모지 — 켜짐/꺼짐 색상 변경용
 
         private float _eventTextHideAt;
 
@@ -312,30 +313,39 @@ namespace ShortGeta.Minigames.CandleOut
 
             if (_candleLit)
             {
-                // 촛불: 따뜻한 주황 펄스
-                float g = 0.65f + 0.35f * Mathf.Sin(now * 3.2f);
-                _candleImg.color = new Color(1f, g * 0.82f, 0.04f);
-                // 문 너머 광원: 부드러운 황갈 오버레이
+                // 촛불 글로우: 아주 연한 주황 원 펄스 (버튼처럼 보이지 않을 정도)
+                float pulse = 0.10f + 0.08f * Mathf.Sin(now * 3.2f);
+                _candleImg.color = new Color(1f, 0.72f, 0.04f, pulse);
+                // 문 너머 광원
                 float gA = 0.12f + 0.10f * Mathf.Sin(now * 3.2f + 0.5f);
                 _glowImg.color = new Color(1f, 0.72f, 0.1f, gA);
+                if (_candleEmojiText != null)
+                    _candleEmojiText.color = new Color(1f, 0.95f, 0.70f);
             }
             else
             {
-                _candleImg.color = new Color(0.20f, 0.20f, 0.24f);
-                _glowImg.color   = new Color(0f, 0f, 0f, 0f);
+                _candleImg.color = Color.clear;
+                _glowImg.color   = Color.clear;
+                if (_candleEmojiText != null)
+                    _candleEmojiText.color = new Color(0.45f, 0.40f, 0.38f);
             }
         }
 
         private void UpdateCandleVisual()
         {
             if (_candleImg == null) return;
-            _candleImg.color = _candleLit
-                ? new Color(1f, 0.72f, 0.04f)
-                : new Color(0.20f, 0.20f, 0.24f);
-            if (_glowImg != null)
-                _glowImg.color = _candleLit
-                    ? new Color(1f, 0.72f, 0.1f, 0.15f)
-                    : new Color(0f, 0f, 0f, 0f);
+            if (_candleLit)
+            {
+                _candleImg.color = new Color(1f, 0.72f, 0.04f, 0.18f); // 미세 글로우
+                if (_glowImg != null) _glowImg.color = new Color(1f, 0.72f, 0.1f, 0.15f);
+                if (_candleEmojiText != null) _candleEmojiText.color = new Color(1f, 0.95f, 0.70f);
+            }
+            else
+            {
+                _candleImg.color = Color.clear;
+                if (_glowImg != null) _glowImg.color = Color.clear;
+                if (_candleEmojiText != null) _candleEmojiText.color = new Color(0.45f, 0.40f, 0.38f);
+            }
         }
 
         // ── 손 VFX (패턴 4) ─────────────────────────────────────────────────
@@ -462,16 +472,18 @@ namespace ShortGeta.Minigames.CandleOut
             _glowImg.color = new Color(0f, 0f, 0f, 0f); // 초기값: 투명
             _glowImg.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetCircle();
 
-            // ── 4. 촛불 ──────────────────────────────────────────────────────
+            // ── 4. 촛불 — 큰 원형 배경은 미세 글로우로만 사용 (버튼처럼 안 보이게) ──
             var candleGo = MakeRect(_root.transform, "Candle",
                 new Vector2(0.37f, 0.36f), new Vector2(0.63f, 0.62f));
             _candleImg = candleGo.AddComponent<Image>();
             _candleImg.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetCircle();
-            _candleImg.color  = new Color(1f, 0.72f, 0.04f);
+            _candleImg.color  = Color.clear; // 초기 투명 — UpdateCandleVisual() 에서 갱신
 
             var candleEmojiGo = MakeChildFill(candleGo.transform, "CandleEmoji");
             var cet = candleEmojiGo.AddComponent<TextMeshProUGUI>();
-            cet.text = "🕯"; cet.fontSize = 72; cet.alignment = TextAlignmentOptions.Center;
+            cet.text = "🕯"; cet.fontSize = 80; cet.alignment = TextAlignmentOptions.Center;
+            cet.color = new Color(1f, 0.95f, 0.7f); // 초기: 켜진 상태
+            _candleEmojiText = cet;
 
             // ── 5. 왼쪽 문짝 ─────────────────────────────────────────────────
             var leftDoor = new GameObject("DoorLeft");
@@ -539,10 +551,12 @@ namespace ShortGeta.Minigames.CandleOut
             handT.alignment = TextAlignmentOptions.Center;
             _handGo.SetActive(false);
 
-            // ── 11. 탭 영역 (최상단 투명 버튼) ──────────────────────────────
-            var tapGo  = MakeFullRect(_root.transform, "TapArea");
+            // ── 11. 탭 영역 — 촛불/문 안쪽 영역에 맞춘 투명 버튼 ────────────
+            // 문 안쪽(DoorYMin~DoorYMax)을 덮어 "촛불을 누르는" 느낌을 줌
+            var tapGo  = MakeRect(_root.transform, "TapArea",
+                new Vector2(0f, DoorYMin), new Vector2(1f, DoorYMax));
             var tapImg = tapGo.AddComponent<Image>();
-            tapImg.color = new Color(0, 0, 0, 0);
+            tapImg.color = Color.clear; // 완전 투명
             var tapBtn = tapGo.AddComponent<Button>();
             tapBtn.targetGraphic = tapImg;
             tapBtn.transition    = Selectable.Transition.None;
@@ -637,8 +651,9 @@ namespace ShortGeta.Minigames.CandleOut
             _timerLeftImg.color      = new Color(0.25f, 0.85f, 0.35f);
             _timerLeftImg.type       = Image.Type.Filled;
             _timerLeftImg.fillMethod = Image.FillMethod.Horizontal;
-            _timerLeftImg.fillOrigin = (int)Image.OriginHorizontal.Right; // 왼쪽 끝에서 오른쪽(중앙)으로 채움
-            _timerLeftImg.fillAmount = 1f;
+            // 왼쪽 바: 왼쪽(x=0) 에서 시작해 중앙(x=0.5)으로 채워짐 → fillOrigin=Left
+            _timerLeftImg.fillOrigin = (int)Image.OriginHorizontal.Left;
+            _timerLeftImg.fillAmount = 0f; // 처음엔 비어 있다가 시간이 흐를수록 채워짐
 
             // 오른쪽 바: x=0.5 → 오른쪽 끝(1.0) 방향으로
             var rightGo = new GameObject("Right");
@@ -652,8 +667,9 @@ namespace ShortGeta.Minigames.CandleOut
             _timerRightImg.color      = new Color(0.25f, 0.85f, 0.35f);
             _timerRightImg.type       = Image.Type.Filled;
             _timerRightImg.fillMethod = Image.FillMethod.Horizontal;
-            _timerRightImg.fillOrigin = (int)Image.OriginHorizontal.Left; // 오른쪽 끝에서 왼쪽(중앙)으로 채움
-            _timerRightImg.fillAmount = 1f;
+            // 오른쪽 바: 오른쪽(x=1) 에서 시작해 중앙(x=0.5)으로 채워짐 → fillOrigin=Right
+            _timerRightImg.fillOrigin = (int)Image.OriginHorizontal.Right;
+            _timerRightImg.fillAmount = 0f; // 처음엔 비어 있다가 시간이 흐를수록 채워짐
 
             // 게임 종료 시 OnGameEnd() 에서 같이 파괴
             _timerRootGo = timerRoot;
@@ -663,11 +679,12 @@ namespace ShortGeta.Minigames.CandleOut
         {
             if (_timerLeftImg == null || _timerRightImg == null) return;
             float elapsed  = Time.realtimeSinceStartup - _gameStartAt;
-            float ratio    = _timeLimit > 0f ? Mathf.Clamp01(1f - elapsed / _timeLimit) : 0f;
+            // ratio: 0 → 1 (시간이 흐를수록 증가 → 바가 가장자리에서 중앙으로 채워짐)
+            float ratio    = _timeLimit > 0f ? Mathf.Clamp01(elapsed / _timeLimit) : 0f;
             bool  danger   = elapsed >= _timeLimit - 10f;
             var   barColor = danger
-                ? new Color(0.95f, 0.25f, 0.20f)
-                : new Color(0.25f, 0.85f, 0.35f);
+                ? new Color(0.95f, 0.25f, 0.20f)   // 10초 이하 → 빨강 (위험!)
+                : new Color(0.25f, 0.85f, 0.35f);   // 그 외 → 초록
 
             _timerLeftImg.fillAmount  = ratio;
             _timerRightImg.fillAmount = ratio;
