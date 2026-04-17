@@ -64,10 +64,13 @@ namespace ShortGeta.Minigames.CandleOut
         private RectTransform   _leftDoorRt, _rightDoorRt;
         private TextMeshProUGUI _scoreText;
         private TextMeshProUGUI _comboText;
-        private TextMeshProUGUI _eventText;
-        private TextMeshProUGUI _candleEmojiText; // 촛불 이모지 — 켜짐/꺼짐 색상 변경용
 
-        private float _eventTextHideAt;
+        // ── 촛불 스프라이트 ─────────────────────────────────────────────────
+        private Image _candleHolderImg;   // 촛대 (항상 표시)
+        private Image _candleBodyImg;     // 심지+몸통 (항상 표시)
+        private Image _candleFlameImg;    // 불꽃 (켜짐 시만 표시)
+        private Image _windImg;           // 바람 VFX
+        private float _windHideAt;
 
         // ── 수렴 타이머 바 (좌우에서 중앙으로) ─────────────────────────────
         private GameObject    _timerRootGo;
@@ -86,6 +89,7 @@ namespace ShortGeta.Minigames.CandleOut
         // ── 손 VFX (패턴 4) ─────────────────────────────────────────────────
         private GameObject    _handGo;
         private RectTransform _handRt;
+        private Image         _handImg;   // hand_vfx.png 스프라이트
         private bool          _handAnimating;
         private float         _handAnimStart;
         private const float   HandAnimSec = 0.35f;
@@ -140,9 +144,9 @@ namespace ShortGeta.Minigames.CandleOut
             float now          = Time.realtimeSinceStartup;
             float stateElapsed = now - _stateEnterAt;
 
-            // 이벤트 텍스트 자동 숨김
-            if (_eventText != null && _eventText.gameObject.activeSelf && now >= _eventTextHideAt)
-                _eventText.gameObject.SetActive(false);
+            // 바람 VFX 자동 숨김
+            if (_windImg != null && _windImg.gameObject.activeSelf && now >= _windHideAt)
+                _windImg.gameObject.SetActive(false);
 
             // 수렴 타이머 업데이트
             UpdateTimerBars();
@@ -307,25 +311,26 @@ namespace ShortGeta.Minigames.CandleOut
         // ── 촛불 비주얼 ─────────────────────────────────────────────────────
         private void UpdateCandleGlow(float now)
         {
-            // 촛불 이모지 색상만 펄스 (별도 원형 오버레이 없음)
-            if (_candleEmojiText == null) return;
+            if (_candleFlameImg == null) return;
             if (_candleLit)
             {
-                float pulse = 0.88f + 0.12f * Mathf.Sin(now * 3.2f);
-                _candleEmojiText.color = new Color(1f, pulse * 0.95f, pulse * 0.65f);
+                // 불꽃 펄스: alpha + 밝기 진동
+                float pulse = 0.85f + 0.15f * Mathf.Sin(now * 4.0f);
+                _candleFlameImg.color = new Color(1f, pulse * 0.90f, pulse * 0.55f, 1f);
+                _candleFlameImg.gameObject.SetActive(true);
             }
             else
             {
-                _candleEmojiText.color = new Color(0.45f, 0.40f, 0.38f);
+                _candleFlameImg.gameObject.SetActive(false);
             }
         }
 
         private void UpdateCandleVisual()
         {
-            if (_candleEmojiText == null) return;
-            _candleEmojiText.color = _candleLit
-                ? new Color(1f, 0.95f, 0.70f)
-                : new Color(0.45f, 0.40f, 0.38f);
+            if (_candleFlameImg == null) return;
+            _candleFlameImg.gameObject.SetActive(_candleLit);
+            if (_candleLit)
+                _candleFlameImg.color = new Color(1f, 0.90f, 0.55f);
         }
 
         // ── 손 VFX (패턴 4) ─────────────────────────────────────────────────
@@ -416,10 +421,13 @@ namespace ShortGeta.Minigames.CandleOut
 
         private void ShowEventText(string msg)
         {
-            if (_eventText == null) return;
-            _eventText.text = msg;
-            _eventText.gameObject.SetActive(true);
-            _eventTextHideAt = Time.realtimeSinceStartup + 0.65f;
+            // 바람 이벤트: wind_vfx 이미지 표시
+            if (msg.Contains("바람") && _windImg != null)
+            {
+                _windImg.gameObject.SetActive(true);
+                _windHideAt = Time.realtimeSinceStartup + 0.65f;
+            }
+            // 손 이벤트: StartHandAnim 에서 처리 (여기서는 아무것도 안 함)
         }
 
         // ── BuildUI ─────────────────────────────────────────────────────────
@@ -448,16 +456,33 @@ namespace ShortGeta.Minigames.CandleOut
             var floorImg = floorGo.AddComponent<Image>();
             floorImg.color = new Color(0.18f, 0.10f, 0.04f, 0.85f);
 
-            // ── 3. 촛불 — 이모지만 사용 (원형 배경 없음, 버튼처럼 안 보이게) ───
-            var candleGo = MakeRect(_root.transform, "Candle",
-                new Vector2(0.37f, 0.36f), new Vector2(0.63f, 0.62f));
-            // Image 컴포넌트 없음 — 이모지만 렌더링
+            // ── 3. 촛불 — 촛대(holder) + 심지/몸통(body) + 불꽃(flame) 분리 ───
+            // 촛대: 화면 하단 중앙에 고정
+            var holderGo = MakeRect(_root.transform, "CandleHolder",
+                new Vector2(0.38f, 0.20f), new Vector2(0.62f, 0.45f));
+            _candleHolderImg = holderGo.AddComponent<Image>();
+            var holderSpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "candle_holder");
+            if (holderSpr != null) { _candleHolderImg.sprite = holderSpr; _candleHolderImg.color = Color.white; }
+            else _candleHolderImg.color = new Color(0.7f, 0.55f, 0.2f);
+            _candleHolderImg.preserveAspect = true;
 
-            var candleEmojiGo = MakeChildFill(candleGo.transform, "CandleEmoji");
-            var cet = candleEmojiGo.AddComponent<TextMeshProUGUI>();
-            cet.text = "🕯"; cet.fontSize = 80; cet.alignment = TextAlignmentOptions.Center;
-            cet.color = new Color(1f, 0.95f, 0.7f); // 초기: 켜진 상태
-            _candleEmojiText = cet;
+            // 심지+몸통: 촛대 위
+            var bodyGo = MakeRect(_root.transform, "CandleBody",
+                new Vector2(0.42f, 0.43f), new Vector2(0.58f, 0.70f));
+            _candleBodyImg = bodyGo.AddComponent<Image>();
+            var bodySpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "candle_unlit");
+            if (bodySpr != null) { _candleBodyImg.sprite = bodySpr; _candleBodyImg.color = Color.white; }
+            else _candleBodyImg.color = new Color(0.95f, 0.92f, 0.80f);
+            _candleBodyImg.preserveAspect = true;
+
+            // 불꽃: 몸통 위 (켜짐 시만 표시)
+            var flameGo = MakeRect(_root.transform, "CandleFlame",
+                new Vector2(0.44f, 0.65f), new Vector2(0.56f, 0.78f));
+            _candleFlameImg = flameGo.AddComponent<Image>();
+            var flameSpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "candle_flame");
+            if (flameSpr != null) { _candleFlameImg.sprite = flameSpr; _candleFlameImg.color = Color.white; }
+            else _candleFlameImg.color = new Color(1f, 0.6f, 0.1f);
+            _candleFlameImg.preserveAspect = true;
 
             // ── 5. 왼쪽 문짝 ─────────────────────────────────────────────────
             var leftDoor = new GameObject("DoorLeft");
@@ -507,22 +532,25 @@ namespace ShortGeta.Minigames.CandleOut
             _comboText.alignment = TextAlignmentOptions.MidlineRight;
             _comboText.color = new Color(1f, 0.92f, 0.25f);
 
-            // ── 9. 이벤트 텍스트 — 문 상단부 안쪽 ─────────────────────────
-            var eventGo = MakeRect(_root.transform, "EventText",
-                new Vector2(0.10f, 0.73f), new Vector2(0.90f, 0.83f));
-            _eventText = eventGo.AddComponent<TextMeshProUGUI>();
-            _eventText.fontSize = 44; _eventText.fontStyle = FontStyles.Bold;
-            _eventText.alignment = TextAlignmentOptions.Center;
-            _eventText.color = new Color(1f, 0.88f, 0.45f);
-            eventGo.SetActive(false);
+            // ── 9. 바람 VFX (바람 이벤트 시 표시) ──────────────────────────
+            var windGo = MakeRect(_root.transform, "WindVFX",
+                new Vector2(0.05f, 0.50f), new Vector2(0.95f, 0.72f));
+            _windImg = windGo.AddComponent<Image>();
+            var windSpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "wind_vfx");
+            if (windSpr != null) { _windImg.sprite = windSpr; _windImg.color = Color.white; }
+            else _windImg.color = new Color(0.7f, 0.85f, 1f, 0.7f);
+            _windImg.preserveAspect = true;
+            windGo.SetActive(false);
 
             // ── 10. 손 VFX (패턴 4 전용 — 기본 비활성) ─────────────────────
             _handGo = MakeRect(_root.transform, "HandVFX",
-                new Vector2(0.78f, 0.36f), new Vector2(1.00f, 0.58f));
+                new Vector2(0.70f, 0.35f), new Vector2(1.05f, 0.62f));
             _handRt = _handGo.GetComponent<RectTransform>();
-            var handT = _handGo.AddComponent<TextMeshProUGUI>();
-            handT.text = "🤚"; handT.fontSize = 80;
-            handT.alignment = TextAlignmentOptions.Center;
+            _handImg = _handGo.AddComponent<Image>();
+            var handSpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "hand_vfx");
+            if (handSpr != null) { _handImg.sprite = handSpr; _handImg.color = Color.white; }
+            else _handImg.color = new Color(0.9f, 0.72f, 0.55f);
+            _handImg.preserveAspect = true;
             _handGo.SetActive(false);
 
             // ── 11. 탭 영역 — 촛불/문 안쪽 영역에 맞춘 투명 버튼 ────────────
