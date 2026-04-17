@@ -66,10 +66,9 @@ namespace ShortGeta.Minigames.CandleOut
         private TextMeshProUGUI _comboText;
 
         // ── 촛불 스프라이트 ─────────────────────────────────────────────────
-        private Image _candleHolderImg;   // 촛대 (항상 표시)
-        private Image _candleBodyImg;     // 심지+몸통 (항상 표시)
+        private Image _candleTableImg;    // 탁자+촛대+촛신 통합 스프라이트 (항상 표시)
         private Image _candleFlameImg;    // 불꽃 (켜짐 시만 표시)
-        private Image _windImg;           // 바람 VFX
+        private Image _windImg;           // 연기/바람 VFX
         private float _windHideAt;
 
         // ── 수렴 타이머 바 (좌우에서 중앙으로) ─────────────────────────────
@@ -421,7 +420,7 @@ namespace ShortGeta.Minigames.CandleOut
 
         private void ShowEventText(string msg)
         {
-            // 바람 이벤트: wind_vfx 이미지 표시
+            // 바람 이벤트: wind_smoke 이미지 표시
             if (msg.Contains("바람") && _windImg != null)
             {
                 _windImg.gameObject.SetActive(true);
@@ -456,28 +455,19 @@ namespace ShortGeta.Minigames.CandleOut
             var floorImg = floorGo.AddComponent<Image>();
             floorImg.color = new Color(0.18f, 0.10f, 0.04f, 0.85f);
 
-            // ── 3. 촛불 — 촛대(holder) + 심지/몸통(body) + 불꽃(flame) 분리 ───
-            // 촛대: 화면 하단 중앙에 고정
-            var holderGo = MakeRect(_root.transform, "CandleHolder",
-                new Vector2(0.38f, 0.20f), new Vector2(0.62f, 0.45f));
-            _candleHolderImg = holderGo.AddComponent<Image>();
-            var holderSpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "candle_holder");
-            if (holderSpr != null) { _candleHolderImg.sprite = holderSpr; _candleHolderImg.color = Color.white; }
-            else _candleHolderImg.color = new Color(0.7f, 0.55f, 0.2f);
-            _candleHolderImg.preserveAspect = true;
+            // ── 3. 촛불 — 탁자+촛대+몸통 통합(candle_table) + 불꽃(candle_flame) ─
+            // candle_table: 한국 전통 소반 + 황동 촛대 + 촛신 한 장으로
+            var tableGo = MakeRect(_root.transform, "CandleTable",
+                new Vector2(0.28f, 0.18f), new Vector2(0.72f, 0.72f));
+            _candleTableImg = tableGo.AddComponent<Image>();
+            var tableSpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "candle_table");
+            if (tableSpr != null) { _candleTableImg.sprite = tableSpr; _candleTableImg.color = Color.white; }
+            else _candleTableImg.color = new Color(0.7f, 0.55f, 0.2f);
+            _candleTableImg.preserveAspect = true;
 
-            // 심지+몸통: 촛대 위
-            var bodyGo = MakeRect(_root.transform, "CandleBody",
-                new Vector2(0.42f, 0.43f), new Vector2(0.58f, 0.70f));
-            _candleBodyImg = bodyGo.AddComponent<Image>();
-            var bodySpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "candle_unlit");
-            if (bodySpr != null) { _candleBodyImg.sprite = bodySpr; _candleBodyImg.color = Color.white; }
-            else _candleBodyImg.color = new Color(0.95f, 0.92f, 0.80f);
-            _candleBodyImg.preserveAspect = true;
-
-            // 불꽃: 몸통 위 (켜짐 시만 표시)
+            // 불꽃: 탁자 위 촛심 위치에 (켜짐 시만 표시)
             var flameGo = MakeRect(_root.transform, "CandleFlame",
-                new Vector2(0.44f, 0.65f), new Vector2(0.56f, 0.78f));
+                new Vector2(0.44f, 0.58f), new Vector2(0.56f, 0.72f));
             _candleFlameImg = flameGo.AddComponent<Image>();
             var flameSpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "candle_flame");
             if (flameSpr != null) { _candleFlameImg.sprite = flameSpr; _candleFlameImg.color = Color.white; }
@@ -536,7 +526,7 @@ namespace ShortGeta.Minigames.CandleOut
             var windGo = MakeRect(_root.transform, "WindVFX",
                 new Vector2(0.05f, 0.50f), new Vector2(0.95f, 0.72f));
             _windImg = windGo.AddComponent<Image>();
-            var windSpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "wind_vfx");
+            var windSpr = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "wind_smoke");
             if (windSpr != null) { _windImg.sprite = windSpr; _windImg.color = Color.white; }
             else _windImg.color = new Color(0.7f, 0.85f, 1f, 0.7f);
             _windImg.preserveAspect = true;
