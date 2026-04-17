@@ -420,8 +420,10 @@ namespace ShortGeta.Minigames.CandleOut
         // ── 사운드 로드 & 재생 ───────────────────────────────────────────────
         private void LoadSounds()
         {
-            // AudioSource 를 이 GameObject 에 추가 (없을 경우)
-            _sfx = GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
+            // NOTE: Unity 의 가짜 null(UnityEngine.Object)은 C# ??(null coalescing) 연산자로 감지되지 않음.
+            // 반드시 Unity 오버로드된 == null 비교를 사용해야 한다.
+            var existing = GetComponent<AudioSource>();
+            _sfx = (existing != null) ? existing : gameObject.AddComponent<AudioSource>();
             _sfx.playOnAwake = false;
 
             _clipDoorSlide   = Resources.Load<AudioClip>("Audio/CandleOut/door_slide");
