@@ -22,6 +22,8 @@ namespace ShortGeta.Core.Bundles
                 "Install com.unity.addressables and use AddressableBundleLoader.");
         }
 
+        public UniTask<bool> ExistsAsync(string address) => UniTask.FromResult(false);
+
         public void Release(object handle) { /* noop */ }
 
         public UniTask LoadCatalogAsync(string url)
