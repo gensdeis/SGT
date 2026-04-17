@@ -66,12 +66,17 @@ namespace ShortGeta.Minigames.CandleOut
         private Image           _glowImg;       // 문 너머로 비치는 광원
         private TextMeshProUGUI _scoreText;
         private TextMeshProUGUI _comboText;
-        private TextMeshProUGUI _feedbackText;
         private TextMeshProUGUI _eventText;
-        private TextMeshProUGUI _stateHintText; // "탭!" / "참아!" 안내
 
-        private float _feedbackHideAt;
         private float _eventTextHideAt;
+
+        // ── 수렴 타이머 바 (좌우에서 중앙으로) ─────────────────────────────
+        private GameObject    _timerRootGo;
+        private RectTransform _timerLeftRt;
+        private RectTransform _timerRightRt;
+        private Image         _timerLeftImg;
+        private Image         _timerRightImg;
+        private float         _gameStartAt;
 
         // ── 패턴 3·4 — Open 후 지연 이벤트 ────────────────────────────────
         private bool  _hadOpeningEvent;   // 이번 라운드 Opening 이벤트 발생 여부
@@ -108,11 +113,13 @@ namespace ShortGeta.Minigames.CandleOut
         // ── IMinigame ───────────────────────────────────────────────────────
         public void OnGameStart()
         {
-            _score   = SafeInt.From(0);
-            _running = true;
-            _combo   = 1;
+            _score       = SafeInt.From(0);
+            _running     = true;
+            _combo       = 1;
+            _gameStartAt = Time.realtimeSinceStartup;
             LoadSounds();
             BuildUI();
+            BuildTimerBars();
             EnterState(State.Closed);
         }
 
@@ -120,7 +127,8 @@ namespace ShortGeta.Minigames.CandleOut
         {
             _running     = false;
             _score.Value = Mathf.Clamp(_score.Value, 0, MaxScore);
-            if (_root != null) Destroy(_root);
+            if (_root != null)     Destroy(_root);
+            if (_timerRootGo != null) Destroy(_timerRootGo);
         }
 
         public int GetScore()                   => Mathf.Max(0, _score.Value);
@@ -133,11 +141,12 @@ namespace ShortGeta.Minigames.CandleOut
             float now          = Time.realtimeSinceStartup;
             float stateElapsed = now - _stateEnterAt;
 
-            // 피드백/이벤트 텍스트 자동 숨김
-            if (_feedbackText  != null && _feedbackText.gameObject.activeSelf  && now >= _feedbackHideAt)
-                _feedbackText.gameObject.SetActive(false);
-            if (_eventText     != null && _eventText.gameObject.activeSelf     && now >= _eventTextHideAt)
+            // 이벤트 텍스트 자동 숨김
+            if (_eventText != null && _eventText.gameObject.activeSelf && now >= _eventTextHideAt)
                 _eventText.gameObject.SetActive(false);
+
+            // 수렴 타이머 업데이트
+            UpdateTimerBars();
 
             switch (_state)
             {
@@ -166,7 +175,6 @@ namespace ShortGeta.Minigames.CandleOut
                             _candleLit = false;
                             UpdateCandleVisual();
                             ShowEventText("💨 바람!");
-                            SetStateHint("참아!");
                             PlaySfx(_clipWind, 0.85f);
                             PlaySfx(_clipCandleOut, 0.9f);
                         }
@@ -177,7 +185,6 @@ namespace ShortGeta.Minigames.CandleOut
                             UpdateCandleVisual();
                             ShowEventText("🤚 손!");
                             StartHandAnim();
-                            SetStateHint("탭!");
                             PlaySfx(_clipCandleLight, 0.9f);
                         }
                     }
@@ -191,7 +198,6 @@ namespace ShortGeta.Minigames.CandleOut
                         {
                             // 켜진 촛불 놓침 → 콤보 리셋
                             _combo = 1;
-                            ShowFeedback("놓쳤다!", new Color(1f, 0.65f, 0.1f));
                             UpdateScoreUI();
                         }
                         _postOpenPending = false;
@@ -226,7 +232,6 @@ namespace ShortGeta.Minigames.CandleOut
                     // 다음 라운드 촛불 상태 결정 (60% 켜짐)
                     _candleLit = Random.value < 0.6f;
                     UpdateCandleVisual();
-                    SetStateHint("");
                     break;
 
                 case State.Opening:
@@ -250,7 +255,6 @@ namespace ShortGeta.Minigames.CandleOut
                         }
                         UpdateCandleVisual();
                     }
-                    SetStateHint("");
                     break;
 
                 case State.Open:
@@ -265,13 +269,11 @@ namespace ShortGeta.Minigames.CandleOut
                         _postOpenFireAt   = Time.realtimeSinceStartup + delay;
                     }
                     UpdateCandleVisual();
-                    SetStateHint(_candleLit ? "탭!" : "참아!");
                     break;
 
                 case State.Closing:
                     _postOpenPending = false;
                     HideHand();
-                    SetStateHint("");
                     break;
             }
         }
@@ -291,17 +293,12 @@ namespace ShortGeta.Minigames.CandleOut
                 int gain    = BaseScore * _combo;
                 _score      = _score + gain;
                 if (_score.Value > MaxScore) _score.Value = MaxScore;
-                int prevCombo = _combo;
                 _combo      = Mathf.Min(_combo + 1, MaxCombo);
-
-                string msg  = prevCombo >= 3 ? $"COMBO x{prevCombo}!" : "GOOD!";
-                ShowFeedback(msg, new Color(0.2f, 1f, 0.45f));
             }
             else
             {
                 _score = _score + penaltyScore;
                 _combo = 1;
-                ShowFeedback("MISS!", new Color(1f, 0.25f, 0.2f));
             }
 
             UpdateScoreUI();
@@ -400,21 +397,6 @@ namespace ShortGeta.Minigames.CandleOut
                 _scoreText.text = $"점수: {Mathf.Max(0, _score.Value)}";
             if (_comboText != null)
                 _comboText.text = _combo > 1 ? $"콤보 x{_combo}" : "";
-        }
-
-        private void SetStateHint(string msg)
-        {
-            if (_stateHintText != null)
-                _stateHintText.text = msg;
-        }
-
-        private void ShowFeedback(string msg, Color col)
-        {
-            if (_feedbackText == null) return;
-            _feedbackText.text  = msg;
-            _feedbackText.color = col;
-            _feedbackText.gameObject.SetActive(true);
-            _feedbackHideAt = Time.realtimeSinceStartup + 0.75f;
         }
 
         // ── 사운드 로드 & 재생 ───────────────────────────────────────────────
@@ -539,15 +521,7 @@ namespace ShortGeta.Minigames.CandleOut
             _comboText.alignment = TextAlignmentOptions.MidlineRight;
             _comboText.color = new Color(1f, 0.92f, 0.25f);
 
-            // ── 9. 상태 힌트 (탭! / 참아!) — 촛불 바로 위, 문 안쪽 ───────────
-            var hintGo = MakeRect(_root.transform, "StateHint",
-                new Vector2(0.10f, 0.65f), new Vector2(0.90f, 0.76f));
-            _stateHintText = hintGo.AddComponent<TextMeshProUGUI>();
-            _stateHintText.fontSize = 52; _stateHintText.fontStyle = FontStyles.Bold;
-            _stateHintText.alignment = TextAlignmentOptions.Center;
-            _stateHintText.color = new Color(1f, 0.95f, 0.35f);
-
-            // ── 10. 이벤트 텍스트 — 문 상단부 안쪽 ─────────────────────────
+            // ── 9. 이벤트 텍스트 — 문 상단부 안쪽 ─────────────────────────
             var eventGo = MakeRect(_root.transform, "EventText",
                 new Vector2(0.10f, 0.73f), new Vector2(0.90f, 0.83f));
             _eventText = eventGo.AddComponent<TextMeshProUGUI>();
@@ -556,15 +530,7 @@ namespace ShortGeta.Minigames.CandleOut
             _eventText.color = new Color(1f, 0.88f, 0.45f);
             eventGo.SetActive(false);
 
-            // ── 11. 탭 결과 피드백 — 화면 하단 전용 영역 ───────────────────
-            var fbGo = MakeRect(_root.transform, "Feedback",
-                new Vector2(0.10f, 0.06f), new Vector2(0.90f, 0.15f));
-            _feedbackText = fbGo.AddComponent<TextMeshProUGUI>();
-            _feedbackText.fontSize = 64; _feedbackText.fontStyle = FontStyles.Bold;
-            _feedbackText.alignment = TextAlignmentOptions.Center;
-            fbGo.SetActive(false);
-
-            // ── 12. 손 VFX (패턴 4 전용 — 기본 비활성) ─────────────────────
+            // ── 10. 손 VFX (패턴 4 전용 — 기본 비활성) ─────────────────────
             _handGo = MakeRect(_root.transform, "HandVFX",
                 new Vector2(0.78f, 0.36f), new Vector2(1.00f, 0.58f));
             _handRt = _handGo.GetComponent<RectTransform>();
@@ -573,7 +539,7 @@ namespace ShortGeta.Minigames.CandleOut
             handT.alignment = TextAlignmentOptions.Center;
             _handGo.SetActive(false);
 
-            // ── 13. 탭 영역 (최상단 투명 버튼) ──────────────────────────────
+            // ── 11. 탭 영역 (최상단 투명 버튼) ──────────────────────────────
             var tapGo  = MakeFullRect(_root.transform, "TapArea");
             var tapImg = tapGo.AddComponent<Image>();
             tapImg.color = new Color(0, 0, 0, 0);
@@ -586,35 +552,127 @@ namespace ShortGeta.Minigames.CandleOut
         // ── 문짝 비주얼 빌더 ─────────────────────────────────────────────────
         private void BuildDoorVisual(Transform parent, bool isLeft)
         {
-            // 문 본체 — 나무 갈색
-            var body = MakeChildFill(parent, "Body");
-            body.AddComponent<Image>().color = new Color(0.52f, 0.36f, 0.14f);
+            var body    = MakeChildFill(parent, "Body");
+            var bodyImg = body.AddComponent<Image>();
 
-            // 한지 내부 패널 (약간 연한 색)
-            var paper = new GameObject("Paper");
-            paper.transform.SetParent(parent, false);
-            var pRt = paper.AddComponent<RectTransform>();
-            pRt.anchorMin = new Vector2(0.08f, 0.04f);
-            pRt.anchorMax = new Vector2(0.92f, 0.96f);
-            pRt.offsetMin = Vector2.zero; pRt.offsetMax = Vector2.zero;
-            paper.AddComponent<Image>().color = new Color(0.88f, 0.80f, 0.60f, 0.82f);
+            var doorSprite = ShortGeta.Core.UI.GameSpriteLoader.Load("CandleOut", "door_panel");
+            if (doorSprite != null)
+            {
+                bodyImg.sprite = doorSprite;
+                bodyImg.color  = Color.white;
+                bodyImg.preserveAspect = false;
+                // 오른쪽 문은 X축 반전 (같은 스프라이트를 미러링)
+                if (!isLeft)
+                {
+                    var rt = parent.GetComponent<RectTransform>();
+                    if (rt != null)
+                        parent.localScale = new Vector3(-1f, 1f, 1f);
+                }
+            }
+            else
+            {
+                // fallback: 절차적 나무색 문
+                bodyImg.color = new Color(0.52f, 0.36f, 0.14f);
 
-            // 격자 살 (텍스트로 시뮬레이션)
-            var grid = MakeChildFill(paper.transform, "Grid");
-            var gt   = grid.AddComponent<TextMeshProUGUI>();
-            gt.text  = "─────\n│   │   │\n─────\n│   │   │\n─────\n│   │   │\n─────";
-            gt.fontSize = 22; gt.alignment = TextAlignmentOptions.Center;
-            gt.color = new Color(0.40f, 0.30f, 0.12f, 0.55f);
+                var paper = new GameObject("Paper");
+                paper.transform.SetParent(parent, false);
+                var pRt = paper.AddComponent<RectTransform>();
+                pRt.anchorMin = new Vector2(0.08f, 0.04f);
+                pRt.anchorMax = new Vector2(0.92f, 0.96f);
+                pRt.offsetMin = Vector2.zero; pRt.offsetMax = Vector2.zero;
+                paper.AddComponent<Image>().color = new Color(0.88f, 0.80f, 0.60f, 0.82f);
 
-            // 가운데 세로 기둥 (문짝 경계)
-            var pillar = new GameObject("Pillar");
-            pillar.transform.SetParent(parent, false);
-            var plRt = pillar.AddComponent<RectTransform>();
-            float pillarX = isLeft ? 0.94f : 0.00f;
-            plRt.anchorMin = new Vector2(pillarX, 0f);
-            plRt.anchorMax = new Vector2(pillarX + 0.06f, 1f);
-            plRt.offsetMin = Vector2.zero; plRt.offsetMax = Vector2.zero;
-            pillar.AddComponent<Image>().color = new Color(0.32f, 0.20f, 0.06f);
+                var grid = MakeChildFill(paper.transform, "Grid");
+                var gt   = grid.AddComponent<TextMeshProUGUI>();
+                gt.text  = "─────\n│   │   │\n─────\n│   │   │\n─────\n│   │   │\n─────";
+                gt.fontSize = 22; gt.alignment = TextAlignmentOptions.Center;
+                gt.color = new Color(0.40f, 0.30f, 0.12f, 0.55f);
+
+                var pillar = new GameObject("Pillar");
+                pillar.transform.SetParent(parent, false);
+                var plRt = pillar.AddComponent<RectTransform>();
+                float pillarX = isLeft ? 0.94f : 0.00f;
+                plRt.anchorMin = new Vector2(pillarX, 0f);
+                plRt.anchorMax = new Vector2(pillarX + 0.06f, 1f);
+                plRt.offsetMin = Vector2.zero; plRt.offsetMax = Vector2.zero;
+                pillar.AddComponent<Image>().color = new Color(0.32f, 0.20f, 0.06f);
+            }
+        }
+
+        // ── 수렴 타이머 바 (좌우에서 중앙으로, MinigameLauncher 바 위에 덮어씀) ──
+        private void BuildTimerBars()
+        {
+            // sortingOrder = 300 으로 MinigameLauncher(200)보다 위에 그림
+            var timerRoot = new GameObject("[CandleTimerOverlay]");
+            var canvas    = timerRoot.AddComponent<Canvas>();
+            canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 300;
+            var scaler = timerRoot.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode        = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(720, 1280);
+            scaler.matchWidthOrHeight  = 1f;
+
+            // MinigameLauncher 와 동일한 하단 섹션 크기 (anchorMax.y = 0.035)
+            var sectionGo  = new GameObject("Section");
+            sectionGo.transform.SetParent(timerRoot.transform, false);
+            var sectionRt  = sectionGo.AddComponent<RectTransform>();
+            sectionRt.anchorMin = new Vector2(0f, 0f);
+            sectionRt.anchorMax = new Vector2(1f, 0.035f);
+            sectionRt.offsetMin = Vector2.zero;
+            sectionRt.offsetMax = Vector2.zero;
+
+            // 배경 덮기 (MinigameLauncher 의 어두운 바를 그대로 이용)
+            var bgImg = sectionGo.AddComponent<Image>();
+            bgImg.color = new Color(0.06f, 0.06f, 0.08f);
+
+            // 왼쪽 바: x=0 → 중앙(0.5)으로 이동
+            var leftGo = new GameObject("Left");
+            leftGo.transform.SetParent(sectionGo.transform, false);
+            _timerLeftRt = leftGo.AddComponent<RectTransform>();
+            _timerLeftRt.anchorMin = new Vector2(0f,   0.30f);
+            _timerLeftRt.anchorMax = new Vector2(0.5f, 0.70f);
+            _timerLeftRt.offsetMin = Vector2.zero;
+            _timerLeftRt.offsetMax = Vector2.zero;
+            _timerLeftImg = leftGo.AddComponent<Image>();
+            _timerLeftImg.color      = new Color(0.25f, 0.85f, 0.35f);
+            _timerLeftImg.type       = Image.Type.Filled;
+            _timerLeftImg.fillMethod = Image.FillMethod.Horizontal;
+            _timerLeftImg.fillOrigin = (int)Image.OriginHorizontal.Right; // 왼쪽 끝에서 오른쪽(중앙)으로 채움
+            _timerLeftImg.fillAmount = 1f;
+
+            // 오른쪽 바: x=0.5 → 오른쪽 끝(1.0) 방향으로
+            var rightGo = new GameObject("Right");
+            rightGo.transform.SetParent(sectionGo.transform, false);
+            _timerRightRt = rightGo.AddComponent<RectTransform>();
+            _timerRightRt.anchorMin = new Vector2(0.5f, 0.30f);
+            _timerRightRt.anchorMax = new Vector2(1f,   0.70f);
+            _timerRightRt.offsetMin = Vector2.zero;
+            _timerRightRt.offsetMax = Vector2.zero;
+            _timerRightImg = rightGo.AddComponent<Image>();
+            _timerRightImg.color      = new Color(0.25f, 0.85f, 0.35f);
+            _timerRightImg.type       = Image.Type.Filled;
+            _timerRightImg.fillMethod = Image.FillMethod.Horizontal;
+            _timerRightImg.fillOrigin = (int)Image.OriginHorizontal.Left; // 오른쪽 끝에서 왼쪽(중앙)으로 채움
+            _timerRightImg.fillAmount = 1f;
+
+            // 게임 종료 시 OnGameEnd() 에서 같이 파괴
+            _timerRootGo = timerRoot;
+        }
+
+        private void UpdateTimerBars()
+        {
+            if (_timerLeftImg == null || _timerRightImg == null) return;
+            float elapsed  = Time.realtimeSinceStartup - _gameStartAt;
+            float ratio    = _timeLimit > 0f ? Mathf.Clamp01(1f - elapsed / _timeLimit) : 0f;
+            bool  danger   = elapsed >= _timeLimit - 10f;
+            var   barColor = danger
+                ? new Color(0.95f, 0.25f, 0.20f)
+                : new Color(0.25f, 0.85f, 0.35f);
+
+            _timerLeftImg.fillAmount  = ratio;
+            _timerRightImg.fillAmount = ratio;
+            _timerLeftImg.color       = barColor;
+            _timerRightImg.color      = barColor;
         }
 
         // ── RectTransform 유틸 ──────────────────────────────────────────────
