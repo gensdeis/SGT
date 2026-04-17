@@ -12,6 +12,9 @@ namespace ShortGeta.Core.Bundles
 
         UniTask InitializeAsync();
 
+        /// <summary>에러 로그 없이 address 존재 여부 확인.</summary>
+        UniTask<bool> ExistsAsync(string address);
+
         UniTask<T> LoadAssetAsync<T>(string address) where T : Object;
 
         // Addressables 가 반환한 handle 또는 instance 를 reference count 해제.

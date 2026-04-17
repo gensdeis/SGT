@@ -36,6 +36,28 @@ namespace ShortGeta.Core.Bundles
             }
         }
 
+        /// <summary>
+        /// address 에 해당하는 Addressable 이 등록돼 있는지 에러 없이 확인.
+        /// InvalidKeyException 은 내부적으로 에러 로그를 남기므로, 로드 전 위치 검사를 먼저 수행.
+        /// </summary>
+        public async UniTask<bool> ExistsAsync(string address)
+        {
+            try
+            {
+                var locOp = Addressables.LoadResourceLocationsAsync(address);
+                await locOp.Task;
+                bool found = locOp.Status == AsyncOperationStatus.Succeeded
+                             && locOp.Result != null
+                             && locOp.Result.Count > 0;
+                Addressables.Release(locOp);
+                return found;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public async UniTask<T> LoadAssetAsync<T>(string address) where T : Object
         {
             var op = Addressables.LoadAssetAsync<T>(address);

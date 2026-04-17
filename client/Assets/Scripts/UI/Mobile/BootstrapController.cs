@@ -245,6 +245,10 @@ namespace ShortGeta.UI.Mobile
             string address = $"minigame/{gameId}";
             try
             {
+                // InvalidKeyException 내부 에러 로그를 막기 위해 로드 전 존재 여부 먼저 확인
+                bool exists = await _bundleLoader.ExistsAsync(address);
+                if (!exists) return null;
+
                 var prefab = await _bundleLoader.LoadAssetAsync<GameObject>(address);
                 if (prefab == null) return null;
                 var inst = Instantiate(prefab, parent.transform);

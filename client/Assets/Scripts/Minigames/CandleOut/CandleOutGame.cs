@@ -62,7 +62,6 @@ namespace ShortGeta.Minigames.CandleOut
         // ── UI 레퍼런스 ─────────────────────────────────────────────────────
         private GameObject      _root;
         private RectTransform   _leftDoorRt, _rightDoorRt;
-        private Image           _glowImg;       // 문 너머로 비치는 광원
         private TextMeshProUGUI _scoreText;
         private TextMeshProUGUI _comboText;
         private TextMeshProUGUI _eventText;
@@ -308,36 +307,25 @@ namespace ShortGeta.Minigames.CandleOut
         // ── 촛불 비주얼 ─────────────────────────────────────────────────────
         private void UpdateCandleGlow(float now)
         {
-            if (_glowImg == null) return;
-
+            // 촛불 이모지 색상만 펄스 (별도 원형 오버레이 없음)
+            if (_candleEmojiText == null) return;
             if (_candleLit)
             {
-                // 문 너머 광원 펄스
-                float gA = 0.12f + 0.10f * Mathf.Sin(now * 3.2f + 0.5f);
-                _glowImg.color = new Color(1f, 0.72f, 0.1f, gA);
-                if (_candleEmojiText != null)
-                    _candleEmojiText.color = new Color(1f, 0.95f, 0.70f);
+                float pulse = 0.88f + 0.12f * Mathf.Sin(now * 3.2f);
+                _candleEmojiText.color = new Color(1f, pulse * 0.95f, pulse * 0.65f);
             }
             else
             {
-                _glowImg.color = Color.clear;
-                if (_candleEmojiText != null)
-                    _candleEmojiText.color = new Color(0.45f, 0.40f, 0.38f);
+                _candleEmojiText.color = new Color(0.45f, 0.40f, 0.38f);
             }
         }
 
         private void UpdateCandleVisual()
         {
-            if (_candleLit)
-            {
-                if (_glowImg != null) _glowImg.color = new Color(1f, 0.72f, 0.1f, 0.15f);
-                if (_candleEmojiText != null) _candleEmojiText.color = new Color(1f, 0.95f, 0.70f);
-            }
-            else
-            {
-                if (_glowImg != null) _glowImg.color = Color.clear;
-                if (_candleEmojiText != null) _candleEmojiText.color = new Color(0.45f, 0.40f, 0.38f);
-            }
+            if (_candleEmojiText == null) return;
+            _candleEmojiText.color = _candleLit
+                ? new Color(1f, 0.95f, 0.70f)
+                : new Color(0.45f, 0.40f, 0.38f);
         }
 
         // ── 손 VFX (패턴 4) ─────────────────────────────────────────────────
@@ -374,20 +362,24 @@ namespace ShortGeta.Minigames.CandleOut
         }
 
         // ── 문 애니메이션 ────────────────────────────────────────────────────
-        // t=0: 닫힘(정중앙 맞닿음), t=1: 완전 열림(화면 밖)
+        // t=0: 닫힘(중앙 3% 오버랩으로 투명 엣지 갭 방지), t=1: 완전 열림(화면 밖)
+        private const float DoorOverlap = 0.03f; // 스프라이트 투명 엣지 보정용
+
         private void SetDoorAnim(float t)
         {
             if (_leftDoorRt == null || _rightDoorRt == null) return;
 
-            // 왼쪽 문: 닫힘 anchorX 0~0.5 → 열림 -0.5~0
-            _leftDoorRt.anchorMin  = new Vector2(Mathf.Lerp(0f,   -0.5f, t), DoorYMin);
-            _leftDoorRt.anchorMax  = new Vector2(Mathf.Lerp(0.5f,  0f,   t), DoorYMax);
+            float half = 0.5f + DoorOverlap; // = 0.53
+
+            // 왼쪽 문: 닫힘 [0, 0.53] → 열림 [-0.53, 0]
+            _leftDoorRt.anchorMin  = new Vector2(Mathf.Lerp(0f,    -half, t), DoorYMin);
+            _leftDoorRt.anchorMax  = new Vector2(Mathf.Lerp(half,   0f,   t), DoorYMax);
             _leftDoorRt.offsetMin  = Vector2.zero;
             _leftDoorRt.offsetMax  = Vector2.zero;
 
-            // 오른쪽 문: 닫힘 anchorX 0.5~1 → 열림 1~1.5
-            _rightDoorRt.anchorMin = new Vector2(Mathf.Lerp(0.5f,  1f,   t), DoorYMin);
-            _rightDoorRt.anchorMax = new Vector2(Mathf.Lerp(1f,    1.5f, t), DoorYMax);
+            // 오른쪽 문: 닫힘 [0.47, 1] → 열림 [1, 1.53]
+            _rightDoorRt.anchorMin = new Vector2(Mathf.Lerp(1f - half,  1f,    t), DoorYMin);
+            _rightDoorRt.anchorMax = new Vector2(Mathf.Lerp(1f,         1f+half, t), DoorYMax);
             _rightDoorRt.offsetMin = Vector2.zero;
             _rightDoorRt.offsetMax = Vector2.zero;
         }
@@ -456,15 +448,7 @@ namespace ShortGeta.Minigames.CandleOut
             var floorImg = floorGo.AddComponent<Image>();
             floorImg.color = new Color(0.18f, 0.10f, 0.04f, 0.85f);
 
-            // ── 3. 광원 오버레이 (문 너머 촛불 빛) ──────────────────────────
-            // 문 영역(DoorYMin~DoorYMax) 중앙에만 걸리는 타원형 느낌을 직사각으로 근사
-            var glowGo  = MakeRect(_root.transform, "GlowLayer",
-                new Vector2(0.20f, DoorYMin), new Vector2(0.80f, DoorYMax));
-            _glowImg = glowGo.AddComponent<Image>();
-            _glowImg.color = new Color(0f, 0f, 0f, 0f); // 초기값: 투명
-            _glowImg.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetCircle();
-
-            // ── 4. 촛불 — 이모지만 사용 (원형 배경 없음, 버튼처럼 안 보이게) ───
+            // ── 3. 촛불 — 이모지만 사용 (원형 배경 없음, 버튼처럼 안 보이게) ───
             var candleGo = MakeRect(_root.transform, "Candle",
                 new Vector2(0.37f, 0.36f), new Vector2(0.63f, 0.62f));
             // Image 컴포넌트 없음 — 이모지만 렌더링
