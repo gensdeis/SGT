@@ -61,6 +61,13 @@ namespace ShortGeta.Core
         private void Update()
         {
             if (!_running) return;
+            // Unity fake-null guard: 외부에서 게임 컴포넌트가 파괴된 경우
+            if (_current is UnityEngine.Object uObj && uObj == null)
+            {
+                _running = false;
+                _current = null;
+                return;
+            }
             float elapsed = ElapsedSec;
             float limit = _current.TimeLimit;
 

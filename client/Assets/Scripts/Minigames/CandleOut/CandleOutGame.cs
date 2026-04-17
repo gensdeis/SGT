@@ -62,7 +62,6 @@ namespace ShortGeta.Minigames.CandleOut
         // ── UI 레퍼런스 ─────────────────────────────────────────────────────
         private GameObject      _root;
         private RectTransform   _leftDoorRt, _rightDoorRt;
-        private Image           _candleImg;
         private Image           _glowImg;       // 문 너머로 비치는 광원
         private TextMeshProUGUI _scoreText;
         private TextMeshProUGUI _comboText;
@@ -309,14 +308,11 @@ namespace ShortGeta.Minigames.CandleOut
         // ── 촛불 비주얼 ─────────────────────────────────────────────────────
         private void UpdateCandleGlow(float now)
         {
-            if (_glowImg == null || _candleImg == null) return;
+            if (_glowImg == null) return;
 
             if (_candleLit)
             {
-                // 촛불 글로우: 아주 연한 주황 원 펄스 (버튼처럼 보이지 않을 정도)
-                float pulse = 0.10f + 0.08f * Mathf.Sin(now * 3.2f);
-                _candleImg.color = new Color(1f, 0.72f, 0.04f, pulse);
-                // 문 너머 광원
+                // 문 너머 광원 펄스
                 float gA = 0.12f + 0.10f * Mathf.Sin(now * 3.2f + 0.5f);
                 _glowImg.color = new Color(1f, 0.72f, 0.1f, gA);
                 if (_candleEmojiText != null)
@@ -324,8 +320,7 @@ namespace ShortGeta.Minigames.CandleOut
             }
             else
             {
-                _candleImg.color = Color.clear;
-                _glowImg.color   = Color.clear;
+                _glowImg.color = Color.clear;
                 if (_candleEmojiText != null)
                     _candleEmojiText.color = new Color(0.45f, 0.40f, 0.38f);
             }
@@ -333,16 +328,13 @@ namespace ShortGeta.Minigames.CandleOut
 
         private void UpdateCandleVisual()
         {
-            if (_candleImg == null) return;
             if (_candleLit)
             {
-                _candleImg.color = new Color(1f, 0.72f, 0.04f, 0.18f); // 미세 글로우
                 if (_glowImg != null) _glowImg.color = new Color(1f, 0.72f, 0.1f, 0.15f);
                 if (_candleEmojiText != null) _candleEmojiText.color = new Color(1f, 0.95f, 0.70f);
             }
             else
             {
-                _candleImg.color = Color.clear;
                 if (_glowImg != null) _glowImg.color = Color.clear;
                 if (_candleEmojiText != null) _candleEmojiText.color = new Color(0.45f, 0.40f, 0.38f);
             }
@@ -472,12 +464,10 @@ namespace ShortGeta.Minigames.CandleOut
             _glowImg.color = new Color(0f, 0f, 0f, 0f); // 초기값: 투명
             _glowImg.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetCircle();
 
-            // ── 4. 촛불 — 큰 원형 배경은 미세 글로우로만 사용 (버튼처럼 안 보이게) ──
+            // ── 4. 촛불 — 이모지만 사용 (원형 배경 없음, 버튼처럼 안 보이게) ───
             var candleGo = MakeRect(_root.transform, "Candle",
                 new Vector2(0.37f, 0.36f), new Vector2(0.63f, 0.62f));
-            _candleImg = candleGo.AddComponent<Image>();
-            _candleImg.sprite = ShortGeta.Core.UI.RoundedSpriteFactory.GetCircle();
-            _candleImg.color  = Color.clear; // 초기 투명 — UpdateCandleVisual() 에서 갱신
+            // Image 컴포넌트 없음 — 이모지만 렌더링
 
             var candleEmojiGo = MakeChildFill(candleGo.transform, "CandleEmoji");
             var cet = candleEmojiGo.AddComponent<TextMeshProUGUI>();
@@ -671,7 +661,8 @@ namespace ShortGeta.Minigames.CandleOut
             _timerRightImg.fillOrigin = (int)Image.OriginHorizontal.Right;
             _timerRightImg.fillAmount = 0f; // 처음엔 비어 있다가 시간이 흐를수록 채워짐
 
-            // 게임 종료 시 OnGameEnd() 에서 같이 파괴
+            // _root 의 자식으로 붙여 세션 종료 시 자동으로 같이 파괴
+            timerRoot.transform.SetParent(_root.transform, false);
             _timerRootGo = timerRoot;
         }
 
