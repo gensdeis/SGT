@@ -86,6 +86,13 @@ namespace ShortGeta.Minigames.CandleOut
         private float         _handAnimStart;
         private const float   HandAnimSec = 0.35f;
 
+        // ── 사운드 ──────────────────────────────────────────────────────────
+        private AudioSource _sfx;
+        private AudioClip   _clipDoorSlide;
+        private AudioClip   _clipCandleOut;
+        private AudioClip   _clipCandleLight;
+        private AudioClip   _clipWind;
+
         // ── IDifficultyAware ────────────────────────────────────────────────
         public void SetDifficulty(int i)
         {
@@ -104,6 +111,7 @@ namespace ShortGeta.Minigames.CandleOut
             _score   = SafeInt.From(0);
             _running = true;
             _combo   = 1;
+            LoadSounds();
             BuildUI();
             EnterState(State.Closed);
         }
@@ -159,6 +167,8 @@ namespace ShortGeta.Minigames.CandleOut
                             UpdateCandleVisual();
                             ShowEventText("💨 바람!");
                             SetStateHint("참아!");
+                            PlaySfx(_clipWind, 0.85f);
+                            PlaySfx(_clipCandleOut, 0.9f);
                         }
                         else
                         {
@@ -168,6 +178,7 @@ namespace ShortGeta.Minigames.CandleOut
                             ShowEventText("🤚 손!");
                             StartHandAnim();
                             SetStateHint("탭!");
+                            PlaySfx(_clipCandleLight, 0.9f);
                         }
                     }
 
@@ -219,6 +230,7 @@ namespace ShortGeta.Minigames.CandleOut
                     break;
 
                 case State.Opening:
+                    PlaySfx(_clipDoorSlide, 0.8f);
                     // 패턴 1·2: 문이 열리는 도중 상태 변화 (Opening 이벤트)
                     _hadOpeningEvent = false;
                     if (Random.value < eventProbability)
@@ -228,11 +240,13 @@ namespace ShortGeta.Minigames.CandleOut
                         {
                             _candleLit = false;
                             ShowEventText("💨 바람~");
+                            PlaySfx(_clipWind, 0.7f);
                         }
                         else
                         {
                             _candleLit = true;
                             ShowEventText("🖐 손~");
+                            PlaySfx(_clipCandleLight, 0.8f);
                         }
                         UpdateCandleVisual();
                     }
@@ -273,6 +287,7 @@ namespace ShortGeta.Minigames.CandleOut
 
             if (_candleLit)
             {
+                PlaySfx(_clipCandleOut, 1.0f); // 촛불 끄기 성공
                 int gain    = BaseScore * _combo;
                 _score      = _score + gain;
                 if (_score.Value > MaxScore) _score.Value = MaxScore;
@@ -400,6 +415,25 @@ namespace ShortGeta.Minigames.CandleOut
             _feedbackText.color = col;
             _feedbackText.gameObject.SetActive(true);
             _feedbackHideAt = Time.realtimeSinceStartup + 0.75f;
+        }
+
+        // ── 사운드 로드 & 재생 ───────────────────────────────────────────────
+        private void LoadSounds()
+        {
+            // AudioSource 를 이 GameObject 에 추가 (없을 경우)
+            _sfx = GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
+            _sfx.playOnAwake = false;
+
+            _clipDoorSlide   = Resources.Load<AudioClip>("Audio/CandleOut/door_slide");
+            _clipCandleOut   = Resources.Load<AudioClip>("Audio/CandleOut/candle_out");
+            _clipCandleLight = Resources.Load<AudioClip>("Audio/CandleOut/candle_light");
+            _clipWind        = Resources.Load<AudioClip>("Audio/CandleOut/wind_gust");
+        }
+
+        private void PlaySfx(AudioClip clip, float volume = 1f)
+        {
+            if (_sfx == null || clip == null) return;
+            _sfx.PlayOneShot(clip, volume);
         }
 
         private void ShowEventText(string msg)
